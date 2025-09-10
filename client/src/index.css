@@ -118,8 +118,8 @@
   .hero-gradient {
     background: linear-gradient(
       135deg,
-      rgba(45, 90, 61, 0.401) 0%,
-      rgba(184, 135, 11, 0.482) 100%
+      rgba(30, 32, 30, 0.396) 0%,
+      rgba(35, 35, 33, 0.427) 100%
     );
   }
 
