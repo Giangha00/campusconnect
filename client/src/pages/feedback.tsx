@@ -1,12 +1,18 @@
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Star } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Star } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Feedback() {
   const { toast } = useToast();
@@ -15,11 +21,12 @@ export default function Feedback() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Show toast message since this is a non-functional form for UI demonstration
     toast({
       title: "Form Submission",
-      description: "This form is for UI demonstration purposes only and does not submit data.",
+      description:
+        "This form is for UI demonstration purposes only and does not submit data.",
       duration: 5000,
     });
   };
@@ -31,17 +38,28 @@ export default function Feedback() {
   return (
     <div className="pt-16">
       {/* Hero Section */}
-      <section className="py-16 bg-gradient-to-r from-primary/10 to-secondary/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1 className="text-5xl font-bold text-foreground mb-6" data-testid="text-feedback-hero-title">
-              Event Feedback
-            </h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto" data-testid="text-feedback-hero-description">
-              We value your feedback to improve our events and services. 
-              Share your experience and help us make future events even better.
-            </p>
-          </div>
+      <section className="hero-section h-[50vh]">
+        <div
+          className="hero-background"
+          style={{
+            backgroundImage: "url('/images/schools/School_7.jpg')",
+          }}
+        />
+        <div className="absolute inset-0 hero-gradient" />
+        <div className="hero-content">
+          <h1
+            className="hero-title text-5xl"
+            data-testid="text-feedback-hero-title"
+          >
+            Event Feedback
+          </h1>
+          <p
+            className="hero-description text-xl"
+            data-testid="text-feedback-hero-description"
+          >
+            We value your feedback to improve our events and services. Share
+            your experience and help us make future events even better.
+          </p>
         </div>
       </section>
 
@@ -50,7 +68,10 @@ export default function Feedback() {
         <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
           <Card className="shadow-lg">
             <CardHeader>
-              <CardTitle className="text-2xl text-center" data-testid="text-feedback-form-title">
+              <CardTitle
+                className="text-2xl text-center"
+                data-testid="text-feedback-form-title"
+              >
                 Share Your Event Experience
               </CardTitle>
             </CardHeader>
@@ -104,13 +125,27 @@ export default function Feedback() {
                         <SelectValue placeholder="Select event" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="techfest-2024">TechFest 2024</SelectItem>
-                        <SelectItem value="cultural-week">Cultural Week 2024</SelectItem>
-                        <SelectItem value="sports-meet">Inter-College Sports Meet</SelectItem>
-                        <SelectItem value="innovation-expo">Innovation Expo</SelectItem>
-                        <SelectItem value="annual-day">Annual Day Celebration</SelectItem>
-                        <SelectItem value="robotics-championship">Robotics Championship</SelectItem>
-                        <SelectItem value="music-festival">Music Festival</SelectItem>
+                        <SelectItem value="techfest-2024">
+                          TechFest 2024
+                        </SelectItem>
+                        <SelectItem value="cultural-week">
+                          Cultural Week 2024
+                        </SelectItem>
+                        <SelectItem value="sports-meet">
+                          Inter-College Sports Meet
+                        </SelectItem>
+                        <SelectItem value="innovation-expo">
+                          Innovation Expo
+                        </SelectItem>
+                        <SelectItem value="annual-day">
+                          Annual Day Celebration
+                        </SelectItem>
+                        <SelectItem value="robotics-championship">
+                          Robotics Championship
+                        </SelectItem>
+                        <SelectItem value="music-festival">
+                          Music Festival
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -135,17 +170,22 @@ export default function Feedback() {
                           <Star
                             className={`h-6 w-6 ${
                               star <= (hoveredRating || rating)
-                                ? 'fill-secondary text-secondary'
-                                : 'text-gray-300'
+                                ? "fill-secondary text-secondary"
+                                : "text-gray-300"
                             } transition-colors`}
                           />
                         </button>
                       ))}
                     </div>
-                    <span className="text-sm text-muted-foreground">Excellent</span>
+                    <span className="text-sm text-muted-foreground">
+                      Excellent
+                    </span>
                   </div>
                   {rating > 0 && (
-                    <p className="text-sm text-primary" data-testid="text-rating-selected">
+                    <p
+                      className="text-sm text-primary"
+                      data-testid="text-rating-selected"
+                    >
                       You rated this event {rating} out of 5 stars
                     </p>
                   )}
@@ -172,7 +212,10 @@ export default function Feedback() {
                   >
                     Submit Feedback
                   </Button>
-                  <p className="text-sm text-muted-foreground" data-testid="text-demo-notice">
+                  <p
+                    className="text-sm text-muted-foreground"
+                    data-testid="text-demo-notice"
+                  >
                     * This form is for UI demonstration purposes only
                   </p>
                 </div>
@@ -186,34 +229,54 @@ export default function Feedback() {
       <section className="py-16 bg-muted">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-foreground mb-4" data-testid="text-feedback-info-title">
+            <h2
+              className="text-3xl font-bold text-foreground mb-4"
+              data-testid="text-feedback-info-title"
+            >
               Why Your Feedback Matters
             </h2>
-            <p className="text-lg text-muted-foreground" data-testid="text-feedback-info-description">
-              Your insights help us continuously improve our events and campus experience
+            <p
+              className="text-lg text-muted-foreground"
+              data-testid="text-feedback-info-description"
+            >
+              Your insights help us continuously improve our events and campus
+              experience
             </p>
           </div>
 
           <div className="grid md:grid-cols-3 gap-8">
             {[
               {
-                title: 'Event Improvement',
-                description: 'Help us identify what works well and what can be enhanced for future events'
+                title: "Event Improvement",
+                description:
+                  "Help us identify what works well and what can be enhanced for future events",
               },
               {
-                title: 'Student Satisfaction',
-                description: 'Ensure our events meet student expectations and contribute to campus life'
+                title: "Student Satisfaction",
+                description:
+                  "Ensure our events meet student expectations and contribute to campus life",
               },
               {
-                title: 'Community Building',
-                description: 'Shape events that bring our campus community closer together'
-              }
+                title: "Community Building",
+                description:
+                  "Shape events that bring our campus community closer together",
+              },
             ].map((item, index) => (
-              <Card key={index} className="text-center p-6" data-testid={`card-feedback-benefit-${index}`}>
-                <h3 className="text-xl font-semibold text-foreground mb-3" data-testid={`text-benefit-title-${index}`}>
+              <Card
+                key={index}
+                className="text-center p-6"
+                data-testid={`card-feedback-benefit-${index}`}
+              >
+                <h3
+                  className="text-xl font-semibold text-foreground mb-3"
+                  data-testid={`text-benefit-title-${index}`}
+                >
                   {item.title}
                 </h3>
-                <p className="text-muted-foreground" data-testid={`text-benefit-description-${index}`}>
+                <p
+                  className="text-muted-foreground"
+                  data-testid={`text-benefit-description-${index}`}
+                >
                   {item.description}
                 </p>
               </Card>
