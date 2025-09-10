@@ -62,22 +62,27 @@ export default function Bookmarks() {
   return (
     <div className="pt-16">
       {/* Hero Section */}
-      <section className="py-16 bg-gradient-to-r from-primary/10 to-secondary/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h1
-              className="text-5xl font-bold text-foreground mb-6"
-              data-testid="text-bookmarks-hero-title"
-            >
-              Bookmarked Events
-            </h1>
-            <p
-              className="text-xl text-muted-foreground max-w-2xl mx-auto"
-              data-testid="text-bookmarks-hero-description"
-            >
-              A list of events you have bookmarked to keep track of
-            </p>
-          </div>
+      <section className="hero-section h-[50vh]">
+        <div
+          className="hero-background"
+          style={{
+            backgroundImage: "url('/images/schools/School_7.jpg')",
+          }}
+        />
+        <div className="absolute inset-0 hero-gradient" />
+        <div className="hero-content">
+          <h1
+            className="hero-title text-5xl"
+            data-testid="text-bookmarks-hero-title"
+          >
+            Bookmarked Events
+          </h1>
+          <p
+            className="hero-description text-xl"
+            data-testid="text-bookmarks-hero-description"
+          >
+            A list of events you have bookmarked to keep track of
+          </p>
         </div>
       </section>
 

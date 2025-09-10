@@ -4,6 +4,42 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  /* Hero Section Styles */
+  .hero-section {
+    @apply relative flex items-center justify-center text-center text-white;
+  }
+
+  .hero-background {
+    @apply absolute inset-0 bg-cover bg-center bg-no-repeat;
+  }
+
+  .hero-gradient {
+    @apply absolute inset-0 bg-gradient-to-b from-black/30 via-black/50 to-black/70;
+  }
+
+  .hero-content {
+    @apply relative z-10 px-4 max-w-4xl mx-auto;
+  }
+
+  .hero-title {
+    @apply font-bold mb-6 [text-shadow:0_2px_4px_rgba(0,0,0,0.6)];
+  }
+
+  .hero-description {
+    @apply text-white/90 max-w-3xl mx-auto [text-shadow:0_1px_3px_rgba(0,0,0,0.5)];
+  }
+
+  /* Other common styles */
+  .card-hover {
+    @apply transition-transform duration-300 hover:scale-105 hover:shadow-xl;
+  }
+
+  .fade-in {
+    animation: fadeIn 1s ease-in-out;
+  }
+}
+
 :root {
   --background: hsl(0 0% 100%);
   --foreground: hsl(222.2 84% 4.9%);
