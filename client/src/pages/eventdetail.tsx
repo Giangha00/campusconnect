@@ -17,6 +17,7 @@ import {
   UserCheck,
 } from "lucide-react";
 import { useUser } from "@/contexts/user-context";
+import { useRegistration } from "@/contexts/registration-context";
 import { useEvents } from "@/hooks/use-events";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
@@ -30,15 +31,13 @@ const categoryColors = {
 
 export default function EventDetail() {
   const [, params] = useRoute("/events/:id");
+  const { user, isEventBookmarked, bookmarkEvent, unbookmarkEvent } = useUser();
   const {
-    user,
-    isEventBookmarked,
-    bookmarkEvent,
-    unbookmarkEvent,
     registerForEvent,
     unregisterFromEvent,
     isEventRegistered,
-  } = useUser();
+    getRegistrationCount,
+  } = useRegistration();
   const { events } = useEvents();
   const { toast } = useToast();
 
@@ -68,6 +67,7 @@ export default function EventDetail() {
 
   const isBookmarked = isEventBookmarked(event.id);
   const isRegistered = isEventRegistered(event.id);
+  const registrationCount = getRegistrationCount(event.id);
 
   const handleBookmarkToggle = () => {
     if (isBookmarked) {
@@ -167,11 +167,21 @@ export default function EventDetail() {
               >
                 {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
               </Badge>
-              {event.registrationRequired && (
-                <Badge variant="outline" className="text-sm">
-                  Registration Required
-                </Badge>
-              )}
+              <div className="flex gap-2 flex-wrap">
+                {event.registrationRequired && (
+                  <Badge variant="outline" className="text-sm">
+                    Registration Required
+                  </Badge>
+                )}
+                {isRegistered && (
+                  <Badge
+                    variant="default"
+                    className="text-sm bg-green-600 hover:bg-green-700"
+                  >
+                    Registered
+                  </Badge>
+                )}
+              </div>
             </div>
           </div>
 
@@ -230,17 +240,19 @@ export default function EventDetail() {
                   </div>
                 </div>
 
-                {event.capacity && (
-                  <div className="flex items-start space-x-3">
-                    <Users className="h-5 w-5 text-gray-500 mt-0.5" />
-                    <div>
-                      <p className="font-medium text-gray-900">Capacity</p>
-                      <p className="text-gray-600">
-                        {event.capacity} attendees
-                      </p>
-                    </div>
+                <div className="flex items-start space-x-3">
+                  <Users className="h-5 w-5 text-gray-500 mt-0.5" />
+                  <div>
+                    <p className="font-medium text-gray-900">
+                      {event.capacity ? "Capacity" : "Registrations"}
+                    </p>
+                    <p className="text-gray-600">
+                      {event.capacity
+                        ? `${registrationCount}/${event.capacity} attendees`
+                        : `${registrationCount} registered`}
+                    </p>
                   </div>
-                )}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -249,21 +261,23 @@ export default function EventDetail() {
             <CardContent className="p-6">
               <h3 className="text-lg font-semibold mb-4">Actions</h3>
               <div className="space-y-3">
-                {event.status === "upcoming" && (
-                  <Button
-                    className="w-full"
-                    size="lg"
-                    onClick={handleRegistrationToggle}
-                    variant={isRegistered ? "outline" : "default"}
-                  >
-                    <UserCheck className="h-4 w-4 mr-2" />
-                    {isRegistered
-                      ? "Đã đăng ký"
-                      : event.registrationRequired
-                      ? "Đăng ký sự kiện"
-                      : "Tham gia sự kiện"}
-                  </Button>
-                )}
+                {event.status === "upcoming" &&
+                  user &&
+                  user.role !== "visitor" && (
+                    <Button
+                      className="w-full"
+                      size="lg"
+                      onClick={handleRegistrationToggle}
+                      variant={isRegistered ? "outline" : "default"}
+                    >
+                      <UserCheck className="h-4 w-4 mr-2" />
+                      {isRegistered
+                        ? "Đã đăng ký"
+                        : event.registrationRequired
+                        ? "Đăng ký sự kiện"
+                        : "Tham gia sự kiện"}
+                    </Button>
+                  )}
 
                 {user && user.role !== "visitor" && (
                   <Button
