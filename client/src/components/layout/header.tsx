@@ -1,18 +1,18 @@
-import { useState } from 'react';
-import { Link, useLocation } from 'wouter';
-import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
-import { Menu } from 'lucide-react';
-import { LoginDialog } from '@/components/auth/login-dialog';
-import { useUser } from '@/contexts/user-context';
+import { useState } from "react";
+import { Link, useLocation } from "wouter";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Menu } from "lucide-react";
+import { LoginDialog } from "@/components/auth/login-dialog";
+import { useUser } from "@/contexts/user-context";
 
 const navigation = [
-  { name: 'Trang chủ', href: '/' },
-  { name: 'Giới thiệu', href: '/about' },
-  { name: 'Sự kiện', href: '/events' },
-  { name: 'Thư viện ảnh', href: '/gallery' },
-  { name: 'Phản hồi', href: '/feedback' },
-  { name: 'Liên hệ', href: '/contact' },
+  { name: "Trang chủ", href: "/" },
+  { name: "Giới thiệu", href: "/about" },
+  { name: "Sự kiện", href: "/events" },
+  { name: "Thư viện ảnh", href: "/gallery" },
+  { name: "Phản hồi", href: "/feedback" },
+  { name: "Liên hệ", href: "/contact" },
 ];
 
 export function Header() {
@@ -22,13 +22,13 @@ export function Header() {
 
   // Add bookmarks navigation for authenticated users
   let userNavigation = [...navigation];
-  
-  if (user && user.role !== 'visitor') {
-    userNavigation.push({ name: 'Sự kiện đã lưu', href: '/bookmarks' });
+
+  if (user && user.role !== "visitor") {
+    userNavigation.push({ name: "Sự kiện đã lưu", href: "/bookmarks" });
   }
-  
-  if (user && user.role === 'faculty') {
-    userNavigation.push({ name: 'Quản lý sự kiện', href: '/faculty-dashboard' });
+
+  if (user && user.role === "faculty") {
+    userNavigation.push({ name: "Quản lý sự kiện", href: "/admin" });
   }
 
   return (
@@ -36,7 +36,11 @@ export function Header() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
-            <Link href="/" className="flex-shrink-0" data-testid="link-home-logo">
+            <Link
+              href="/"
+              className="flex-shrink-0"
+              data-testid="link-home-logo"
+            >
               <h1 className="text-2xl font-bold text-primary">CampusConnect</h1>
             </Link>
           </div>
@@ -54,8 +58,8 @@ export function Header() {
                     variant="ghost"
                     className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
                       location === item.href
-                        ? 'text-primary bg-accent'
-                        : 'text-foreground hover:text-primary hover:bg-accent'
+                        ? "text-primary bg-accent"
+                        : "text-foreground hover:text-primary hover:bg-accent"
                     }`}
                   >
                     {item.name}
@@ -95,8 +99,8 @@ export function Header() {
                         variant="ghost"
                         className={`w-full justify-start text-left ${
                           location === item.href
-                            ? 'text-primary bg-accent'
-                            : 'text-foreground hover:text-primary hover:bg-accent'
+                            ? "text-primary bg-accent"
+                            : "text-foreground hover:text-primary hover:bg-accent"
                         }`}
                       >
                         {item.name}

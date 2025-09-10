@@ -1,26 +1,42 @@
-import { Event } from '@/types/event';
-import { Card, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { formatDate } from '@/lib/date-utils';
-import { Clock, MapPin, User, Users, Bookmark, BookmarkCheck } from 'lucide-react';
-import { useUser } from '@/contexts/user-context';
+import { Event } from "@/types/event";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { formatDate } from "@/lib/date-utils";
+import {
+  Clock,
+  MapPin,
+  User,
+  Users,
+  Bookmark,
+  BookmarkCheck,
+} from "lucide-react";
+import { useUser } from "@/contexts/user-context";
+import { useRegistration } from "@/contexts/registration-context";
 
 interface EventCardProps {
   event: Event;
-  variant?: 'default' | 'highlight';
+  variant?: "default" | "highlight";
 }
 
 const categoryColors = {
-  academic: 'bg-primary text-primary-foreground',
-  cultural: 'bg-secondary text-secondary-foreground',
-  sports: 'bg-destructive text-destructive-foreground',
-  departmental: 'bg-accent text-accent-foreground',
+  academic: "bg-primary text-primary-foreground",
+  cultural: "bg-secondary text-secondary-foreground",
+  sports: "bg-destructive text-destructive-foreground",
+  departmental: "bg-accent text-accent-foreground",
 };
 
-export function EventCard({ event, variant = 'default' }: EventCardProps) {
+export function EventCard({ event, variant = "default" }: EventCardProps) {
   const { user, isEventBookmarked, bookmarkEvent, unbookmarkEvent } = useUser();
+  const {
+    isUserRegistered,
+    registerForEvent,
+    unregisterFromEvent,
+    getRegistrationCount,
+  } = useRegistration();
   const isBookmarked = isEventBookmarked(event.id);
+  const registered = isUserRegistered(event.id, user?.id);
+  const regCount = getRegistrationCount(event.id);
 
   const handleBookmarkToggle = () => {
     if (isBookmarked) {
@@ -30,8 +46,26 @@ export function EventCard({ event, variant = 'default' }: EventCardProps) {
     }
   };
 
+  const handleRegisterToggle = () => {
+    if (!user) return; // guarded by UI
+    if (registered) {
+      unregisterFromEvent(event.id);
+    } else {
+      registerForEvent(event.id);
+    }
+  };
+
+  const capacityText = event.capacity
+    ? `${regCount}${
+        typeof event.capacity === "number" ? `/${event.capacity}` : ""
+      }`
+    : `${regCount}`;
+
   return (
-    <Card className="overflow-hidden shadow-lg card-hover" data-testid={`card-event-${event.id}`}>
+    <Card
+      className="overflow-hidden shadow-lg card-hover"
+      data-testid={`card-event-${event.id}`}
+    >
       <div className="aspect-video relative overflow-hidden">
         <img
           src={event.image}
@@ -39,14 +73,14 @@ export function EventCard({ event, variant = 'default' }: EventCardProps) {
           className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
         />
         <div className="absolute top-4 left-4 flex gap-2">
-          {variant === 'highlight' && (
+          {variant === "highlight" && (
             <Badge className="bg-primary text-primary-foreground">
               Featured
             </Badge>
           )}
         </div>
-        {user && user.role !== 'visitor' && (
-          <div className="absolute top-4 right-4">
+        {user && user.role !== "visitor" && (
+          <div className="absolute top-4 right-4 flex gap-2">
             <Button
               variant="secondary"
               size="sm"
@@ -63,50 +97,63 @@ export function EventCard({ event, variant = 'default' }: EventCardProps) {
           </div>
         )}
       </div>
-      
+
       <CardContent className="p-6">
         <div className="flex items-center justify-between mb-3">
           <Badge className={categoryColors[event.category]}>
             {event.category.charAt(0).toUpperCase() + event.category.slice(1)}
           </Badge>
-          <span className="text-sm text-muted-foreground" data-testid={`text-event-date-${event.id}`}>
+          <span
+            className="text-sm text-muted-foreground"
+            data-testid={`text-event-date-${event.id}`}
+          >
             {formatDate(event.date)}
           </span>
         </div>
-        
-        <h3 className="text-xl font-bold text-card-foreground mb-3" data-testid={`text-event-title-${event.id}`}>
+
+        <h3
+          className="text-xl font-bold text-card-foreground mb-3"
+          data-testid={`text-event-title-${event.id}`}
+        >
           {event.name}
         </h3>
-        
-        <p className="text-muted-foreground mb-4 line-clamp-2" data-testid={`text-event-description-${event.id}`}>
+
+        <p
+          className="text-muted-foreground mb-4 line-clamp-2"
+          data-testid={`text-event-description-${event.id}`}
+        >
           {event.description}
         </p>
-        
+
         <div className="space-y-2 text-sm text-muted-foreground">
           <div className="flex items-center space-x-2">
             <Clock className="h-4 w-4" />
-            <span data-testid={`text-event-time-${event.id}`}>{event.time}</span>
+            <span data-testid={`text-event-time-${event.id}`}>
+              {event.time}
+            </span>
           </div>
-          
+
           <div className="flex items-center space-x-2">
             <MapPin className="h-4 w-4" />
-            <span data-testid={`text-event-venue-${event.id}`}>{event.venue}</span>
+            <span data-testid={`text-event-venue-${event.id}`}>
+              {event.venue}
+            </span>
           </div>
-          
+
           <div className="flex items-center space-x-2">
             <User className="h-4 w-4" />
-            <span data-testid={`text-event-organizer-${event.id}`}>{event.organizer}</span>
+            <span data-testid={`text-event-organizer-${event.id}`}>
+              {event.organizer}
+            </span>
           </div>
-          
-          {event.capacity && (
-            <div className="flex items-center space-x-2">
-              <Users className="h-4 w-4" />
-              <span data-testid={`text-event-capacity-${event.id}`}>
-                Capacity: {event.capacity} attendees
-              </span>
-            </div>
-          )}
-          
+
+          <div className="flex items-center space-x-2">
+            <Users className="h-4 w-4" />
+            <span data-testid={`text-event-capacity-${event.id}`}>
+              Đã đăng ký: {capacityText}
+            </span>
+          </div>
+
           {event.registrationRequired && (
             <div className="mt-3">
               <Badge variant="outline" className="text-xs">
@@ -115,6 +162,20 @@ export function EventCard({ event, variant = 'default' }: EventCardProps) {
             </div>
           )}
         </div>
+
+        {/* Register/Unregister actions */}
+        {event.registrationRequired && user && (
+          <div className="mt-4">
+            <Button
+              className="w-full"
+              onClick={handleRegisterToggle}
+              data-testid={`button-register-${event.id}`}
+              variant={registered ? "secondary" : "default"}
+            >
+              {registered ? "Hủy đăng ký" : "Đăng ký tham gia"}
+            </Button>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
