@@ -1,14 +1,26 @@
-import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { UserRole } from '@/types/event';
-import { useUser } from '@/contexts/user-context';
-import { User, LogIn, LogOut } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { useState } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { UserRole } from "@/types/event";
+import { useUser } from "@/contexts/user-context";
+import { User, LogIn, LogOut } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface LoginDialogProps {
   children?: React.ReactNode;
@@ -16,15 +28,15 @@ interface LoginDialogProps {
 
 export function LoginDialog({ children }: LoginDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [name, setName] = useState('');
-  const [role, setRole] = useState<UserRole>('student');
-  const [department, setDepartment] = useState('');
+  const [name, setName] = useState("");
+  const [role, setRole] = useState<UserRole>("student");
+  const [department, setDepartment] = useState("");
   const { user, setUser } = useUser();
   const { toast } = useToast();
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!name.trim()) {
       toast({
         title: "Lỗi",
@@ -40,13 +52,14 @@ export function LoginDialog({ children }: LoginDialogProps) {
       role,
       department: department.trim() || undefined,
       bookmarkedEvents: [],
+      registeredEvents: [],
     };
 
     setUser(newUser);
     setIsOpen(false);
-    setName('');
-    setDepartment('');
-    setRole('student');
+    setName("");
+    setDepartment("");
+    setRole("student");
 
     toast({
       title: "Đăng nhập thành công",
@@ -64,9 +77,12 @@ export function LoginDialog({ children }: LoginDialogProps) {
 
   const getRoleLabel = (role: UserRole) => {
     switch (role) {
-      case 'student': return 'Sinh viên';
-      case 'faculty': return 'Giảng viên/Khoa';
-      case 'visitor': return 'Khách truy cập';
+      case "student":
+        return "Sinh viên";
+      case "faculty":
+        return "Giảng viên/Khoa";
+      case "visitor":
+        return "Khách truy cập";
     }
   };
 
@@ -76,7 +92,9 @@ export function LoginDialog({ children }: LoginDialogProps) {
         <div className="flex items-center space-x-2 text-sm">
           <User className="h-4 w-4" />
           <span className="font-medium">{user.name}</span>
-          <span className="text-muted-foreground">({getRoleLabel(user.role)})</span>
+          <span className="text-muted-foreground">
+            ({getRoleLabel(user.role)})
+          </span>
         </div>
         <Button
           variant="outline"
@@ -105,7 +123,7 @@ export function LoginDialog({ children }: LoginDialogProps) {
         <DialogHeader>
           <DialogTitle>Đăng nhập CampusConnect</DialogTitle>
         </DialogHeader>
-        
+
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Thông tin người dùng</CardTitle>
@@ -127,7 +145,10 @@ export function LoginDialog({ children }: LoginDialogProps) {
 
               <div className="space-y-2">
                 <Label htmlFor="role">Vai trò *</Label>
-                <Select value={role} onValueChange={(value: UserRole) => setRole(value)}>
+                <Select
+                  value={role}
+                  onValueChange={(value: UserRole) => setRole(value)}
+                >
                   <SelectTrigger data-testid="select-login-role">
                     <SelectValue placeholder="Chọn vai trò" />
                   </SelectTrigger>
@@ -139,7 +160,7 @@ export function LoginDialog({ children }: LoginDialogProps) {
                 </Select>
               </div>
 
-              {role !== 'visitor' && (
+              {role !== "visitor" && (
                 <div className="space-y-2">
                   <Label htmlFor="department">Khoa/Bộ môn</Label>
                   <Input
