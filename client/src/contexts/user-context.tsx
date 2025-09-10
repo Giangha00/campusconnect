@@ -16,11 +16,12 @@ const LS_USERNAME_KEY = "campusconnect-username";
 interface Account {
   id: string;
   username: string;
-  password: string; // NOTE: frontend-only demo. Do NOT use plaintext in production.
+  password: string;
   name: string;
   role: UserRole;
   department?: string;
   bookmarkedEvents: number[];
+  registeredEvents: number[];
 }
 
 function loadAccounts(): Account[] {
@@ -47,6 +48,9 @@ interface UserContextType {
   bookmarkEvent: (eventId: number) => void;
   unbookmarkEvent: (eventId: number) => void;
   isEventBookmarked: (eventId: number) => boolean;
+  registerForEvent: (eventId: number) => void;
+  unregisterFromEvent: (eventId: number) => void;
+  isEventRegistered: (eventId: number) => boolean;
   // Auth API (frontend-only)
   login: (
     username: string,
@@ -144,6 +148,35 @@ export function UserProvider({ children }: UserProviderProps) {
     return user.bookmarkedEvents.includes(eventId);
   };
 
+  const registerForEvent = (eventId: number) => {
+    if (!user) return;
+
+    if (user.registeredEvents.includes(eventId)) return; // no-op if already registered
+
+    const updatedUser: User = {
+      ...user,
+      registeredEvents: [...user.registeredEvents, eventId],
+    };
+    setUser(updatedUser);
+    persistBookmarksToAccount(updatedUser);
+  };
+
+  const unregisterFromEvent = (eventId: number) => {
+    if (!user) return;
+
+    const updatedUser: User = {
+      ...user,
+      registeredEvents: user.registeredEvents.filter((id) => id !== eventId),
+    };
+    setUser(updatedUser);
+    persistBookmarksToAccount(updatedUser);
+  };
+
+  const isEventRegistered = (eventId: number): boolean => {
+    if (!user) return false;
+    return user.registeredEvents.includes(eventId);
+  };
+
   // Frontend-only login
   const login: UserContextType["login"] = (username, password) => {
     const accounts = loadAccounts();
@@ -161,6 +194,7 @@ export function UserProvider({ children }: UserProviderProps) {
       role: account.role,
       department: account.department,
       bookmarkedEvents: account.bookmarkedEvents || [],
+      registeredEvents: account.registeredEvents || [],
     };
     setUser(loggedUser);
     setCurrentUsername(account.username);
@@ -190,6 +224,7 @@ export function UserProvider({ children }: UserProviderProps) {
       role,
       department: department?.trim() || undefined,
       bookmarkedEvents: [],
+      registeredEvents: [],
     };
 
     const next = [...accounts, newAccount];
@@ -201,6 +236,7 @@ export function UserProvider({ children }: UserProviderProps) {
       role: newAccount.role,
       department: newAccount.department,
       bookmarkedEvents: [],
+      registeredEvents: [],
     };
 
     setUser(newUser);
@@ -220,6 +256,9 @@ export function UserProvider({ children }: UserProviderProps) {
     bookmarkEvent,
     unbookmarkEvent,
     isEventBookmarked,
+    registerForEvent,
+    unregisterFromEvent,
+    isEventRegistered,
     login,
     register,
     logout,

@@ -32,11 +32,9 @@ export function LoginDialog({ children }: LoginDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [mode, setMode] = useState<Mode>("login");
 
-  // login state
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
-  // register state
   const [regUsername, setRegUsername] = useState("");
   const [regPassword, setRegPassword] = useState("");
   const [name, setName] = useState("");

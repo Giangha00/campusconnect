@@ -26,4 +26,5 @@ export interface User {
   role: UserRole;
   department?: string;
   bookmarkedEvents: number[];
+  registeredEvents: number[];
 }
