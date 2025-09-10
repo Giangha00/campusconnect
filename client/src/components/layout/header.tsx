@@ -47,7 +47,7 @@ export function Header() {
               <img
                 src="/images/logo.webp"
                 alt="CampusConnect Logo"
-                className="h-8 w-auto"
+                className="h-10 w-auto invert"
               />
             </Link>
           </div>
