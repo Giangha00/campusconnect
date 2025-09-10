@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Search, X } from 'lucide-react';
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Search, X } from "lucide-react";
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
@@ -9,8 +9,12 @@ interface SearchBarProps {
   className?: string;
 }
 
-export function SearchBar({ onSearch, placeholder = "Tìm kiếm sự kiện...", className }: SearchBarProps) {
-  const [query, setQuery] = useState('');
+export function SearchBar({
+  onSearch,
+  placeholder = "Search events...",
+  className,
+}: SearchBarProps) {
+  const [query, setQuery] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,12 +22,15 @@ export function SearchBar({ onSearch, placeholder = "Tìm kiếm sự kiện..."
   };
 
   const handleClear = () => {
-    setQuery('');
-    onSearch('');
+    setQuery("");
+    onSearch("");
   };
 
   return (
-    <form onSubmit={handleSubmit} className={`relative flex gap-2 ${className}`}>
+    <form
+      onSubmit={handleSubmit}
+      className={`relative flex gap-2 ${className}`}
+    >
       <div className="relative flex-1">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input
@@ -48,7 +55,7 @@ export function SearchBar({ onSearch, placeholder = "Tìm kiếm sự kiện..."
         )}
       </div>
       <Button type="submit" data-testid="button-search">
-        Tìm kiếm
+        Search
       </Button>
     </form>
   );

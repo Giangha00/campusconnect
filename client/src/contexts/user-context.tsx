@@ -48,9 +48,6 @@ interface UserContextType {
   bookmarkEvent: (eventId: number) => void;
   unbookmarkEvent: (eventId: number) => void;
   isEventBookmarked: (eventId: number) => boolean;
-  registerForEvent: (eventId: number) => void;
-  unregisterFromEvent: (eventId: number) => void;
-  isEventRegistered: (eventId: number) => boolean;
   // Auth API (frontend-only)
   login: (
     username: string,
@@ -148,44 +145,15 @@ export function UserProvider({ children }: UserProviderProps) {
     return user.bookmarkedEvents.includes(eventId);
   };
 
-  const registerForEvent = (eventId: number) => {
-    if (!user) return;
-
-    if (user.registeredEvents.includes(eventId)) return; // no-op if already registered
-
-    const updatedUser: User = {
-      ...user,
-      registeredEvents: [...user.registeredEvents, eventId],
-    };
-    setUser(updatedUser);
-    persistBookmarksToAccount(updatedUser);
-  };
-
-  const unregisterFromEvent = (eventId: number) => {
-    if (!user) return;
-
-    const updatedUser: User = {
-      ...user,
-      registeredEvents: user.registeredEvents.filter((id) => id !== eventId),
-    };
-    setUser(updatedUser);
-    persistBookmarksToAccount(updatedUser);
-  };
-
-  const isEventRegistered = (eventId: number): boolean => {
-    if (!user) return false;
-    return user.registeredEvents.includes(eventId);
-  };
-
   // Frontend-only login
   const login: UserContextType["login"] = (username, password) => {
     const accounts = loadAccounts();
     const account = accounts.find((a) => a.username === username);
     if (!account) {
-      return { ok: false, message: "Tài khoản không tồn tại" };
+      return { ok: false, message: "Account does not exist" };
     }
     if (account.password !== password) {
-      return { ok: false, message: "Mật khẩu không đúng" };
+      return { ok: false, message: "Incorrect password" };
     }
 
     const loggedUser: User = {
@@ -212,7 +180,7 @@ export function UserProvider({ children }: UserProviderProps) {
     const accounts = loadAccounts();
     const exists = accounts.some((a) => a.username === username);
     if (exists) {
-      return { ok: false, message: "Username đã tồn tại" };
+      return { ok: false, message: "Username already exists" };
     }
 
     const id = generateId();
@@ -256,9 +224,6 @@ export function UserProvider({ children }: UserProviderProps) {
     bookmarkEvent,
     unbookmarkEvent,
     isEventBookmarked,
-    registerForEvent,
-    unregisterFromEvent,
-    isEventRegistered,
     login,
     register,
     logout,

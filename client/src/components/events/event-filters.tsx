@@ -1,6 +1,12 @@
-import { EventCategory, EventSortBy } from '@/types/event';
-import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { EventCategory, EventSortBy } from "@/types/event";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface EventFiltersProps {
   currentFilter: EventCategory;
@@ -10,17 +16,17 @@ interface EventFiltersProps {
 }
 
 const filterOptions: { value: EventCategory; label: string }[] = [
-  { value: 'all', label: 'Tất cả sự kiện' },
-  { value: 'academic', label: 'Học thuật' },
-  { value: 'cultural', label: 'Văn hóa' },
-  { value: 'sports', label: 'Thể thao' },
-  { value: 'departmental', label: 'Khoa/Bộ môn' },
+  { value: "all", label: "All Events" },
+  { value: "academic", label: "Academic" },
+  { value: "cultural", label: "Cultural" },
+  { value: "sports", label: "Sports" },
+  { value: "departmental", label: "Departmental" },
 ];
 
 const sortOptions: { value: EventSortBy; label: string }[] = [
-  { value: 'date', label: 'Sắp xếp theo ngày' },
-  { value: 'name', label: 'Sắp xếp theo tên' },
-  { value: 'category', label: 'Sắp xếp theo loại' },
+  { value: "date", label: "Sort by date" },
+  { value: "name", label: "Sort by name" },
+  { value: "category", label: "Sort by category" },
 ];
 
 export function EventFilters({
@@ -36,7 +42,7 @@ export function EventFilters({
         {filterOptions.map((option) => (
           <Button
             key={option.value}
-            variant={currentFilter === option.value ? 'default' : 'outline'}
+            variant={currentFilter === option.value ? "default" : "outline"}
             onClick={() => onFilterChange(option.value)}
             className="transition-all duration-200"
             data-testid={`button-filter-${option.value}`}

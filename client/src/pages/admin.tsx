@@ -36,9 +36,9 @@ export default function AdminPage() {
       <div className="pt-20 max-w-3xl mx-auto px-4">
         <Card>
           <CardContent className="p-8 text-center">
-            <h1 className="text-2xl font-bold mb-2">Không có quyền truy cập</h1>
+            <h1 className="text-2xl font-bold mb-2">Access Denied</h1>
             <p className="text-muted-foreground">
-              Trang này chỉ dành cho Giảng viên/Khoa.
+              This page is for Faculty members only.
             </p>
           </CardContent>
         </Card>
@@ -82,15 +82,15 @@ export default function AdminPage() {
   return (
     <div className="pt-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold">Bảng điều khiển Admin</h1>
+        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
         <p className="text-muted-foreground">
-          Quản lý sự kiện và xem danh sách người đăng ký
+          Manage events and view registrant lists
         </p>
       </div>
 
       <div className="mb-6 max-w-md">
         <Input
-          placeholder="Tìm kiếm sự kiện..."
+          placeholder="Search events..."
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           data-testid="input-admin-search"
@@ -114,7 +114,7 @@ export default function AdminPage() {
                     <div className="mt-2 flex gap-2 items-center text-sm">
                       <Badge>{event.category}</Badge>
                       {event.registrationRequired && (
-                        <Badge variant="outline">Yêu cầu đăng ký</Badge>
+                        <Badge variant="outline">Registration Required</Badge>
                       )}
                       {typeof event.capacity === "number" && (
                         <span className="flex items-center gap-1 text-muted-foreground">
@@ -127,7 +127,7 @@ export default function AdminPage() {
                     <Button
                       variant="outline"
                       size="icon"
-                      title={isOpen ? "Ẩn danh sách" : "Xem danh sách"}
+                      title={isOpen ? "Hide list" : "View list"}
                       onClick={() =>
                         setExpanded((prev) => ({
                           ...prev,
@@ -145,7 +145,7 @@ export default function AdminPage() {
                     <Button
                       variant="outline"
                       size="icon"
-                      title="Xuất danh sách CSV"
+                      title="Export CSV list"
                       onClick={() => exportCSV(event.id)}
                       data-testid={`button-export-csv-${event.id}`}
                     >
@@ -161,7 +161,7 @@ export default function AdminPage() {
                   >
                     {registrations.length === 0 ? (
                       <div className="text-sm text-muted-foreground">
-                        Chưa có người đăng ký
+                        No registrants yet
                       </div>
                     ) : (
                       registrations.map((r) => (
