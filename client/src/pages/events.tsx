@@ -1,19 +1,33 @@
-import { EventCard } from '@/components/events/event-card';
-import { EventFilters } from '@/components/events/event-filters';
-import { SearchBar } from '@/components/search/search-bar';
-import { useEvents } from '@/hooks/use-events';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { Calendar, Clock, MapPin, User } from 'lucide-react';
+import { EventCard } from "@/components/events/event-card";
+import { EventFilters } from "@/components/events/event-filters";
+import { SearchBar } from "@/components/search/search-bar";
+import { useEvents } from "@/hooks/use-events";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Calendar, Clock, MapPin, User } from "lucide-react";
 
 export default function Events() {
-  const { events, filter, setFilter, sortBy, setSortBy, searchQuery, setSearchQuery } = useEvents();
-  
+  const {
+    events,
+    filter,
+    setFilter,
+    sortBy,
+    setSortBy,
+    searchQuery,
+    setSearchQuery,
+  } = useEvents();
+
   const sortOptions = [
-    { value: 'date', label: 'Sắp xếp theo ngày', icon: Calendar },
-    { value: 'name', label: 'Sắp xếp theo tên', icon: User },
-    { value: 'venue', label: 'Sắp xếp theo địa điểm', icon: MapPin },
-    { value: 'time', label: 'Sắp xếp theo thời gian', icon: Clock },
+    { value: "date", label: "Sort by date", icon: Calendar },
+    { value: "name", label: "Sort by name", icon: User },
+    { value: "venue", label: "Sort by venue", icon: MapPin },
+    { value: "time", label: "Sort by time", icon: Clock },
   ];
 
   return (
@@ -22,12 +36,18 @@ export default function Events() {
       <section className="py-16 bg-gradient-to-r from-primary/10 to-secondary/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h1 className="text-5xl font-bold text-foreground mb-6" data-testid="text-events-hero-title">
-              Lịch Sự Kiện
+            <h1
+              className="text-5xl font-bold text-foreground mb-6"
+              data-testid="text-events-hero-title"
+            >
+              Event Calendar
             </h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto" data-testid="text-events-hero-description">
-              Khám phá danh sách đầy đủ các sự kiện sắp tới và đã qua. Lọc theo danh mục 
-              và sắp xếp để tìm chính xác những gì bạn quan tâm.
+            <p
+              className="text-xl text-muted-foreground max-w-2xl mx-auto"
+              data-testid="text-events-hero-description"
+            >
+              Explore the full list of upcoming and past events. Filter by
+              category and sort to find exactly what you're interested in.
             </p>
           </div>
         </div>
@@ -39,10 +59,10 @@ export default function Events() {
           <div className="max-w-2xl mx-auto">
             <SearchBar
               onSearch={setSearchQuery}
-              placeholder="Tìm kiếm theo tên, mô tả, khoa, địa điểm, chủ đề..."
+              placeholder="Search by name, description, department, venue, topic..."
             />
           </div>
-          
+
           <div className="flex flex-wrap gap-4 justify-center items-center">
             <EventFilters
               currentFilter={filter}
@@ -50,15 +70,17 @@ export default function Events() {
               currentSort={sortBy}
               onSortChange={setSortBy}
             />
-            
+
             <div className="flex gap-2 items-center">
-              <span className="text-sm font-medium text-muted-foreground">Sắp xếp nâng cao:</span>
+              <span className="text-sm font-medium text-muted-foreground">
+                Advanced Sort:
+              </span>
               {sortOptions.map((option) => {
                 const IconComponent = option.icon;
                 return (
                   <Button
                     key={option.value}
-                    variant={sortBy === option.value ? 'default' : 'outline'}
+                    variant={sortBy === option.value ? "default" : "outline"}
                     size="sm"
                     onClick={() => setSortBy(option.value as any)}
                     className="gap-2"
@@ -79,27 +101,48 @@ export default function Events() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {events.length === 0 ? (
             <div className="text-center py-12">
-              <h3 className="text-2xl font-semibold text-foreground mb-4" data-testid="text-no-events-title">
-                Không tìm thấy sự kiện
+              <h3
+                className="text-2xl font-semibold text-foreground mb-4"
+                data-testid="text-no-events-title"
+              >
+                No Events Found
               </h3>
-              <p className="text-muted-foreground" data-testid="text-no-events-description">
-                {searchQuery ? `Không có sự kiện nào khớp với từ khóa "${searchQuery}". Thử tìm kiếm với từ khóa khác.` : 'Không có sự kiện nào phù hợp với tiêu chí lọc hiện tại. Thử chọn danh mục khác.'}
+              <p
+                className="text-muted-foreground"
+                data-testid="text-no-events-description"
+              >
+                {searchQuery
+                  ? `No events match the keyword "${searchQuery}". Try searching with a different keyword.`
+                  : "No events match the current filter criteria. Try selecting a different category."}
               </p>
             </div>
           ) : (
             <>
               <div className="mb-8">
-                <h2 className="text-2xl font-semibold text-foreground" data-testid="text-events-count">
-                  Hiển thị {events.length} sự kiện
+                <h2
+                  className="text-2xl font-semibold text-foreground"
+                  data-testid="text-events-count"
+                >
+                  Showing {events.length} events
                   {searchQuery && (
                     <span className="text-muted-foreground">
-                      {' '}cho "{searchQuery}"
+                      {" "}
+                      for "{searchQuery}"
                     </span>
                   )}
-                  {filter !== 'all' && (
+                  {filter !== "all" && (
                     <span className="text-muted-foreground">
-                      {' '}trong danh mục{' '}
-                      <span className="capitalize">{filter === 'academic' ? 'Học thuật' : filter === 'cultural' ? 'Văn hóa' : filter === 'sports' ? 'Thể thao' : 'Khoa/Bộ môn'}</span>
+                      {" "}
+                      in category{" "}
+                      <span className="capitalize">
+                        {filter === "academic"
+                          ? "Academic"
+                          : filter === "cultural"
+                          ? "Cultural"
+                          : filter === "sports"
+                          ? "Sports"
+                          : "Departmental"}
+                      </span>
                     </span>
                   )}
                 </h2>
@@ -118,14 +161,25 @@ export default function Events() {
       {/* Call to Action */}
       <section className="py-16 bg-primary text-primary-foreground">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold mb-4" data-testid="text-events-cta-title">
-            Đừng bỏ lỡ các sự kiện trường học
+          <h2
+            className="text-3xl font-bold mb-4"
+            data-testid="text-events-cta-title"
+          >
+            Don't Miss Out on Campus Events
           </h2>
-          <p className="text-xl text-primary-foreground/90 mb-6" data-testid="text-events-cta-description">
-            Kết nối với cộng đồng trường học và tận dụng tối đa trải nghiệm đại học của bạn.
+          <p
+            className="text-xl text-primary-foreground/90 mb-6"
+            data-testid="text-events-cta-description"
+          >
+            Connect with the campus community and make the most of your
+            university experience.
           </p>
-          <p className="text-primary-foreground/80" data-testid="text-events-cta-note">
-            Để đăng ký sự kiện và biết thêm thông tin, hãy liên hệ với ban tổ chức tương ứng hoặc đến văn phòng công tác sinh viên.
+          <p
+            className="text-primary-foreground/80"
+            data-testid="text-events-cta-note"
+          >
+            For event registration and more information, please contact the
+            respective organizers or visit the student affairs office.
           </p>
         </div>
       </section>

@@ -7,12 +7,12 @@ import { LoginDialog } from "@/components/auth/login-dialog";
 import { useUser } from "@/contexts/user-context";
 
 const navigation = [
-  { name: "Trang chủ", href: "/" },
-  { name: "Giới thiệu", href: "/about" },
-  { name: "Sự kiện", href: "/events" },
-  { name: "Thư viện ảnh", href: "/gallery" },
-  { name: "Phản hồi", href: "/feedback" },
-  { name: "Liên hệ", href: "/contact" },
+  { name: "Home", href: "/" },
+  { name: "About", href: "/about" },
+  { name: "Events", href: "/events" },
+  { name: "Gallery", href: "/gallery" },
+  { name: "Feedback", href: "/feedback" },
+  { name: "Contact", href: "/contact" },
 ];
 
 export function Header() {
@@ -20,24 +20,27 @@ export function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { user } = useUser();
 
-  // Add bookmarks navigation for authenticated users
   let userNavigation = [...navigation];
 
   if (user && user.role !== "visitor") {
-    userNavigation.push({ name: "Sự kiện đã lưu", href: "/bookmarks" });
+    userNavigation.push({ name: "Bookmarks", href: "/bookmarks" });
   }
 
   if (user && user.role === "faculty") {
     userNavigation.push({
-      name: "Quản lý sự kiện",
-      href: "/faculty-dashboard",
+      name: "Admin",
+      href: "/admin",
     });
   }
 
   return (
     <nav className="bg-white shadow-md fixed top-0 w-full z-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-16">
+      <div
+        className={`${
+          user && user.role === "faculty" ? "max-w-full" : "max-w-7xl"
+        } mx-auto px-4 sm:px-6 lg:px-8`}
+      >
+        <div className="flex justify-between items-center h-16 min-w-0">
           <div className="flex items-center">
             <Link
               href="/"
@@ -52,8 +55,13 @@ export function Header() {
             </Link>
           </div>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex md:items-center md:space-x-4">
+          <div
+            className={`hidden ${
+              user && user.role === "faculty"
+                ? "xl:flex xl:items-center xl:space-x-4"
+                : "lg:flex lg:items-center lg:space-x-4"
+            } lg:flex-1 lg:justify-end`}
+          >
             <div className="flex items-baseline space-x-4">
               {userNavigation.map((item) => (
                 <Link
@@ -77,7 +85,84 @@ export function Header() {
             <LoginDialog />
           </div>
 
-          {/* Mobile Navigation */}
+          <div
+            className={`hidden md:flex ${
+              user && user.role === "faculty" ? "xl:hidden" : "lg:hidden"
+            } md:items-center md:space-x-2`}
+          >
+            <div className="flex items-baseline space-x-1 lg:space-x-2">
+              {userNavigation
+                .slice(0, user && user.role === "faculty" ? 3 : 4)
+                .map((item) => (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    data-testid={`link-nav-${item.name.toLowerCase()}`}
+                  >
+                    <Button
+                      variant="ghost"
+                      className={`px-2 py-2 rounded-md ${
+                        user && user.role === "faculty"
+                          ? "text-xs"
+                          : "text-xs lg:text-sm"
+                      } font-medium transition-colors ${
+                        location === item.href
+                          ? "text-primary bg-accent"
+                          : "text-foreground hover:text-primary hover:bg-accent"
+                      }`}
+                    >
+                      {item.name}
+                    </Button>
+                  </Link>
+                ))}
+            </div>
+            <div className="flex items-center space-x-1">
+              {userNavigation.length >
+                (user && user.role === "faculty" ? 3 : 4) && (
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="px-2 py-2 text-xs"
+                      data-testid="button-tablet-more"
+                    >
+                      More
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="right" className="w-[300px]">
+                    <div className="flex flex-col space-y-4 mt-6">
+                      <div className="pb-4 border-b">
+                        <LoginDialog />
+                      </div>
+                      {userNavigation
+                        .slice(user && user.role === "faculty" ? 3 : 4)
+                        .map((item) => (
+                          <Link
+                            key={item.name}
+                            href={item.href}
+                            data-testid={`link-tablet-nav-${item.name.toLowerCase()}`}
+                          >
+                            <Button
+                              variant="ghost"
+                              className={`w-full justify-start text-left ${
+                                location === item.href
+                                  ? "text-primary bg-accent"
+                                  : "text-foreground hover:text-primary hover:bg-accent"
+                              }`}
+                            >
+                              {item.name}
+                            </Button>
+                          </Link>
+                        ))}
+                    </div>
+                  </SheetContent>
+                </Sheet>
+              )}
+              <LoginDialog />
+            </div>
+          </div>
+
           <div className="md:hidden">
             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>
