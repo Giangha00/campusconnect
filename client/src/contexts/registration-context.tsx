@@ -74,11 +74,15 @@ export function RegistrationProvider({
   const registerForEvent: RegistrationContextType["registerForEvent"] = (
     eventId
   ) => {
-    if (!user) return { ok: false, message: "Bạn cần đăng nhập để đăng ký" };
+    if (!user)
+      return { ok: false, message: "You must be logged in to register" };
 
     const current = getRegistrationsByEvent(eventId);
     if (current.some((r) => r.userId === user.id)) {
-      return { ok: false, message: "Bạn đã đăng ký sự kiện này" };
+      return {
+        ok: false,
+        message: "You are already registered for this event",
+      };
     }
 
     const reg: Registration = {

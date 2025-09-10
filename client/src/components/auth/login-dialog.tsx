@@ -32,11 +32,9 @@ export function LoginDialog({ children }: LoginDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [mode, setMode] = useState<Mode>("login");
 
-  // login state
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
 
-  // register state
   const [regUsername, setRegUsername] = useState("");
   const [regPassword, setRegPassword] = useState("");
   const [name, setName] = useState("");
@@ -60,21 +58,21 @@ export function LoginDialog({ children }: LoginDialogProps) {
     e.preventDefault();
     if (!username.trim() || !password) {
       toast({
-        title: "Lỗi",
-        description: "Vui lòng nhập đầy đủ username và mật khẩu",
+        title: "Error",
+        description: "Please enter both username and password",
         variant: "destructive",
       });
       return;
     }
     const res = login(username.trim(), password);
     if (res.ok) {
-      toast({ title: "Đăng nhập thành công" });
+      toast({ title: "Login successful" });
       setIsOpen(false);
       resetAll();
       setMode("login");
     } else {
       toast({
-        title: "Đăng nhập thất bại",
+        title: "Login failed",
         description: res.message,
         variant: "destructive",
       });
@@ -85,8 +83,8 @@ export function LoginDialog({ children }: LoginDialogProps) {
     e.preventDefault();
     if (!regUsername.trim() || !regPassword || !name.trim()) {
       toast({
-        title: "Lỗi",
-        description: "Vui lòng nhập đầy đủ thông tin bắt buộc",
+        title: "Error",
+        description: "Please fill in all required fields",
         variant: "destructive",
       });
       return;
@@ -100,15 +98,15 @@ export function LoginDialog({ children }: LoginDialogProps) {
     });
     if (res.ok) {
       toast({
-        title: "Đăng ký thành công",
-        description: "Bạn đã được đăng nhập",
+        title: "Registration successful",
+        description: "You are now logged in",
       });
       setIsOpen(false);
       resetAll();
       setMode("login");
     } else {
       toast({
-        title: "Đăng ký thất bại",
+        title: "Registration failed",
         description: res.message,
         variant: "destructive",
       });
@@ -117,17 +115,17 @@ export function LoginDialog({ children }: LoginDialogProps) {
 
   const handleLogout = () => {
     logout();
-    toast({ title: "Đăng xuất thành công", description: "Hẹn gặp lại bạn!" });
+    toast({ title: "Logout successful", description: "See you again!" });
   };
 
   const getRoleLabel = (role: UserRole) => {
     switch (role) {
       case "student":
-        return "Sinh viên";
+        return "Student";
       case "faculty":
-        return "Giảng viên/Khoa";
+        return "Faculty";
       case "visitor":
-        return "Khách truy cập";
+        return "Visitor";
     }
   };
 
@@ -148,7 +146,7 @@ export function LoginDialog({ children }: LoginDialogProps) {
           data-testid="button-logout"
         >
           <LogOut className="h-4 w-4 mr-1" />
-          Đăng xuất
+          Logout
         </Button>
       </div>
     );
@@ -166,7 +164,7 @@ export function LoginDialog({ children }: LoginDialogProps) {
         {children || (
           <Button variant="outline" data-testid="button-login-trigger">
             <LogIn className="h-4 w-4 mr-2" />
-            Đăng nhập
+            Login
           </Button>
         )}
       </DialogTrigger>
@@ -174,15 +172,15 @@ export function LoginDialog({ children }: LoginDialogProps) {
         <DialogHeader>
           <DialogTitle>
             {mode === "login"
-              ? "Đăng nhập CampusConnect"
-              : "Đăng ký CampusConnect"}
+              ? "Login to CampusConnect"
+              : "Register for CampusConnect"}
           </DialogTitle>
         </DialogHeader>
 
         {mode === "login" ? (
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Thông tin tài khoản</CardTitle>
+              <CardTitle className="text-lg">Account Information</CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleLogin} className="space-y-4">
@@ -191,7 +189,7 @@ export function LoginDialog({ children }: LoginDialogProps) {
                   <Input
                     id="login-username"
                     type="text"
-                    placeholder="Nhập username"
+                    placeholder="Enter username"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
                     required
@@ -199,11 +197,11 @@ export function LoginDialog({ children }: LoginDialogProps) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="login-password">Mật khẩu *</Label>
+                  <Label htmlFor="login-password">Password *</Label>
                   <Input
                     id="login-password"
                     type="password"
-                    placeholder="Nhập mật khẩu"
+                    placeholder="Enter password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
@@ -215,18 +213,18 @@ export function LoginDialog({ children }: LoginDialogProps) {
                   className="w-full"
                   data-testid="button-login-submit"
                 >
-                  Đăng nhập
+                  Login
                 </Button>
               </form>
               <div className="mt-4 text-sm text-muted-foreground">
-                Chưa có tài khoản?{" "}
+                Don't have an account?{" "}
                 <button
                   type="button"
                   className="underline hover:text-foreground"
                   onClick={() => setMode("register")}
                   data-testid="link-switch-to-register"
                 >
-                  Đăng ký
+                  Register
                 </button>
               </div>
             </CardContent>
@@ -234,7 +232,9 @@ export function LoginDialog({ children }: LoginDialogProps) {
         ) : (
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Thông tin đăng ký</CardTitle>
+              <CardTitle className="text-lg">
+                Registration Information
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleRegister} className="space-y-4">
@@ -243,7 +243,7 @@ export function LoginDialog({ children }: LoginDialogProps) {
                   <Input
                     id="reg-username"
                     type="text"
-                    placeholder="Chọn username"
+                    placeholder="Choose a username"
                     value={regUsername}
                     onChange={(e) => setRegUsername(e.target.value)}
                     required
@@ -251,11 +251,11 @@ export function LoginDialog({ children }: LoginDialogProps) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="reg-password">Mật khẩu *</Label>
+                  <Label htmlFor="reg-password">Password *</Label>
                   <Input
                     id="reg-password"
                     type="password"
-                    placeholder="Tạo mật khẩu"
+                    placeholder="Create a password"
                     value={regPassword}
                     onChange={(e) => setRegPassword(e.target.value)}
                     required
@@ -263,11 +263,11 @@ export function LoginDialog({ children }: LoginDialogProps) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="reg-name">Họ và tên *</Label>
+                  <Label htmlFor="reg-name">Full Name *</Label>
                   <Input
                     id="reg-name"
                     type="text"
-                    placeholder="Nhập họ và tên"
+                    placeholder="Enter your full name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     required
@@ -275,28 +275,28 @@ export function LoginDialog({ children }: LoginDialogProps) {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="reg-role">Vai trò *</Label>
+                  <Label htmlFor="reg-role">Role *</Label>
                   <Select
                     value={role}
                     onValueChange={(value: UserRole) => setRole(value)}
                   >
                     <SelectTrigger data-testid="select-register-role">
-                      <SelectValue placeholder="Chọn vai trò" />
+                      <SelectValue placeholder="Select a role" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="student">Sinh viên</SelectItem>
-                      <SelectItem value="faculty">Giảng viên/Khoa</SelectItem>
-                      <SelectItem value="visitor">Khách truy cập</SelectItem>
+                      <SelectItem value="student">Student</SelectItem>
+                      <SelectItem value="faculty">Faculty</SelectItem>
+                      <SelectItem value="visitor">Visitor</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 {role !== "visitor" && (
                   <div className="space-y-2">
-                    <Label htmlFor="reg-department">Khoa/Bộ môn</Label>
+                    <Label htmlFor="reg-department">Department</Label>
                     <Input
                       id="reg-department"
                       type="text"
-                      placeholder="Nhập khoa/bộ môn"
+                      placeholder="Enter department"
                       value={department}
                       onChange={(e) => setDepartment(e.target.value)}
                       data-testid="input-register-department"
@@ -308,18 +308,18 @@ export function LoginDialog({ children }: LoginDialogProps) {
                   className="w-full"
                   data-testid="button-register-submit"
                 >
-                  Đăng ký
+                  Register
                 </Button>
               </form>
               <div className="mt-4 text-sm text-muted-foreground">
-                Đã có tài khoản?{" "}
+                Already have an account?{" "}
                 <button
                   type="button"
                   className="underline hover:text-foreground"
                   onClick={() => setMode("login")}
                   data-testid="link-switch-to-login"
                 >
-                  Đăng nhập
+                  Login
                 </button>
               </div>
             </CardContent>

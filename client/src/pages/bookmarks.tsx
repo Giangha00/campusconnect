@@ -1,10 +1,10 @@
-import { EventCard } from '@/components/events/event-card';
-import { useUser } from '@/contexts/user-context';
-import eventsData from '@/data/events.json';
-import { Event } from '@/types/event';
-import { Link } from 'wouter';
-import { Button } from '@/components/ui/button';
-import { BookmarkX } from 'lucide-react';
+import { EventCard } from "@/components/events/event-card";
+import { useUser } from "@/contexts/user-context";
+import eventsData from "@/data/events.json";
+import { Event } from "@/types/event";
+import { Link } from "wouter";
+import { Button } from "@/components/ui/button";
+import { BookmarkX } from "lucide-react";
 
 export default function Bookmarks() {
   const { user, isEventBookmarked } = useUser();
@@ -14,14 +14,17 @@ export default function Bookmarks() {
       <div className="pt-16">
         <section className="py-16 bg-gradient-to-r from-primary/10 to-secondary/10">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h1 className="text-5xl font-bold text-foreground mb-6" data-testid="text-bookmarks-not-logged-in">
-              Cần đăng nhập
+            <h1
+              className="text-5xl font-bold text-foreground mb-6"
+              data-testid="text-bookmarks-not-logged-in"
+            >
+              Login Required
             </h1>
             <p className="text-xl text-muted-foreground mb-8">
-              Bạn cần đăng nhập để xem các sự kiện đã lưu
+              You need to be logged in to view your bookmarked events
             </p>
             <Link href="/">
-              <Button>Về trang chủ</Button>
+              <Button>Back to Home</Button>
             </Link>
           </div>
         </section>
@@ -29,19 +32,22 @@ export default function Bookmarks() {
     );
   }
 
-  if (user.role === 'visitor') {
+  if (user.role === "visitor") {
     return (
       <div className="pt-16">
         <section className="py-16 bg-gradient-to-r from-primary/10 to-secondary/10">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h1 className="text-5xl font-bold text-foreground mb-6" data-testid="text-bookmarks-visitor-access">
-              Không có quyền truy cập
+            <h1
+              className="text-5xl font-bold text-foreground mb-6"
+              data-testid="text-bookmarks-visitor-access"
+            >
+              Access Denied
             </h1>
             <p className="text-xl text-muted-foreground mb-8">
-              Chức năng lưu sự kiện chỉ dành cho sinh viên và giảng viên
+              The bookmark feature is only available for students and faculty
             </p>
             <Link href="/events">
-              <Button>Xem tất cả sự kiện</Button>
+              <Button>View All Events</Button>
             </Link>
           </div>
         </section>
@@ -49,7 +55,7 @@ export default function Bookmarks() {
     );
   }
 
-  const bookmarkedEvents = (eventsData as Event[]).filter(event => 
+  const bookmarkedEvents = (eventsData as Event[]).filter((event) =>
     isEventBookmarked(event.id)
   );
 
@@ -59,11 +65,17 @@ export default function Bookmarks() {
       <section className="py-16 bg-gradient-to-r from-primary/10 to-secondary/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h1 className="text-5xl font-bold text-foreground mb-6" data-testid="text-bookmarks-hero-title">
-              Sự kiện đã lưu
+            <h1
+              className="text-5xl font-bold text-foreground mb-6"
+              data-testid="text-bookmarks-hero-title"
+            >
+              Bookmarked Events
             </h1>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto" data-testid="text-bookmarks-hero-description">
-              Danh sách các sự kiện bạn đã đánh dấu để theo dõi
+            <p
+              className="text-xl text-muted-foreground max-w-2xl mx-auto"
+              data-testid="text-bookmarks-hero-description"
+            >
+              A list of events you have bookmarked to keep track of
             </p>
           </div>
         </div>
@@ -75,23 +87,32 @@ export default function Bookmarks() {
           {bookmarkedEvents.length === 0 ? (
             <div className="text-center py-12">
               <BookmarkX className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-2xl font-semibold text-foreground mb-4" data-testid="text-no-bookmarks-title">
-                Chưa có sự kiện nào được lưu
+              <h3
+                className="text-2xl font-semibold text-foreground mb-4"
+                data-testid="text-no-bookmarks-title"
+              >
+                No Bookmarked Events Yet
               </h3>
-              <p className="text-muted-foreground mb-8" data-testid="text-no-bookmarks-description">
-                Hãy tìm kiếm và lưu các sự kiện thú vị để theo dõi dễ dàng hơn
+              <p
+                className="text-muted-foreground mb-8"
+                data-testid="text-no-bookmarks-description"
+              >
+                Browse and bookmark interesting events to track them easily
               </p>
               <Link href="/events">
                 <Button data-testid="button-browse-events">
-                  Khám phá sự kiện
+                  Explore Events
                 </Button>
               </Link>
             </div>
           ) : (
             <>
               <div className="mb-8">
-                <h2 className="text-2xl font-semibold text-foreground" data-testid="text-bookmarks-count">
-                  Bạn đã lưu {bookmarkedEvents.length} sự kiện
+                <h2
+                  className="text-2xl font-semibold text-foreground"
+                  data-testid="text-bookmarks-count"
+                >
+                  You have {bookmarkedEvents.length} bookmarked events
                 </h2>
               </div>
 
@@ -108,11 +129,18 @@ export default function Bookmarks() {
       {/* Additional Info */}
       <section className="py-16 bg-white">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold text-foreground mb-6" data-testid="text-bookmarks-info-title">
-            Quản lý sự kiện của bạn
+          <h2
+            className="text-3xl font-bold text-foreground mb-6"
+            data-testid="text-bookmarks-info-title"
+          >
+            Manage Your Events
           </h2>
-          <p className="text-lg text-muted-foreground mb-8" data-testid="text-bookmarks-info-description">
-            Sử dụng tính năng lưu sự kiện để theo dõi các hoạt động quan tâm và không bỏ lỡ những cơ hội tham gia
+          <p
+            className="text-lg text-muted-foreground mb-8"
+            data-testid="text-bookmarks-info-description"
+          >
+            Use the bookmark feature to keep track of interesting activities and
+            not miss out on participation opportunities
           </p>
         </div>
       </section>

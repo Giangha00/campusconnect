@@ -16,11 +16,12 @@ const LS_USERNAME_KEY = "campusconnect-username";
 interface Account {
   id: string;
   username: string;
-  password: string; // NOTE: frontend-only demo. Do NOT use plaintext in production.
+  password: string;
   name: string;
   role: UserRole;
   department?: string;
   bookmarkedEvents: number[];
+  registeredEvents: number[];
 }
 
 function loadAccounts(): Account[] {
@@ -149,10 +150,10 @@ export function UserProvider({ children }: UserProviderProps) {
     const accounts = loadAccounts();
     const account = accounts.find((a) => a.username === username);
     if (!account) {
-      return { ok: false, message: "Tài khoản không tồn tại" };
+      return { ok: false, message: "Account does not exist" };
     }
     if (account.password !== password) {
-      return { ok: false, message: "Mật khẩu không đúng" };
+      return { ok: false, message: "Incorrect password" };
     }
 
     const loggedUser: User = {
@@ -161,6 +162,7 @@ export function UserProvider({ children }: UserProviderProps) {
       role: account.role,
       department: account.department,
       bookmarkedEvents: account.bookmarkedEvents || [],
+      registeredEvents: account.registeredEvents || [],
     };
     setUser(loggedUser);
     setCurrentUsername(account.username);
@@ -178,7 +180,7 @@ export function UserProvider({ children }: UserProviderProps) {
     const accounts = loadAccounts();
     const exists = accounts.some((a) => a.username === username);
     if (exists) {
-      return { ok: false, message: "Username đã tồn tại" };
+      return { ok: false, message: "Username already exists" };
     }
 
     const id = generateId();
@@ -190,6 +192,7 @@ export function UserProvider({ children }: UserProviderProps) {
       role,
       department: department?.trim() || undefined,
       bookmarkedEvents: [],
+      registeredEvents: [],
     };
 
     const next = [...accounts, newAccount];
@@ -201,6 +204,7 @@ export function UserProvider({ children }: UserProviderProps) {
       role: newAccount.role,
       department: newAccount.department,
       bookmarkedEvents: [],
+      registeredEvents: [],
     };
 
     setUser(newUser);
