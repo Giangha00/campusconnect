@@ -12,6 +12,7 @@ import {
   BookmarkCheck,
 } from "lucide-react";
 import { useUser } from "@/contexts/user-context";
+import { useRegistration } from "@/contexts/registration-context";
 import { Link } from "wouter";
 
 interface EventCardProps {
@@ -27,23 +28,43 @@ const categoryColors = {
 };
 
 export function EventCard({ event, variant = "default" }: EventCardProps) {
+  const { user, isEventBookmarked, bookmarkEvent, unbookmarkEvent } = useUser();
   const {
-    user,
-    isEventBookmarked,
-    bookmarkEvent,
-    unbookmarkEvent,
-    isEventRegistered,
-  } = useUser();
+    isUserRegistered,
+    registerForEvent,
+    unregisterFromEvent,
+    getRegistrationCount,
+  } = useRegistration();
   const isBookmarked = isEventBookmarked(event.id);
-  const isRegistered = isEventRegistered(event.id);
+  const registered = isUserRegistered(event.id, user?.id);
+  const regCount = getRegistrationCount(event.id);
 
-  const handleBookmarkToggle = () => {
+  const handleBookmarkToggle = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     if (isBookmarked) {
       unbookmarkEvent(event.id);
     } else {
       bookmarkEvent(event.id);
     }
   };
+
+  const handleRegisterToggle = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) return; // guarded by UI
+    if (registered) {
+      unregisterFromEvent(event.id);
+    } else {
+      registerForEvent(event.id);
+    }
+  };
+
+  const capacityText = event.capacity
+    ? `${regCount}${
+        typeof event.capacity === "number" ? `/${event.capacity}` : ""
+      }`
+    : `${regCount}`;
 
   return (
     <Link href={`/events/${event.id}`}>
@@ -69,11 +90,7 @@ export function EventCard({ event, variant = "default" }: EventCardProps) {
               <Button
                 variant="secondary"
                 size="sm"
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  handleBookmarkToggle();
-                }}
+                onClick={handleBookmarkToggle}
                 className="bg-white/90 hover:bg-white"
                 data-testid={`button-bookmark-${event.id}`}
               >
@@ -136,31 +153,35 @@ export function EventCard({ event, variant = "default" }: EventCardProps) {
               </span>
             </div>
 
-            {event.capacity && (
-              <div className="flex items-center space-x-2">
-                <Users className="h-4 w-4" />
-                <span data-testid={`text-event-capacity-${event.id}`}>
-                  Capacity: {event.capacity} attendees
-                </span>
-              </div>
-            )}
+            <div className="flex items-center space-x-2">
+              <Users className="h-4 w-4" />
+              <span data-testid={`text-event-capacity-${event.id}`}>
+                Registered: {capacityText}
+              </span>
+            </div>
 
-            <div className="mt-3 flex gap-2 flex-wrap">
-              {event.registrationRequired && (
+            {event.registrationRequired && (
+              <div className="mt-3">
                 <Badge variant="outline" className="text-xs">
                   Registration Required
                 </Badge>
-              )}
-              {isRegistered && (
-                <Badge
-                  variant="default"
-                  className="text-xs bg-green-600 hover:bg-green-700"
-                >
-                  Đã đăng ký
-                </Badge>
-              )}
-            </div>
+              </div>
+            )}
           </div>
+
+          {/* Register/Unregister actions */}
+          {event.registrationRequired && user && (
+            <div className="mt-4">
+              <Button
+                className="w-full"
+                onClick={handleRegisterToggle}
+                data-testid={`button-register-${event.id}`}
+                variant={registered ? "secondary" : "default"}
+              >
+                {registered ? "Unregister" : "Register"}
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
     </Link>

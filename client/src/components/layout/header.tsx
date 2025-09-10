@@ -7,12 +7,12 @@ import { LoginDialog } from "@/components/auth/login-dialog";
 import { useUser } from "@/contexts/user-context";
 
 const navigation = [
-  { name: "Trang chủ", href: "/" },
-  { name: "Giới thiệu", href: "/about" },
-  { name: "Sự kiện", href: "/events" },
-  { name: "Thư viện ảnh", href: "/gallery" },
-  { name: "Phản hồi", href: "/feedback" },
-  { name: "Liên hệ", href: "/contact" },
+  { name: "Home", href: "/" },
+  { name: "About", href: "/about" },
+  { name: "Events", href: "/events" },
+  { name: "Gallery", href: "/gallery" },
+  { name: "Feedback", href: "/feedback" },
+  { name: "Contact", href: "/contact" },
 ];
 
 export function Header() {
@@ -23,13 +23,13 @@ export function Header() {
   let userNavigation = [...navigation];
 
   if (user && user.role !== "visitor") {
-    userNavigation.push({ name: "Sự kiện đã lưu", href: "/bookmarks" });
+    userNavigation.push({ name: "Bookmarks", href: "/bookmarks" });
   }
 
   if (user && user.role === "faculty") {
     userNavigation.push({
-      name: "Quản lý sự kiện",
-      href: "/faculty-dashboard",
+      name: "Admin",
+      href: "/admin",
     });
   }
 
@@ -125,7 +125,7 @@ export function Header() {
                       className="px-2 py-2 text-xs"
                       data-testid="button-tablet-more"
                     >
-                      Thêm
+                      More
                     </Button>
                   </SheetTrigger>
                   <SheetContent side="right" className="w-[300px]">
