@@ -21,8 +21,7 @@ export default function Home() {
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
-            backgroundImage:
-              "url('https://images.unsplash.com/photo-1607237138185-eedd9c632b0b?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1920&h=1080')",
+            backgroundImage: "url('/images/schools/School_7.jpg')",
           }}
         />
         <div className="absolute inset-0 hero-gradient" />
@@ -61,8 +60,7 @@ export default function Home() {
             </Link>
             <Button
               size="lg"
-              variant="outline"
-              className="border-white text-white hover:bg-white hover:text-primary"
+              className="border border-white bg-transparent text-white hover:bg-white hover:text-primary"
               onClick={() => scrollToSection("about-preview")}
               data-testid="button-learn-more"
             >
@@ -164,9 +162,9 @@ export default function Home() {
 
             <div>
               <img
-                src="https://images.unsplash.com/photo-1562774053-701939374585?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=600"
+                src="/images/schools/School_6.jpg"
                 alt="College campus building"
-                className="rounded-xl shadow-lg w-full h-auto"
+                className="rounded-sm shadow-lg w-full h-auto"
               />
             </div>
           </div>

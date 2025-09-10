@@ -47,9 +47,11 @@ export function Header() {
               className="flex-shrink-0"
               data-testid="link-home-logo"
             >
-              <h1 className="text-xl md:text-2xl font-bold text-primary">
-                CampusConnect
-              </h1>
+              <img
+                src="/images/logo.webp"
+                alt="CampusConnect Logo"
+                className="h-10 w-auto invert"
+              />
             </Link>
           </div>
 
