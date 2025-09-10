@@ -30,13 +30,13 @@ const categoryColors = {
 export function EventCard({ event, variant = "default" }: EventCardProps) {
   const { user, isEventBookmarked, bookmarkEvent, unbookmarkEvent } = useUser();
   const {
-    isUserRegistered,
+    isEventRegistered,
     registerForEvent,
     unregisterFromEvent,
     getRegistrationCount,
   } = useRegistration();
   const isBookmarked = isEventBookmarked(event.id);
-  const registered = isUserRegistered(event.id, user?.id);
+  const registered = isEventRegistered(event.id);
   const regCount = getRegistrationCount(event.id);
 
   const handleBookmarkToggle = (e: React.MouseEvent) => {
@@ -160,17 +160,25 @@ export function EventCard({ event, variant = "default" }: EventCardProps) {
               </span>
             </div>
 
-            {event.registrationRequired && (
-              <div className="mt-3">
+            <div className="mt-3 flex gap-2 flex-wrap">
+              {event.registrationRequired && (
                 <Badge variant="outline" className="text-xs">
                   Registration Required
                 </Badge>
-              </div>
-            )}
+              )}
+              {registered && (
+                <Badge
+                  variant="default"
+                  className="text-xs bg-green-600 hover:bg-green-700"
+                >
+                  Registered
+                </Badge>
+              )}
+            </div>
           </div>
 
           {/* Register/Unregister actions */}
-          {event.registrationRequired && user && (
+          {user && user.role !== "visitor" && (
             <div className="mt-4">
               <Button
                 className="w-full"
