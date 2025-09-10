@@ -53,7 +53,7 @@ export function EventFilters({
       </div>
 
       {/* Sort Options */}
-      <div className="flex justify-center">
+      {/* <div className="flex justify-center">
         <Select value={currentSort} onValueChange={onSortChange}>
           <SelectTrigger className="w-48" data-testid="select-sort-events">
             <SelectValue placeholder="Sort events..." />
@@ -66,7 +66,7 @@ export function EventFilters({
             ))}
           </SelectContent>
         </Select>
-      </div>
+      </div> */}
     </div>
   );
 }

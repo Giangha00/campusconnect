@@ -69,7 +69,7 @@ export function EventCard({ event, variant = "default" }: EventCardProps) {
   return (
     <Link href={`/events/${event.id}`}>
       <Card
-        className="overflow-hidden shadow-lg card-hover cursor-pointer transition-all duration-200 hover:shadow-xl"
+        className="overflow-hidden shadow-lg card-hover cursor-pointer transition-all duration-200 hover:shadow-xl h-full flex flex-col"
         data-testid={`card-event-${event.id}`}
       >
         <div className="aspect-video relative overflow-hidden">
@@ -104,7 +104,7 @@ export function EventCard({ event, variant = "default" }: EventCardProps) {
           )}
         </div>
 
-        <CardContent className="p-6">
+        <CardContent className="p-6 flex flex-col flex-grow">
           <div className="flex items-center justify-between mb-3">
             <Badge className={categoryColors[event.category]}>
               {event.category.charAt(0).toUpperCase() + event.category.slice(1)}
@@ -125,13 +125,13 @@ export function EventCard({ event, variant = "default" }: EventCardProps) {
           </h3>
 
           <p
-            className="text-muted-foreground mb-4 line-clamp-2"
+            className="text-muted-foreground mb-4 line-clamp-2 flex-grow"
             data-testid={`text-event-description-${event.id}`}
           >
             {event.description}
           </p>
 
-          <div className="space-y-2 text-sm text-muted-foreground">
+          <div className="space-y-2 text-sm text-muted-foreground mt-auto">
             <div className="flex items-center space-x-2">
               <Clock className="h-4 w-4" />
               <span data-testid={`text-event-time-${event.id}`}>
@@ -176,20 +176,6 @@ export function EventCard({ event, variant = "default" }: EventCardProps) {
               )}
             </div>
           </div>
-
-          {/* Register/Unregister actions */}
-          {user && user.role !== "visitor" && (
-            <div className="mt-4">
-              <Button
-                className="w-full"
-                onClick={handleRegisterToggle}
-                data-testid={`button-register-${event.id}`}
-                variant={registered ? "secondary" : "default"}
-              >
-                {registered ? "Unregister" : "Register"}
-              </Button>
-            </div>
-          )}
         </CardContent>
       </Card>
     </Link>

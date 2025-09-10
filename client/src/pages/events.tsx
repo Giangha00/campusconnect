@@ -68,7 +68,7 @@ export default function Events() {
             />
           </div>
 
-          <div className="flex flex-wrap gap-4 justify-center items-center">
+          <div className="flex flex-col flex-wrap gap-4 justify-center items-center">
             <EventFilters
               currentFilter={filter}
               onFilterChange={setFilter}
