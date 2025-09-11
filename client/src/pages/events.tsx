@@ -25,7 +25,7 @@ import {
   Activity,
   ChevronDown,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 
 export default function Events() {
   const {
@@ -40,6 +40,79 @@ export default function Events() {
     setSearchQuery,
   } = useEvents();
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const eventsPerPage = 9;
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, filter, statusFilter, sortBy]);
+
+  // Pagination logic
+  const indexOfLastEvent = currentPage * eventsPerPage;
+  const indexOfFirstEvent = indexOfLastEvent - eventsPerPage;
+  const currentEvents = useMemo(() => {
+    return events.slice(indexOfFirstEvent, indexOfLastEvent);
+  }, [events, currentPage]);
+
+  const totalPages = Math.ceil(events.length / eventsPerPage);
+
+  const paginationItems = useMemo(() => {
+    if (totalPages <= 1) return [];
+
+    const pageNumbers: (number | string)[] = [];
+    const siblingCount = 1;
+    // The number of pages to show is based on:
+    // 1 (current) + 2*siblings + firstPage + lastPage + 2*DOTS
+    const totalPageNumbers = siblingCount * 2 + 5;
+
+    // Case 1: Number of pages is less than the page numbers we want to show.
+    // We just show all the page numbers.
+    if (totalPages <= totalPageNumbers) {
+      for (let i = 1; i <= totalPages; i++) {
+        pageNumbers.push(i);
+      }
+      return pageNumbers;
+    }
+
+    const leftSiblingIndex = Math.max(currentPage - siblingCount, 1);
+    const rightSiblingIndex = Math.min(currentPage + siblingCount, totalPages);
+
+    const shouldShowLeftDots = leftSiblingIndex > 2;
+    const shouldShowRightDots = rightSiblingIndex < totalPages - 2;
+
+    const firstPageIndex = 1;
+    const lastPageIndex = totalPages;
+
+    // Case 2: No left dots to show, but rights dots to be shown
+    if (!shouldShowLeftDots && shouldShowRightDots) {
+      let leftItemCount = 3 + 2 * siblingCount;
+      for (let i = 1; i <= leftItemCount; i++) {
+        pageNumbers.push(i);
+      }
+      pageNumbers.push("...");
+      pageNumbers.push(totalPages);
+    } // Case 3: No right dots to show, but left dots to be shown
+    else if (shouldShowLeftDots && !shouldShowRightDots) {
+      let rightItemCount = 3 + 2 * siblingCount;
+      pageNumbers.push(firstPageIndex);
+      pageNumbers.push("...");
+      for (let i = totalPages - rightItemCount + 1; i <= totalPages; i++) {
+        pageNumbers.push(i);
+      }
+    } // Case 4: Both left and right dots to be shown
+    else if (shouldShowLeftDots && shouldShowRightDots) {
+      pageNumbers.push(firstPageIndex);
+      pageNumbers.push("...");
+      for (let i = leftSiblingIndex; i <= rightSiblingIndex; i++) {
+        pageNumbers.push(i);
+      }
+      pageNumbers.push("...");
+      pageNumbers.push(lastPageIndex);
+    }
+
+    return pageNumbers;
+  }, [totalPages, currentPage]);
+
   const sortOptions = [
     { value: "date", label: "Sort by date", icon: Calendar },
     { value: "name", label: "Sort by name", icon: User },
@@ -48,17 +121,12 @@ export default function Events() {
   ];
 
   const statusOptions = [
-    { value: "all", label: "All Status" },
+    { value: "all", label: "All Statuses" },
     { value: "incoming", label: "Incoming" },
     { value: "upcoming", label: "Upcoming" },
     { value: "ongoing", label: "Ongoing" },
     { value: "completed", label: "Completed" },
   ];
-
-  const handleStatusSort = (status: string) => {
-    setStatusFilter(status as any);
-    setSortBy("status");
-  };
 
   return (
     <div className="pt-16">
@@ -98,16 +166,18 @@ export default function Events() {
                       <DropdownMenuTrigger asChild>
                         <Button
                           variant={
-                            sortBy === option.value ? "default" : "outline"
+                            statusFilter !== "all" ? "default" : "outline"
                           }
                           size="sm"
                           className="gap-2"
-                          data-testid={`button-sort-${option.value}`}
+                          data-testid={`button-filter-by-status`}
                         >
                           <IconComponent className="h-4 w-4" />
                           {statusFilter !== "all"
-                            ? `Sort by ${statusFilter}`
-                            : option.label}
+                            ? statusOptions.find(
+                                (s) => s.value === statusFilter
+                              )?.label
+                            : "Filter by Status"}
                           <ChevronDown className="h-3 w-3" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -115,7 +185,9 @@ export default function Events() {
                         {statusOptions.map((statusOption) => (
                           <DropdownMenuItem
                             key={statusOption.value}
-                            onClick={() => handleStatusSort(statusOption.value)}
+                            onClick={() =>
+                              setStatusFilter(statusOption.value as any)
+                            }
                             className={
                               statusFilter === statusOption.value
                                 ? "bg-accent"
@@ -202,11 +274,51 @@ export default function Events() {
               </div>
 
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {events.map((event) => (
+                {currentEvents.map((event) => (
                   <EventCard key={event.id} event={event} />
                 ))}
               </div>
             </>
+          )}
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center mt-12 space-x-2">
+              <Button
+                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </Button>
+              {paginationItems.map((page, index) => {
+                if (typeof page === "string") {
+                  return (
+                    <span key={`ellipsis-${index}`} className="px-1">
+                      ...
+                    </span>
+                  );
+                }
+                return (
+                  <Button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    variant={currentPage === page ? "default" : "outline"}
+                    size="icon"
+                    className="h-10 w-10"
+                  >
+                    {page}
+                  </Button>
+                );
+              })}
+              <Button
+                onClick={() =>
+                  setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+                }
+                disabled={currentPage === totalPages}
+              >
+                Next
+              </Button>
+            </div>
           )}
         </div>
       </section>
