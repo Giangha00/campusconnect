@@ -248,8 +248,8 @@ export default function EventDetail() {
                     </p>
                     <p className="text-gray-600">
                       {event.capacity
-                        ? `${registrationCount}/${event.capacity} attendees`
-                        : `${registrationCount} registered`}
+                        ? `${event.attendees}/${event.capacity} attendees`
+                        : `${event.attendees} registered`}
                     </p>
                   </div>
                 </div>

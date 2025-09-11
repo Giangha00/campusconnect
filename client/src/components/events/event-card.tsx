@@ -24,7 +24,7 @@ const categoryColors = {
   academic: "bg-primary text-primary-foreground",
   cultural: "bg-secondary text-secondary-foreground",
   sports: "bg-destructive text-destructive-foreground",
-  departmental: "bg-accent text-accent-foreground",
+  technical: "bg-accent text-accent-foreground",
 };
 
 export function EventCard({ event, variant = "default" }: EventCardProps) {

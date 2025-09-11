@@ -215,7 +215,7 @@ export default function Events() {
                           ? "Cultural"
                           : filter === "sports"
                           ? "Sports"
-                          : "Departmental"}
+                          : "Technical"}
                       </span>
                     </span>
                   )}

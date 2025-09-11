@@ -17,7 +17,8 @@
         "department": "Administration",
         "phone": "+1 (555) 123-4501",
         "email": "sarah.johnson@campusconnect.edu",
-        "specialization": "Event Management & Student Development"
+        "specialization": "Event Management & Student Development",
+        "avatar": "https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=761&q=80"
       },
       {
         "id": 2,
@@ -26,7 +27,8 @@
         "department": "Cultural Committee",
         "phone": "+1 (555) 123-4502",
         "email": "michael.chen@campusconnect.edu",
-        "specialization": "Arts & Cultural Programs"
+        "specialization": "Arts & Cultural Programs",
+        "avatar": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80"
       },
       {
         "id": 3,
@@ -35,7 +37,8 @@
         "department": "Physical Education",
         "phone": "+1 (555) 123-4503",
         "email": "emily.rodriguez@campusconnect.edu",
-        "specialization": "Sports Management & Athletics"
+        "specialization": "Sports Management & Athletics",
+        "avatar": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80"
       },
       {
         "id": 4,
@@ -44,7 +47,8 @@
         "department": "Computer Science",
         "phone": "+1 (555) 123-4504",
         "email": "david.kumar@campusconnect.edu",
-        "specialization": "Technology Events & Innovation"
+        "specialization": "Technology Events & Innovation",
+        "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80"
       }
     ],
     "students": [
@@ -54,9 +58,10 @@
         "designation": "Student Body President",
         "department": "Student Council",
         "phone": "+1 (555) 123-4601",
-        "email": "alex.thompson@student.campusconnect.edu",
+        "email": "alex.thompson@campusconnect.edu",
         "year": "Final Year",
-        "specialization": "Overall Event Coordination"
+        "specialization": "Overall Event Coordination",
+        "avatar": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80"
       },
       {
         "id": 2,
@@ -64,9 +69,10 @@
         "designation": "Cultural Secretary",
         "department": "Cultural Committee",
         "phone": "+1 (555) 123-4602",
-        "email": "priya.sharma@student.campusconnect.edu",
+        "email": "priya.sharma@campusconnect.edu",
         "year": "Third Year",
-        "specialization": "Cultural Events & Festivals"
+        "specialization": "Cultural Events & Festivals",
+        "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=764&q=80"
       },
       {
         "id": 3,
@@ -74,9 +80,10 @@
         "designation": "Sports Captain",
         "department": "Sports Committee",
         "phone": "+1 (555) 123-4603",
-        "email": "james.wilson@student.campusconnect.edu",
+        "email": "james.wilson@campusconnect.edu",
         "year": "Final Year",
-        "specialization": "Sports Events & Competitions"
+        "specialization": "Sports Events & Competitions",
+        "avatar": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80"
       },
       {
         "id": 4,
@@ -84,9 +91,10 @@
         "designation": "Technical Events Head",
         "department": "Tech Committee",
         "phone": "+1 (555) 123-4604",
-        "email": "maria.garcia@student.campusconnect.edu",
+        "email": "maria.garcia@campusconnect.edu",
         "year": "Third Year",
-        "specialization": "Technical Festivals & Competitions"
+        "specialization": "Technical Festivals & Competitions",
+        "avatar": "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1171&q=80"
       }
     ]
   },
