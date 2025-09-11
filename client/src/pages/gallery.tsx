@@ -1,5 +1,6 @@
 import { GalleryGrid } from "@/components/gallery/gallery-grid";
 import { GalleryFilters } from "@/components/gallery/gallery-filters";
+import { YearScroll } from "@/components/gallery/year-scroll";
 import { useGallery } from "@/hooks/use-gallery";
 
 const galleryStats = [
@@ -59,7 +60,10 @@ export default function Gallery() {
       {/* Filters */}
       <section className="py-8 bg-white border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <GalleryFilters currentFilter={filter} onFilterChange={setFilter} />
+          <div className="flex flex-col gap-4">
+            <GalleryFilters currentFilter={filter} onFilterChange={setFilter} />
+            <YearScroll years={[...new Set(galleryItems.map((i) => i.year))]} />
+          </div>
         </div>
       </section>
 

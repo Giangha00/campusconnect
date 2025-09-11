@@ -2,6 +2,10 @@ import { Link } from 'wouter';
 import { Facebook, Twitter, Instagram, Linkedin, MapPin, Phone, Mail } from 'lucide-react';
 
 export function Footer() {
+  const address = '13 College Street, Education City, EC 14953';
+  const mapsQuery = encodeURIComponent(address);
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${mapsQuery}&hl=en`;
+  const mapsEmbed = `https://www.google.com/maps?q=${mapsQuery}&hl=en&output=embed`;
   return (
     <footer className="bg-primary text-primary-foreground py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -111,6 +115,33 @@ export function Footer() {
                 <span>info@campusconnect.edu</span>
               </li>
             </ul>
+            <div className="mt-4">
+              <div className="relative w-full h-32 md:h-36 rounded-md overflow-hidden border border-primary-foreground/20">
+                <iframe
+                  src={mapsEmbed}
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  className="absolute inset-0 w-full h-full"
+                  title="CampusConnect location map"
+                />
+                <a
+                  href={mapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Open in Google Maps"
+                  className="absolute inset-0"
+                />
+              </div>
+              <a
+                href={mapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-block text-sm underline underline-offset-4 text-primary-foreground/90 hover:text-primary-foreground"
+                data-testid="link-footer-map"
+              >
+                View on Google Maps
+              </a>
+            </div>
           </div>
         </div>
 

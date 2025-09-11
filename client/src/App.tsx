@@ -8,6 +8,7 @@ import { RegistrationProvider } from "@/contexts/registration-context";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { ScrollToTop } from "@/components/ScrollToTop";
+import { BackToTop } from "@/components/back-to-top";
 import Home from "@/pages/home";
 import About from "@/pages/about";
 import Events from "@/pages/events";
@@ -40,6 +41,7 @@ function Router() {
         </Switch>
       </main>
       <Footer />
+      <BackToTop />
     </div>
   );
 }
