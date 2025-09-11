@@ -3,6 +3,11 @@ import eventsData from "@/data/events.json";
 import { Event } from "@/types/event";
 import { useUser } from "@/contexts/user-context";
 import { useRegistration } from "@/contexts/registration-context";
+import {
+  calculateEventStatus,
+  getStatusColor,
+  getStatusLabel,
+} from "@/lib/event-status";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -274,23 +279,12 @@ export default function AdminPage() {
                         </Badge>
                       )}
                       <Badge
-                        variant={
-                          event.status === "upcoming"
-                            ? "default"
-                            : event.status === "ongoing"
-                            ? "secondary"
-                            : "outline"
-                        }
-                        className={
-                          event.status === "upcoming"
-                            ? "bg-green-100 text-green-800 hover:bg-green-200"
-                            : event.status === "ongoing"
-                            ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
-                            : "bg-gray-100 text-gray-800 hover:bg-gray-200"
-                        }
+                        variant="outline"
+                        className={`${getStatusColor(
+                          calculateEventStatus(event)
+                        )} border`}
                       >
-                        {event.status.charAt(0).toUpperCase() +
-                          event.status.slice(1)}
+                        {getStatusLabel(calculateEventStatus(event))}
                       </Badge>
                     </div>
 

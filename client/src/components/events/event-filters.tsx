@@ -27,9 +27,10 @@ const filterOptions: { value: EventCategory; label: string }[] = [
 
 const statusFilterOptions: { value: EventStatus; label: string }[] = [
   { value: "all", label: "All Status" },
+  { value: "incoming", label: "Incoming" },
   { value: "upcoming", label: "Upcoming" },
   { value: "ongoing", label: "Ongoing" },
-  { value: "past", label: "Completed" },
+  { value: "completed", label: "Completed" },
 ];
 
 const sortOptions: { value: EventSortBy; label: string }[] = [
