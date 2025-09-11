@@ -54,28 +54,28 @@ export function Footer() {
             <ul className="space-y-2">
               <li>
                 <Link href="/" data-testid="link-footer-home">
-                  <span className="text-primary-foreground/80 hover:text-primary-foreground transition-colors">
+                  <span className="text-primary-foreground/80 hover:text-primary-foreground hover:underline underline-offset-4 transition-colors">
                     Home
                   </span>
                 </Link>
               </li>
               <li>
                 <Link href="/about" data-testid="link-footer-about">
-                  <span className="text-primary-foreground/80 hover:text-primary-foreground transition-colors">
+                  <span className="text-primary-foreground/80 hover:text-primary-foreground hover:underline underline-offset-4 transition-colors">
                     About
                   </span>
                 </Link>
               </li>
               <li>
                 <Link href="/events" data-testid="link-footer-events">
-                  <span className="text-primary-foreground/80 hover:text-primary-foreground transition-colors">
+                  <span className="text-primary-foreground/80 hover:text-primary-foreground hover:underline underline-offset-4 transition-colors">
                     Events
                   </span>
                 </Link>
               </li>
               <li>
                 <Link href="/gallery" data-testid="link-footer-gallery">
-                  <span className="text-primary-foreground/80 hover:text-primary-foreground transition-colors">
+                  <span className="text-primary-foreground/80 hover:text-primary-foreground hover:underline underline-offset-4 transition-colors">
                     Gallery
                   </span>
                 </Link>
@@ -90,7 +90,7 @@ export function Footer() {
               <li>Academic Events</li>
               <li>Cultural Events</li>
               <li>Sports Events</li>
-              <li>Departmental Events</li>
+              <li>Technical Events</li>
             </ul>
           </div>
 
@@ -100,11 +100,11 @@ export function Footer() {
             <ul className="space-y-3 text-primary-foreground/80">
               <li className="flex items-start space-x-2">
                 <MapPin className="h-4 w-4 mt-1 flex-shrink-0" />
-                <span>123 College Street, Education City, EC 12345</span>
+                <span>13 College Street, Education City, EC 14953</span>
               </li>
               <li className="flex items-center space-x-2">
                 <Phone className="h-4 w-4 flex-shrink-0" />
-                <span>+1 (555) 123-4567</span>
+                <span>+1 (555) 154-7896</span>
               </li>
               <li className="flex items-center space-x-2">
                 <Mail className="h-4 w-4 flex-shrink-0" />
@@ -117,7 +117,7 @@ export function Footer() {
         <hr className="border-primary-foreground/20 my-8" />
         
         <div className="text-center text-primary-foreground/80">
-          <p>&copy; 2024 CampusConnect College. All rights reserved.</p>
+          <p>&copy; 2025 CampusConnect College. All rights reserved.</p>
         </div>
       </div>
     </footer>

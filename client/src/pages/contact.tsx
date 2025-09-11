@@ -392,45 +392,47 @@ export default function Contact() {
       </section>
 
       {/* College Information */}
-      <section className="py-16 bg-primary text-primary-foreground">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2
-            className="text-3xl font-bold mb-6"
-            data-testid="text-college-info-title"
-          >
-            About {college.name}
-          </h2>
-          <div className="grid md:grid-cols-3 gap-6 text-center">
-            <div>
-              <h3 className="text-xl font-semibold mb-2">Established</h3>
-              <p
-                className="text-primary-foreground/90"
-                data-testid="text-college-established"
-              >
-                {college.established}
-              </p>
-            </div>
-            <div>
-              <h3 className="text-xl font-semibold mb-2">Affiliation</h3>
-              <p
-                className="text-primary-foreground/90"
-                data-testid="text-college-affiliation"
-              >
-                {college.affiliation}
-              </p>
-            </div>
-            <div>
-              <h3 className="text-xl font-semibold mb-2">Website</h3>
-              <p
-                className="text-primary-foreground/90"
-                data-testid="text-college-website"
-              >
-                {college.website}
-              </p>
+      {/* <section className="py-20 bg-gradient-to-br from-primary to-emerald-800 text-primary-foreground">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center bg-white/10 backdrop-blur-sm rounded-2xl p-8 sm:p-10 shadow-2xl ring-1 ring-white/20">
+            <h2
+              className="text-3xl font-bold mb-8 drop-shadow"
+              data-testid="text-college-info-title"
+            >
+              About {college.name}
+            </h2>
+            <div className="grid md:grid-cols-3 gap-8 text-center">
+              <div>
+                <h3 className="text-xl font-semibold mb-2">Established</h3>
+                <p
+                  className="text-primary-foreground/90"
+                  data-testid="text-college-established"
+                >
+                  {college.established}
+                </p>
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold mb-2">Affiliation</h3>
+                <p
+                  className="text-primary-foreground/90"
+                  data-testid="text-college-affiliation"
+                >
+                  {college.affiliation}
+                </p>
+              </div>
+              <div>
+                <h3 className="text-xl font-semibold mb-2">Website</h3>
+                <p
+                  className="text-primary-foreground/90"
+                  data-testid="text-college-website"
+                >
+                  {college.website}
+                </p>
+              </div>
             </div>
           </div>
         </div>
-      </section>
+      </section> */}
     </div>
   );
 }
