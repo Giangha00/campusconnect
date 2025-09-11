@@ -130,70 +130,34 @@ export default function AdminPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       {/* Hero Section */}
-      <div className="pt-20 bg-gradient-to-r from-blue-600 to-purple-600 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-          <div className="text-center mb-12">
-            <div className="mx-auto w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-6">
-              <BarChart3 className="h-8 w-8" />
+      <div className="pt-20 text-white relative">
+        <div
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat bg-gray-800"
+          style={{
+            backgroundImage: "url('/images/schools/School_7.jpg')",
+          }}
+        />
+        <div className="absolute inset-0 hero-gradient" />
+        <div className="relative z-10">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+            <div className="text-center mb-12">
+              <div className="mx-auto w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-6">
+                <BarChart3 className="h-8 w-8" />
+              </div>
+              <h1
+                className="text-4xl md:text-5xl font-bold mb-4 drop-shadow-2xl"
+                style={{ textShadow: "0 4px 8px rgba(0,0,0,0.8)" }}
+              >
+                Admin Dashboard
+              </h1>
+              <p
+                className="text-xl text-blue-100 max-w-2xl mx-auto drop-shadow-lg"
+                style={{ textShadow: "0 2px 4px rgba(0,0,0,0.7)" }}
+              >
+                Manage campus events, track registrations, and analyze
+                engagement metrics
+              </p>
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              Admin Dashboard
-            </h1>
-            <p className="text-xl text-blue-100 max-w-2xl mx-auto">
-              Manage campus events, track registrations, and analyze engagement
-              metrics
-            </p>
-          </div>
-
-          {/* Statistics Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-              <CardContent className="p-6 text-center">
-                <div className="mx-auto w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mb-3">
-                  <Calendar className="h-6 w-6" />
-                </div>
-                <div className="text-3xl font-bold mb-1">
-                  {stats.totalEvents}
-                </div>
-                <div className="text-blue-100 text-sm">Total Events</div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-              <CardContent className="p-6 text-center">
-                <div className="mx-auto w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mb-3">
-                  <Users className="h-6 w-6" />
-                </div>
-                <div className="text-3xl font-bold mb-1">
-                  {stats.totalRegistrations}
-                </div>
-                <div className="text-blue-100 text-sm">Total Registrations</div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-              <CardContent className="p-6 text-center">
-                <div className="mx-auto w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mb-3">
-                  <TrendingUp className="h-6 w-6" />
-                </div>
-                <div className="text-3xl font-bold mb-1">
-                  {stats.upcomingEvents}
-                </div>
-                <div className="text-blue-100 text-sm">Upcoming Events</div>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-white/10 backdrop-blur-sm border-white/20">
-              <CardContent className="p-6 text-center">
-                <div className="mx-auto w-12 h-12 bg-white/20 rounded-full flex items-center justify-center mb-3">
-                  <FileText className="h-6 w-6" />
-                </div>
-                <div className="text-3xl font-bold mb-1">
-                  {stats.eventsWithRegistrations}
-                </div>
-                <div className="text-blue-100 text-sm">Active Events</div>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </div>
