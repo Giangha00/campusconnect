@@ -4,14 +4,15 @@ export interface Event {
   date: string;
   time: string;
   venue: string;
-  category: 'academic' | 'cultural' | 'sports' | 'departmental';
+  category: 'academic' | 'cultural' | 'sports' | 'technical';
   department: string;
   description: string;
   organizer: string;
   image: string;
   status: 'upcoming' | 'ongoing' | 'past';
   registrationRequired?: boolean;
-  capacity?: number;
+  capacity?: number | "No limit";
+  attendees?: number;
   bookmarked?: boolean;
 }
 

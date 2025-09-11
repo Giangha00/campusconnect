@@ -86,8 +86,8 @@ export default function Gallery() {
                         ? "sports events"
                         : filter === "academic"
                         ? "academic events"
-                        : filter === "departmental"
-                        ? "departmental events"
+                        : filter === "technical"
+                        ? "technical events"
                         : `event ${filter}`}
                     </span>
                   </span>
