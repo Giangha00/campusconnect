@@ -22,7 +22,7 @@ const filterOptions: { value: EventCategory; label: string }[] = [
   { value: "academic", label: "Academic" },
   { value: "cultural", label: "Cultural" },
   { value: "sports", label: "Sports" },
-  { value: "departmental", label: "Departmental" },
+  { value: "technical", label: "Technical" },
 ];
 
 const statusFilterOptions: { value: EventStatus; label: string }[] = [
