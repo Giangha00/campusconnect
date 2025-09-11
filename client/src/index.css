@@ -22,6 +22,15 @@
     @apply relative z-10 px-4 max-w-4xl mx-auto;
   }
 
+  /* Carousel Styles */
+  .carousel-slide {
+    @apply transition-all duration-1000 ease-in-out;
+  }
+
+  .countdown-timer {
+    @apply bg-white/10 backdrop-blur-md border border-white/20 rounded-lg;
+  }
+
   .hero-title {
     @apply font-bold mb-6 [text-shadow:0_2px_4px_rgba(0,0,0,0.6)];
   }

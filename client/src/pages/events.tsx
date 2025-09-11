@@ -1,5 +1,6 @@
 import { EventCard } from "@/components/events/event-card";
 import { EventFilters } from "@/components/events/event-filters";
+import { EventCarousel } from "@/components/events/event-carousel";
 import { SearchBar } from "@/components/search/search-bar";
 import { useEvents } from "@/hooks/use-events";
 import {
@@ -48,6 +49,7 @@ export default function Events() {
 
   const statusOptions = [
     { value: "all", label: "All Status" },
+    { value: "incoming", label: "Incoming" },
     { value: "upcoming", label: "Upcoming" },
     { value: "ongoing", label: "Ongoing" },
     { value: "completed", label: "Completed" },
@@ -60,31 +62,8 @@ export default function Events() {
 
   return (
     <div className="pt-16">
-      {/* Hero Section */}
-      <section className="hero-section h-[50vh] min-h-[250px]">
-        <div
-          className="hero-background"
-          style={{
-            backgroundImage: "url('/images/schools/School_7.jpg')",
-          }}
-        />
-        <div className="absolute inset-0 hero-gradient" />
-        <div className="hero-content">
-          <h1
-            className="hero-title text-5xl"
-            data-testid="text-events-hero-title"
-          >
-            Event Calendar
-          </h1>
-          <p
-            className="hero-description text-xl"
-            data-testid="text-events-hero-description"
-          >
-            Explore the full list of upcoming and past events. Filter by
-            category and sort to find exactly what you're interested in.
-          </p>
-        </div>
-      </section>
+      {/* Event Carousel */}
+      <EventCarousel events={events} />
 
       {/* Search and Filters */}
       <section className="py-8 bg-white border-b">
@@ -223,7 +202,7 @@ export default function Events() {
               </div>
 
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {events.reverse().map((event) => (
+                {events.map((event) => (
                   <EventCard key={event.id} event={event} />
                 ))}
               </div>

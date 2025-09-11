@@ -5,6 +5,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/date-utils";
 import {
+  calculateEventStatus,
+  getStatusColor,
+  getStatusLabel,
+} from "@/lib/event-status";
+import {
   Clock,
   MapPin,
   User,
@@ -39,6 +44,9 @@ export default function EventDetail() {
 
   const eventId = params?.id ? parseInt(params.id) : null;
   const event = events?.find((e: Event) => e.id === eventId);
+
+  // Calculate current status based on dates
+  const currentStatus = event ? calculateEventStatus(event) : null;
 
   if (!event) {
     return (
@@ -151,16 +159,12 @@ export default function EventDetail() {
             </h1>
             <div className="flex items-center gap-4 mb-4">
               <Badge
-                variant={
-                  event.status === "upcoming"
-                    ? "default"
-                    : event.status === "ongoing"
-                    ? "secondary"
-                    : "outline"
-                }
-                className="text-sm"
+                variant="outline"
+                className={`text-sm ${
+                  currentStatus ? getStatusColor(currentStatus) : ""
+                } border`}
               >
-                {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
+                {currentStatus ? getStatusLabel(currentStatus) : "Unknown"}
               </Badge>
               <div className="flex gap-2 flex-wrap">
                 {event.registrationRequired && (
@@ -195,11 +199,29 @@ export default function EventDetail() {
             <CardContent className="p-6">
               <h3 className="text-lg font-semibold mb-4">Event Details</h3>
               <div className="space-y-4">
+                {event.registrationStart && event.registrationEnd && (
+                  <div className="flex items-start space-x-3">
+                    <Calendar className="h-5 w-5 text-gray-500 mt-0.5" />
+                    <div>
+                      <p className="font-medium text-gray-900">
+                        Registration Date
+                      </p>
+                      <p className="text-gray-600">
+                        {formatDate(event.registrationStart)} -{" "}
+                        {formatDate(event.registrationEnd)}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex items-start space-x-3">
                   <Calendar className="h-5 w-5 text-gray-500 mt-0.5" />
                   <div>
                     <p className="font-medium text-gray-900">Date</p>
-                    <p className="text-gray-600">{formatDate(event.date)}</p>
+                    <p className="text-gray-600">
+                      {formatDate(event.dateStart)} -{" "}
+                      {formatDate(event.dateEnd)}
+                    </p>
                   </div>
                 </div>
 
@@ -258,7 +280,7 @@ export default function EventDetail() {
             <CardContent className="p-6">
               <h3 className="text-lg font-semibold mb-4">Actions</h3>
               <div className="space-y-3">
-                {event.status === "upcoming" &&
+                {currentStatus === "upcoming" &&
                   user &&
                   user.role !== "visitor" && (
                     <Button
