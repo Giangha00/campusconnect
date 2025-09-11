@@ -79,16 +79,16 @@ export default function AdminPage() {
   // Calculate statistics
   const stats = useMemo(() => {
     const upcomingEventsCount = events.filter(
-      (e) => e.status === "upcoming"
+      (e) => calculateEventStatus(e) === "upcoming"
     ).length;
     const ongoingEventsCount = events.filter(
-      (e) => e.status === "ongoing"
+      (e) => calculateEventStatus(e) === "ongoing"
     ).length;
     const completedEventsCount = events.filter(
-      (e) => e.status === "completed"
+      (e) => calculateEventStatus(e) === "completed"
     ).length;
     const registrationsForUpcoming = events
-      .filter((e) => e.status === "upcoming")
+      .filter((e) => calculateEventStatus(e) === "upcoming")
       .reduce((sum, event) => sum + getRegistrationCount(event.id), 0);
 
     return {
