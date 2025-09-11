@@ -32,13 +32,13 @@ export default function Contact() {
         <div className="absolute inset-0 hero-gradient" />
         <div className="hero-content">
           <h1
-            className="hero-title text-5xl"
+            className="hero-title text-6xl"
             data-testid="text-contact-hero-title"
           >
             Contact Us
           </h1>
           <p
-            className="hero-description text-xl"
+            className="hero-description text-2xl"
             data-testid="text-contact-hero-description"
           >
             Get in touch with us for any inquiries, support, or information

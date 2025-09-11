@@ -42,9 +42,9 @@ export default function Home() {
             Your portal for campus events and activities
           </p>
           <p
-            className="text-lg mb-8 fade-in drop-shadow-md"
+            className="text-xl mb-8 fade-in drop-shadow-md"
             data-testid="text-hero-description"
-            style={{ textShadow: "0 1px 3px rgba(0,0,0,0.6)" }}
+            style={{ textShadow: "2 2px 8px rgba(0,0,0,1)" }}
           >
             Stay updated, stay engaged - Discover exciting events, connect with
             the community, and make the most of your university experience.
