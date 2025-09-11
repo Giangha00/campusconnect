@@ -6,20 +6,28 @@ import {
   ReactNode,
 } from "react";
 import { useUser } from "./user-context";
+import {
+  sendRegistrationEmail,
+  generateTicketNumber,
+} from "@/lib/email-service";
+import { useToast } from "@/hooks/use-toast";
+import eventsData from "@/data/events.json";
 
 interface Registration {
   eventId: number;
   userId: string;
   name: string;
+  email: string;
   role: string;
   department?: string;
   registeredAt: string;
+  ticket?: string;
 }
 
 interface RegistrationContextType {
   getRegistrationsByEvent: (eventId: number) => Registration[];
   getRegistrationCount: (eventId: number) => number;
-  registerForEvent: (eventId: number) => void;
+  registerForEvent: (eventId: number) => Promise<void>;
   unregisterFromEvent: (eventId: number) => void;
   isEventRegistered: (eventId: number) => boolean;
 }
@@ -34,6 +42,7 @@ interface RegistrationProviderProps {
 
 export function RegistrationProvider({ children }: RegistrationProviderProps) {
   const { user } = useUser();
+  const { toast } = useToast();
   const [registrations, setRegistrations] = useState<Registration[]>([]);
 
   // Load registrations from localStorage on mount
@@ -62,7 +71,7 @@ export function RegistrationProvider({ children }: RegistrationProviderProps) {
     return registrations.filter((r) => r.eventId === eventId).length;
   };
 
-  const registerForEvent = (eventId: number) => {
+  const registerForEvent = async (eventId: number) => {
     if (!user) return;
 
     // Check if already registered
@@ -72,16 +81,57 @@ export function RegistrationProvider({ children }: RegistrationProviderProps) {
 
     if (existingRegistration) return;
 
+    // Generate ticket number
+    const ticket = generateTicketNumber();
+
     const newRegistration: Registration = {
       eventId,
       userId: user.id,
       name: user.name,
+      email: user.email,
       role: user.role,
       department: user.department,
       registeredAt: new Date().toISOString(),
+      ticket,
     };
 
+    // Add registration to state
     setRegistrations((prev) => [...prev, newRegistration]);
+
+    // Send confirmation email
+    try {
+      // Get event name from events data
+      const event = eventsData.find((e) => e.id === eventId);
+      const eventName = event ? event.name : `Event #${eventId}`;
+
+      const emailResult = await sendRegistrationEmail({
+        to: user.email,
+        name: user.name,
+        eventName,
+        ticket,
+      });
+
+      if (emailResult.success) {
+        toast({
+          title: "Đăng ký thành công!",
+          description: "Email xác nhận đã được gửi đến hộp thư của bạn.",
+        });
+      } else {
+        toast({
+          title: "Đăng ký thành công!",
+          description:
+            "Tuy nhiên, không thể gửi email xác nhận. Vui lòng kiểm tra lại thông tin email.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error sending confirmation email:", error);
+      toast({
+        title: "Đăng ký thành công!",
+        description: "Tuy nhiên, không thể gửi email xác nhận.",
+        variant: "destructive",
+      });
+    }
   };
 
   const unregisterFromEvent = (eventId: number) => {

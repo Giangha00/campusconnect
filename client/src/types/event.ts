@@ -29,6 +29,7 @@ export type UserRole = 'student' | 'faculty' | 'visitor';
 export interface User {
   id: string;
   name: string;
+  email: string;
   role: UserRole;
   department?: string;
   bookmarkedEvents: number[];

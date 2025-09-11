@@ -200,7 +200,7 @@ export default function AdminPage() {
     ).length;
     const registrationsForUpcoming = allEventsWithStatus
       .filter((e) => e.status === "upcoming")
-      .reduce((sum, event) => sum + event.attendees, 0);
+      .reduce((sum, event) => sum + (event.attendees || 0), 0);
 
     return {
       incomingEvents: incomingEventsCount,
@@ -517,7 +517,7 @@ export default function AdminPage() {
         {/* Events Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {(currentEvents as Event[]).map((event) => {
-            const count = event.attendees;
+            const count = event.attendees || 0;
             const isOpen = !!expanded[event.id];
             const registrations = isOpen
               ? getRegistrationsByEvent(event.id)

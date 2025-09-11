@@ -18,6 +18,7 @@ interface Account {
   username: string;
   password: string;
   name: string;
+  email: string;
   role: UserRole;
   department?: string;
   bookmarkedEvents: number[];
@@ -27,7 +28,25 @@ interface Account {
 function loadAccounts(): Account[] {
   try {
     const raw = localStorage.getItem(LS_ACCOUNTS_KEY);
-    return raw ? (JSON.parse(raw) as Account[]) : [];
+    if (!raw) return [];
+
+    const accounts = JSON.parse(raw) as Account[];
+    // Migrate existing accounts that don't have email field
+    const migratedAccounts = accounts.map((account) => ({
+      ...account,
+      email: account.email || `${account.username}@example.com`, // Default email for existing accounts
+    }));
+
+    // Save migrated accounts if any were updated
+    if (
+      migratedAccounts.some(
+        (account, index) => account.email !== accounts[index]?.email
+      )
+    ) {
+      saveAccounts(migratedAccounts);
+    }
+
+    return migratedAccounts;
   } catch {
     return [];
   }
@@ -57,6 +76,7 @@ interface UserContextType {
     username: string;
     password: string;
     name: string;
+    email: string;
     role: UserRole;
     department?: string;
   }) => { ok: true } | { ok: false; message: string };
@@ -159,6 +179,7 @@ export function UserProvider({ children }: UserProviderProps) {
     const loggedUser: User = {
       id: account.id,
       name: account.name,
+      email: account.email,
       role: account.role,
       department: account.department,
       bookmarkedEvents: account.bookmarkedEvents || [],
@@ -174,6 +195,7 @@ export function UserProvider({ children }: UserProviderProps) {
     username,
     password,
     name,
+    email,
     role,
     department,
   }) => {
@@ -183,12 +205,18 @@ export function UserProvider({ children }: UserProviderProps) {
       return { ok: false, message: "Username already exists" };
     }
 
+    const emailExists = accounts.some((a) => a.email === email);
+    if (emailExists) {
+      return { ok: false, message: "Email already exists" };
+    }
+
     const id = generateId();
     const newAccount: Account = {
       id,
       username,
       password,
       name: name.trim(),
+      email: email.trim(),
       role,
       department: department?.trim() || undefined,
       bookmarkedEvents: [],
@@ -201,6 +229,7 @@ export function UserProvider({ children }: UserProviderProps) {
     const newUser: User = {
       id,
       name: newAccount.name,
+      email: newAccount.email,
       role: newAccount.role,
       department: newAccount.department,
       bookmarkedEvents: [],

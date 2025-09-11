@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Xác nhận đăng ký</title>
+</head>
+
+<body style="font-family: Arial, sans-serif; background:#f9f9f9; padding:20px;">
+    <div
+        style="max-width:600px; margin:auto; background:white; border-radius:8px; overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,0.1);">
+        <div style="background:#4CAF50; color:white; padding:20px; text-align:center;">
+            <h1>🎉 Chúc mừng {{name}}!</h1>
+        </div>
+        <div style="padding:20px; color:#333;">
+            <p>Bạn đã đăng ký thành công sự kiện <strong>{{eventName}}</strong>.</p>
+            <p><b>Ticket của bạn:</b>
+                <span style="font-size:18px; color:#4CAF50;">{{ticket}}</span>
+            </p>
+            <p>Ngày đăng ký: {{date}}</p>
+            <hr />
+            <p style="font-size:14px; color:#555;">
+                Nếu có thắc mắc, vui lòng liên hệ
+                <a href="mailto:{{supportEmail}}">{{supportEmail}}</a>.
+            </p>
+        </div>
+        <div style="background:#f4f4f4; text-align:center; padding:10px; font-size:12px; color:#777;">
+            © 2025 My Event Company
+        </div>
+    </div>
+</body>
+
+</html>

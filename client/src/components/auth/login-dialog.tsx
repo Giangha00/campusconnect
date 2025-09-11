@@ -27,6 +27,7 @@ import {
   validatePassword,
   validateName,
   validateDepartment,
+  validateEmail,
 } from "@/lib/validation";
 
 interface LoginDialogProps {
@@ -47,6 +48,7 @@ export function LoginDialog({ children }: LoginDialogProps) {
   const [regPassword, setRegPassword] = useState("");
   const [showRegPassword, setShowRegPassword] = useState(false);
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [role, setRole] = useState<UserRole>("student");
   const [department, setDepartment] = useState("");
 
@@ -60,6 +62,7 @@ export function LoginDialog({ children }: LoginDialogProps) {
     setRegUsername("");
     setRegPassword("");
     setName("");
+    setEmail("");
     setRole("student");
     setDepartment("");
     setShowPassword(false);
@@ -123,6 +126,10 @@ export function LoginDialog({ children }: LoginDialogProps) {
       maxLength: 50,
       pattern: /^[a-zA-Z\s]+$/,
     });
+    const isEmailValid = validate("reg-email", email, {
+      required: true,
+      pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+    });
     const isDepartmentValid = department
       ? validate("reg-department", department, {
           minLength: 2,
@@ -135,6 +142,7 @@ export function LoginDialog({ children }: LoginDialogProps) {
       !isUsernameValid ||
       !isPasswordValid ||
       !isNameValid ||
+      !isEmailValid ||
       !isDepartmentValid
     ) {
       toast({
@@ -149,6 +157,7 @@ export function LoginDialog({ children }: LoginDialogProps) {
       username: regUsername.trim(),
       password: regPassword,
       name: name.trim(),
+      email: email.trim(),
       role,
       department: department.trim() || undefined,
     });
@@ -432,6 +441,33 @@ export function LoginDialog({ children }: LoginDialogProps) {
                   />
                   {errors["reg-name"] && (
                     <p className="text-sm text-red-500">{errors["reg-name"]}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="reg-email">Email *</Label>
+                  <Input
+                    id="reg-email"
+                    type="email"
+                    placeholder="Enter your email address"
+                    value={email}
+                    onChange={(e) => {
+                      setEmail(e.target.value);
+                      clearError("reg-email");
+                    }}
+                    onBlur={() =>
+                      validate("reg-email", email, {
+                        required: true,
+                        pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+                      })
+                    }
+                    className={errors["reg-email"] ? "border-red-500" : ""}
+                    required
+                    data-testid="input-register-email"
+                  />
+                  {errors["reg-email"] && (
+                    <p className="text-sm text-red-500">
+                      {errors["reg-email"]}
+                    </p>
                   )}
                 </div>
                 <div className="space-y-2">

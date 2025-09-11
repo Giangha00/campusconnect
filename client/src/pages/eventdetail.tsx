@@ -80,7 +80,7 @@ export default function EventDetail() {
     }
   };
 
-  const handleRegistrationToggle = () => {
+  const handleRegistrationToggle = async () => {
     if (!user) {
       toast({
         title: "Login Required",
@@ -97,11 +97,8 @@ export default function EventDetail() {
         description: `You have unregistered for the event "${event.name}" successfully!`,
       });
     } else {
-      registerForEvent(event.id);
-      toast({
-        title: "Register Success",
-        description: `You have registered for the event "${event.name}" successfully!`,
-      });
+      await registerForEvent(event.id);
+      // Toast notification is now handled in the registration context
     }
   };
 
