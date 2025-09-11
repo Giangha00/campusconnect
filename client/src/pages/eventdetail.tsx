@@ -26,18 +26,14 @@ const categoryColors = {
   academic: "bg-primary text-primary-foreground",
   cultural: "bg-secondary text-secondary-foreground",
   sports: "bg-destructive text-destructive-foreground",
-  departmental: "bg-accent text-accent-foreground",
+  technical: "bg-accent text-accent-foreground",
 };
 
 export default function EventDetail() {
   const [, params] = useRoute("/events/:id");
   const { user, isEventBookmarked, bookmarkEvent, unbookmarkEvent } = useUser();
-  const {
-    registerForEvent,
-    unregisterFromEvent,
-    isEventRegistered,
-    getRegistrationCount,
-  } = useRegistration();
+  const { registerForEvent, unregisterFromEvent, isEventRegistered } =
+    useRegistration();
   const { events } = useEvents();
   const { toast } = useToast();
 
@@ -67,7 +63,6 @@ export default function EventDetail() {
 
   const isBookmarked = isEventBookmarked(event.id);
   const isRegistered = isEventRegistered(event.id);
-  const registrationCount = getRegistrationCount(event.id);
 
   const handleBookmarkToggle = () => {
     if (isBookmarked) {
@@ -247,7 +242,9 @@ export default function EventDetail() {
                       {event.capacity ? "Capacity" : "Registrations"}
                     </p>
                     <p className="text-gray-600">
-                      {event.capacity
+                      {event.capacity === "No limit"
+                        ? "No limit"
+                        : event.capacity
                         ? `${event.attendees}/${event.capacity} attendees`
                         : `${event.attendees} registered`}
                     </p>

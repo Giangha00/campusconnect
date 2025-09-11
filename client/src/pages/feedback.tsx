@@ -13,22 +13,91 @@ import {
 } from "@/components/ui/select";
 import { Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useValidation } from "@/hooks/use-validation";
+import {
+  validateName,
+  validateEmail,
+  validateFeedback,
+} from "@/lib/validation";
 
 export default function Feedback() {
   const { toast } = useToast();
+  const { errors, validate, clearError, clearAllErrors } = useValidation();
   const [rating, setRating] = useState(0);
   const [hoveredRating, setHoveredRating] = useState(0);
+
+  // Form state
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    userType: "",
+    eventAttended: "",
+    feedback: "",
+    suggestions: "",
+  });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Show toast message since this is a non-functional form for UI demonstration
+    // Validate all required fields
+    const isNameValid = validate("feedback-name", formData.name, {
+      required: true,
+    });
+    const isEmailValid = validate("feedback-email", formData.email, {
+      required: true,
+    });
+    const isUserTypeValid = validate("feedback-user-type", formData.userType, {
+      required: true,
+    });
+    const isEventValid = validate("feedback-event", formData.eventAttended, {
+      required: true,
+    });
+    const isFeedbackValid = validate("feedback-content", formData.feedback, {
+      required: true,
+    });
+    const isRatingValid = rating > 0;
+
+    if (
+      !isNameValid ||
+      !isEmailValid ||
+      !isUserTypeValid ||
+      !isEventValid ||
+      !isFeedbackValid ||
+      !isRatingValid
+    ) {
+      toast({
+        title: "Validation Error",
+        description: "Please fill in all required fields and provide a rating",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Show success message
     toast({
-      title: "Form Submission",
+      title: "Feedback Success",
       description:
-        "This form is for UI demonstration purposes only and does not submit data.",
+        "Thank you for your feedback! We appreciate your input and will use it to improve our events.",
       duration: 5000,
     });
+
+    // Reset form after successful submission
+    setFormData({
+      name: "",
+      email: "",
+      userType: "",
+      eventAttended: "",
+      feedback: "",
+      suggestions: "",
+    });
+    setRating(0);
+    setHoveredRating(0);
+    clearAllErrors();
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    clearError(`feedback-${field}`);
   };
 
   const handleRatingClick = (value: number) => {
@@ -38,7 +107,7 @@ export default function Feedback() {
   return (
     <div className="pt-16">
       {/* Hero Section */}
-      <section className="hero-section h-[50vh]">
+      <section className="hero-section h-[50vh] min-h-[250px]">
         <div
           className="hero-background"
           style={{
@@ -85,9 +154,26 @@ export default function Feedback() {
                       id="name"
                       type="text"
                       placeholder="Enter your full name"
+                      value={formData.name}
+                      onChange={(e) =>
+                        handleInputChange("name", e.target.value)
+                      }
+                      onBlur={() =>
+                        validate("feedback-name", formData.name, {
+                          required: true,
+                        })
+                      }
+                      className={
+                        errors["feedback-name"] ? "border-red-500" : ""
+                      }
                       required
                       data-testid="input-feedback-name"
                     />
+                    {errors["feedback-name"] && (
+                      <p className="text-sm text-red-500">
+                        {errors["feedback-name"]}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email Address *</Label>
@@ -95,9 +181,26 @@ export default function Feedback() {
                       id="email"
                       type="email"
                       placeholder="Enter your email"
+                      value={formData.email}
+                      onChange={(e) =>
+                        handleInputChange("email", e.target.value)
+                      }
+                      onBlur={() =>
+                        validate("feedback-email", formData.email, {
+                          required: true,
+                        })
+                      }
+                      className={
+                        errors["feedback-email"] ? "border-red-500" : ""
+                      }
                       required
                       data-testid="input-feedback-email"
                     />
+                    {errors["feedback-email"] && (
+                      <p className="text-sm text-red-500">
+                        {errors["feedback-email"]}
+                      </p>
+                    )}
                   </div>
                 </div>
 
@@ -105,8 +208,19 @@ export default function Feedback() {
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-2">
                     <Label htmlFor="user-type">User Type *</Label>
-                    <Select required>
-                      <SelectTrigger data-testid="select-feedback-user-type">
+                    <Select
+                      value={formData.userType}
+                      onValueChange={(value) =>
+                        handleInputChange("userType", value)
+                      }
+                      required
+                    >
+                      <SelectTrigger
+                        data-testid="select-feedback-user-type"
+                        className={
+                          errors["feedback-user-type"] ? "border-red-500" : ""
+                        }
+                      >
                         <SelectValue placeholder="Select user type" />
                       </SelectTrigger>
                       <SelectContent>
@@ -117,11 +231,27 @@ export default function Feedback() {
                         <SelectItem value="alumni">Alumni</SelectItem>
                       </SelectContent>
                     </Select>
+                    {errors["feedback-user-type"] && (
+                      <p className="text-sm text-red-500">
+                        {errors["feedback-user-type"]}
+                      </p>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="event-attended">Event Attended *</Label>
-                    <Select required>
-                      <SelectTrigger data-testid="select-feedback-event">
+                    <Select
+                      value={formData.eventAttended}
+                      onValueChange={(value) =>
+                        handleInputChange("eventAttended", value)
+                      }
+                      required
+                    >
+                      <SelectTrigger
+                        data-testid="select-feedback-event"
+                        className={
+                          errors["feedback-event"] ? "border-red-500" : ""
+                        }
+                      >
                         <SelectValue placeholder="Select event" />
                       </SelectTrigger>
                       <SelectContent>
@@ -193,13 +323,31 @@ export default function Feedback() {
 
                 {/* Comments */}
                 <div className="space-y-2">
-                  <Label htmlFor="comments">Comments & Suggestions</Label>
+                  <Label htmlFor="comments">Comments & Suggestions *</Label>
                   <Textarea
                     id="comments"
-                    placeholder="Share your thoughts, suggestions, or feedback about the event..."
+                    placeholder="Share your thoughts, suggestions, or feedback about the event... (minimum 10 characters)"
                     rows={5}
+                    value={formData.feedback}
+                    onChange={(e) =>
+                      handleInputChange("feedback", e.target.value)
+                    }
+                    onBlur={() =>
+                      validate("feedback-content", formData.feedback, {
+                        required: true,
+                        minLength: 10,
+                      })
+                    }
+                    className={
+                      errors["feedback-content"] ? "border-red-500" : ""
+                    }
                     data-testid="textarea-feedback-comments"
                   />
+                  {errors["feedback-content"] && (
+                    <p className="text-sm text-red-500">
+                      {errors["feedback-content"]}
+                    </p>
+                  )}
                 </div>
 
                 {/* Submit Button */}
@@ -212,12 +360,6 @@ export default function Feedback() {
                   >
                     Submit Feedback
                   </Button>
-                  <p
-                    className="text-sm text-muted-foreground"
-                    data-testid="text-demo-notice"
-                  >
-                    * This form is for UI demonstration purposes only
-                  </p>
                 </div>
               </form>
             </CardContent>

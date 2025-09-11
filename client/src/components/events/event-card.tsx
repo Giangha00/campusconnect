@@ -60,11 +60,14 @@ export function EventCard({ event, variant = "default" }: EventCardProps) {
     }
   };
 
-  const capacityText = event.capacity
-    ? `${regCount}${
-        typeof event.capacity === "number" ? `/${event.capacity}` : ""
-      }`
-    : `${regCount}`;
+  const capacityText =
+    event.capacity === "No limit"
+      ? "No limit"
+      : event.capacity
+      ? `${event.attendees}${
+          typeof event.capacity === "number" ? `/${event.capacity}` : ""
+        }`
+      : `${regCount}`;
 
   return (
     <Link href={`/events/${event.id}`}>

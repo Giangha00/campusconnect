@@ -61,7 +61,7 @@ export default function Events() {
   return (
     <div className="pt-16">
       {/* Hero Section */}
-      <section className="hero-section h-[50vh]">
+      <section className="hero-section h-[50vh] min-h-[250px]">
         <div
           className="hero-background"
           style={{
@@ -223,7 +223,7 @@ export default function Events() {
               </div>
 
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {events.map((event) => (
+                {events.reverse().map((event) => (
                   <EventCard key={event.id} event={event} />
                 ))}
               </div>

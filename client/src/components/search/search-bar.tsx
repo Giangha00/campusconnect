@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, X } from "lucide-react";
+import { validateSearchQuery } from "@/lib/validation";
 
 interface SearchBarProps {
   onSearch: (query: string) => void;
@@ -15,15 +16,36 @@ export function SearchBar({
   className,
 }: SearchBarProps) {
   const [query, setQuery] = useState("");
+  const [error, setError] = useState("");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate search query
+    const validation = validateSearchQuery(query);
+    if (!validation.isValid) {
+      setError(validation.message || "Invalid search query");
+      return;
+    }
+
+    setError("");
     onSearch(query.trim());
   };
 
   const handleClear = () => {
     setQuery("");
+    setError("");
     onSearch("");
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setQuery(value);
+
+    // Clear error when user starts typing
+    if (error) {
+      setError("");
+    }
   };
 
   return (
@@ -37,8 +59,8 @@ export function SearchBar({
           type="text"
           placeholder={placeholder}
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="pl-10 pr-10"
+          onChange={handleInputChange}
+          className={`pl-10 pr-10 ${error ? "border-red-500" : ""}`}
           data-testid="input-search"
         />
         {query && (
@@ -57,6 +79,11 @@ export function SearchBar({
       <Button type="submit" data-testid="button-search">
         Search
       </Button>
+      {error && (
+        <p className="absolute top-full left-0 mt-1 text-sm text-red-500">
+          {error}
+        </p>
+      )}
     </form>
   );
 }

@@ -22,7 +22,7 @@ export default function Contact() {
   return (
     <div className="pt-16">
       {/* Hero Section */}
-      <section className="hero-section h-[50vh]">
+      <section className="hero-section h-[50vh] min-h-[250px]">
         <div
           className="hero-background bg-cover bg-center bg-no-repeat"
           style={{
@@ -291,7 +291,7 @@ export default function Contact() {
       </section>
 
       {/* Student Coordinators */}
-      <section className="py-16 bg-white">
+      <section className="py-16 bg-muted">
         <div className="max-w-full mx-auto px-5">
           <div className="text-center mb-12">
             <h2
