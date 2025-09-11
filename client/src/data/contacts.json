@@ -1,8 +1,8 @@
 {
   "college": {
     "name": "CampusConnect College",
-    "address": "123 College Street, Education City, EC 12345",
-    "phone": "+1 (555) 123-4567",
+    "address": "13 College Street, Education City, EC 14953",
+    "phone": "+1 (555) 154-7896",
     "email": "info@campusconnect.edu",
     "website": "https://campusconnect.edu",
     "established": "1975",
@@ -15,36 +15,40 @@
         "name": "Dr. Sarah Johnson",
         "designation": "Dean of Student Affairs",
         "department": "Administration",
-        "phone": "+1 (555) 123-4501",
+        "phone": "+1 (555) 486-2786",
         "email": "sarah.johnson@campusconnect.edu",
-        "specialization": "Event Management & Student Development"
+        "specialization": "Event Management & Student Development",
+        "avatar": "https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=761&q=80"
       },
       {
         "id": 2,
         "name": "Prof. Michael Chen",
         "designation": "Head of Cultural Activities",
         "department": "Cultural Committee",
-        "phone": "+1 (555) 123-4502",
+        "phone": "+1 (555) 126-2787",
         "email": "michael.chen@campusconnect.edu",
-        "specialization": "Arts & Cultural Programs"
+        "specialization": "Arts & Cultural Programs",
+        "avatar": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80"
       },
       {
         "id": 3,
         "name": "Dr. Emily Rodriguez",
         "designation": "Sports Director",
         "department": "Physical Education",
-        "phone": "+1 (555) 123-4503",
+        "phone": "+1 (555) 645-3496",
         "email": "emily.rodriguez@campusconnect.edu",
-        "specialization": "Sports Management & Athletics"
+        "specialization": "Sports Management & Athletics",
+        "avatar": "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80"
       },
       {
         "id": 4,
         "name": "Prof. David Kumar",
         "designation": "Research Coordinator",
         "department": "Computer Science",
-        "phone": "+1 (555) 123-4504",
+        "phone": "+1 (555) 675-2734",
         "email": "david.kumar@campusconnect.edu",
-        "specialization": "Technology Events & Innovation"
+        "specialization": "Technology Events & Innovation",
+        "avatar": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80"
       }
     ],
     "students": [
@@ -53,40 +57,44 @@
         "name": "Alex Thompson",
         "designation": "Student Body President",
         "department": "Student Council",
-        "phone": "+1 (555) 123-4601",
-        "email": "alex.thompson@student.campusconnect.edu",
+        "phone": "+1 (555) 534-4601",
+        "email": "alex.thompson@campusconnect.edu",
         "year": "Final Year",
-        "specialization": "Overall Event Coordination"
+        "specialization": "Overall Event Coordination",
+        "avatar": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80"
       },
       {
         "id": 2,
         "name": "Priya Sharma",
         "designation": "Cultural Secretary",
         "department": "Cultural Committee",
-        "phone": "+1 (555) 123-4602",
-        "email": "priya.sharma@student.campusconnect.edu",
+        "phone": "+1 (555) 311-6198",
+        "email": "priya.sharma@campusconnect.edu",
         "year": "Third Year",
-        "specialization": "Cultural Events & Festivals"
+        "specialization": "Cultural Events & Festivals",
+        "avatar": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=764&q=80"
       },
       {
         "id": 3,
         "name": "James Wilson",
         "designation": "Sports Captain",
         "department": "Sports Committee",
-        "phone": "+1 (555) 123-4603",
-        "email": "james.wilson@student.campusconnect.edu",
+        "phone": "+1 (555) 964-4732",
+        "email": "james.wilson@campusconnect.edu",
         "year": "Final Year",
-        "specialization": "Sports Events & Competitions"
+        "specialization": "Sports Events & Competitions",
+        "avatar": "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=687&q=80"
       },
       {
         "id": 4,
         "name": "Maria Garcia",
         "designation": "Technical Events Head",
         "department": "Tech Committee",
-        "phone": "+1 (555) 123-4604",
-        "email": "maria.garcia@student.campusconnect.edu",
+        "phone": "+1 (555) 647-4604",
+        "email": "maria.garcia@campusconnect.edu",
         "year": "Third Year",
-        "specialization": "Technical Festivals & Competitions"
+        "specialization": "Technical Festivals & Competitions",
+        "avatar": "https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1171&q=80"
       }
     ]
   },
