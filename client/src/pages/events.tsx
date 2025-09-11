@@ -65,19 +65,19 @@ export default function Events() {
         <div
           className="hero-background"
           style={{
-            backgroundImage: "url('/images/schools/School_7.jpg')",
+            backgroundImage: "url('/images/schools/event_1.jpg')",
           }}
         />
         <div className="absolute inset-0 hero-gradient" />
         <div className="hero-content">
           <h1
-            className="hero-title text-5xl"
+            className="hero-title text-6xl"
             data-testid="text-events-hero-title"
           >
             Event Calendar
           </h1>
           <p
-            className="hero-description text-xl"
+            className="hero-description text-2xl"
             data-testid="text-events-hero-description"
           >
             Explore the full list of upcoming and past events. Filter by

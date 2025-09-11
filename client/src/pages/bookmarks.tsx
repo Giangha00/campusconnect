@@ -66,19 +66,19 @@ export default function Bookmarks() {
         <div
           className="hero-background"
           style={{
-            backgroundImage: "url('/images/schools/School_7.jpg')",
+            backgroundImage: "url('/images/schools/bookmark_1.jpg')",
           }}
         />
         <div className="absolute inset-0 hero-gradient" />
         <div className="hero-content">
           <h1
-            className="hero-title text-5xl"
+            className="hero-title text-6xl"
             data-testid="text-bookmarks-hero-title"
           >
             Bookmarked Events
           </h1>
           <p
-            className="hero-description text-xl"
+            className="hero-description text-2xl"
             data-testid="text-bookmarks-hero-description"
           >
             A list of events you have bookmarked to keep track of
