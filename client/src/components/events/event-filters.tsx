@@ -1,4 +1,4 @@
-import { EventCategory, EventSortBy } from "@/types/event";
+import { EventCategory, EventStatus, EventSortBy } from "@/types/event";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -11,6 +11,8 @@ import {
 interface EventFiltersProps {
   currentFilter: EventCategory;
   onFilterChange: (filter: EventCategory) => void;
+  currentStatusFilter: EventStatus;
+  onStatusFilterChange: (statusFilter: EventStatus) => void;
   currentSort: EventSortBy;
   onSortChange: (sort: EventSortBy) => void;
 }
@@ -23,15 +25,26 @@ const filterOptions: { value: EventCategory; label: string }[] = [
   { value: "departmental", label: "Departmental" },
 ];
 
+const statusFilterOptions: { value: EventStatus; label: string }[] = [
+  { value: "all", label: "All Status" },
+  { value: "upcoming", label: "Upcoming" },
+  { value: "ongoing", label: "Ongoing" },
+  { value: "past", label: "Completed" },
+];
+
 const sortOptions: { value: EventSortBy; label: string }[] = [
   { value: "date", label: "Sort by date" },
   { value: "name", label: "Sort by name" },
   { value: "category", label: "Sort by category" },
+  { value: "status", label: "Sort by status" },
+  { value: "time", label: "Sort by time" },
 ];
 
 export function EventFilters({
   currentFilter,
   onFilterChange,
+  currentStatusFilter,
+  onStatusFilterChange,
   currentSort,
   onSortChange,
 }: EventFiltersProps) {
@@ -51,6 +64,31 @@ export function EventFilters({
           </Button>
         ))}
       </div>
+
+      {/* Status Filters */}
+      {/* <div className="flex flex-wrap gap-2 justify-center">
+        {statusFilterOptions.map((option) => (
+          <Button
+            key={option.value}
+            variant={
+              currentStatusFilter === option.value ? "default" : "outline"
+            }
+            onClick={() => onStatusFilterChange(option.value)}
+            className={`transition-all duration-200 ${
+              option.value === "upcoming"
+                ? "hover:bg-green-50 hover:border-green-300"
+                : option.value === "ongoing"
+                ? "hover:bg-yellow-50 hover:border-yellow-300"
+                : option.value === "past"
+                ? "hover:bg-gray-50 hover:border-gray-300"
+                : ""
+            }`}
+            data-testid={`button-status-filter-${option.value}`}
+          >
+            {option.label}
+          </Button>
+        ))}
+      </div> */}
 
       {/* Sort Options */}
       {/* <div className="flex justify-center">

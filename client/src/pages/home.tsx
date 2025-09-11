@@ -17,41 +17,44 @@ export default function Home() {
   return (
     <div className="pt-16">
       {/* Hero Section */}
-      <section className="relative h-screen flex items-center justify-center">
+      <section className="relative h-screen flex items-center justify-center min-h-[600px]">
         <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat"
+          className="absolute inset-0 bg-cover bg-center bg-no-repeat bg-gray-800"
           style={{
-            backgroundImage: "url('/images/schools/School_7.jpg')",
+            backgroundImage: "url('/images/schools/School_1.jpg')",
           }}
         />
-        <div className="absolute inset-0 hero-gradient" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/50 to-black/80" />
 
         <div className="relative z-10 text-center text-white px-4 max-w-4xl mx-auto">
           <h1
-            className="text-5xl md:text-7xl font-bold mb-6 fade-in"
+            className="text-5xl md:text-7xl font-bold mb-6 fade-in drop-shadow-2xl"
             data-testid="text-hero-title"
+            style={{ textShadow: "0 4px 8px rgba(0,0,0,0.8)" }}
           >
             Welcome to CampusConnect
           </h1>
           <p
-            className="text-xl md:text-2xl mb-8 fade-in"
+            className="text-xl md:text-2xl mb-8 fade-in drop-shadow-lg"
             data-testid="text-hero-subtitle"
+            style={{ textShadow: "0 2px 4px rgba(0,0,0,0.7)" }}
           >
             Your portal for campus events and activities
           </p>
           <p
-            className="text-lg mb-8 fade-in"
+            className="text-lg mb-8 fade-in drop-shadow-md"
             data-testid="text-hero-description"
+            style={{ textShadow: "0 1px 3px rgba(0,0,0,0.6)" }}
           >
             Stay updated, stay engaged - Discover exciting events, connect with
             the community, and make the most of your university experience.
           </p>
 
-          <div className="space-x-4">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Link href="/events">
               <Button
                 size="lg"
-                className="bg-primary hover:bg-primary/90"
+                className="bg-primary hover:bg-primary/90 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105"
                 data-testid="button-explore-events"
               >
                 Explore Events
@@ -60,7 +63,7 @@ export default function Home() {
             </Link>
             <Button
               size="lg"
-              className="border border-white bg-transparent text-white hover:bg-white hover:text-primary"
+              className="border-2 border-white bg-white/10 backdrop-blur-sm text-white hover:bg-white hover:text-primary transition-all duration-300 transform hover:scale-105 shadow-lg hover:shadow-xl"
               onClick={() => scrollToSection("about-preview")}
               data-testid="button-learn-more"
             >

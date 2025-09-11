@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react';
-import { Event, EventCategory, EventSortBy } from '@/types/event';
+import { Event, EventCategory, EventStatus, EventSortBy } from '@/types/event';
 import eventsData from '@/data/events.json';
 
 export function useEvents() {
   const [filter, setFilter] = useState<EventCategory>('all');
+  const [statusFilter, setStatusFilter] = useState<EventStatus>('all');
   const [sortBy, setSortBy] = useState<EventSortBy>('date');
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -27,6 +28,11 @@ export function useEvents() {
       filteredEvents = filteredEvents.filter(event => event.category === filter);
     }
 
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filteredEvents = filteredEvents.filter(event => event.status === statusFilter);
+    }
+
     // Apply sorting
     switch (sortBy) {
       case 'date':
@@ -38,8 +44,10 @@ export function useEvents() {
       case 'category':
         filteredEvents.sort((a, b) => a.category.localeCompare(b.category));
         break;
-      case 'venue':
-        filteredEvents.sort((a, b) => a.venue.localeCompare(b.venue));
+      case 'status':
+        // Sort by status in logical order: upcoming -> ongoing -> past
+        const statusOrder = { upcoming: 0, ongoing: 1, past: 2 };
+        filteredEvents.sort((a, b) => statusOrder[a.status] - statusOrder[b.status]);
         break;
       case 'time':
         filteredEvents.sort((a, b) => a.time.localeCompare(b.time));
@@ -47,7 +55,7 @@ export function useEvents() {
     }
 
     return filteredEvents;
-  }, [filter, sortBy, searchQuery]);
+  }, [filter, statusFilter, sortBy, searchQuery]);
 
   const upcomingEvents = useMemo(() => {
     return (eventsData as Event[])
@@ -61,6 +69,8 @@ export function useEvents() {
     upcomingEvents,
     filter,
     setFilter,
+    statusFilter,
+    setStatusFilter,
     sortBy,
     setSortBy,
     searchQuery,

@@ -80,8 +80,8 @@ export default function EventDetail() {
   const handleRegistrationToggle = () => {
     if (!user) {
       toast({
-        title: "Đăng nhập cần thiết",
-        description: "Vui lòng đăng nhập để đăng ký sự kiện",
+        title: "Login Required",
+        description: "Please login to register for the event",
         variant: "destructive",
       });
       return;
@@ -90,14 +90,14 @@ export default function EventDetail() {
     if (isRegistered) {
       unregisterFromEvent(event.id);
       toast({
-        title: "Hủy đăng ký thành công",
-        description: `Bạn đã hủy đăng ký sự kiện "${event.name}"`,
+        title: "Unregister Success",
+        description: `You have unregistered for the event "${event.name}" successfully!`,
       });
     } else {
       registerForEvent(event.id);
       toast({
-        title: "Đăng ký thành công",
-        description: `Bạn đã đăng ký sự kiện "${event.name}" thành công!`,
+        title: "Register Success",
+        description: `You have registered for the event "${event.name}" successfully!`,
       });
     }
   };
@@ -272,10 +272,10 @@ export default function EventDetail() {
                     >
                       <UserCheck className="h-4 w-4 mr-2" />
                       {isRegistered
-                        ? "Đã đăng ký"
+                        ? "Registered"
                         : event.registrationRequired
-                        ? "Đăng ký sự kiện"
-                        : "Tham gia sự kiện"}
+                        ? "Register for Event"
+                        : "Join Event"}
                     </Button>
                   )}
 

@@ -9,14 +9,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, MapPin, User } from "lucide-react";
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  User,
+  Activity,
+  ChevronDown,
+} from "lucide-react";
+import { useState } from "react";
 
 export default function Events() {
   const {
     events,
     filter,
     setFilter,
+    statusFilter,
+    setStatusFilter,
     sortBy,
     setSortBy,
     searchQuery,
@@ -26,9 +42,21 @@ export default function Events() {
   const sortOptions = [
     { value: "date", label: "Sort by date", icon: Calendar },
     { value: "name", label: "Sort by name", icon: User },
-    { value: "venue", label: "Sort by venue", icon: MapPin },
+    { value: "status", label: "Sort by status", icon: Activity },
     { value: "time", label: "Sort by time", icon: Clock },
   ];
+
+  const statusOptions = [
+    { value: "all", label: "All Status" },
+    { value: "upcoming", label: "Upcoming" },
+    { value: "ongoing", label: "Ongoing" },
+    { value: "completed", label: "Completed" },
+  ];
+
+  const handleStatusSort = (status: string) => {
+    setStatusFilter(status as any);
+    setSortBy("status");
+  };
 
   return (
     <div className="pt-16">
@@ -72,16 +100,57 @@ export default function Events() {
             <EventFilters
               currentFilter={filter}
               onFilterChange={setFilter}
+              currentStatusFilter={statusFilter}
+              onStatusFilterChange={setStatusFilter}
               currentSort={sortBy}
               onSortChange={setSortBy}
             />
 
-            <div className="flex gap-2 items-center">
+            <div className="flex gap-2 items-center flex-wrap">
               <span className="text-sm font-medium text-muted-foreground">
                 Advanced Sort:
               </span>
               {sortOptions.map((option) => {
                 const IconComponent = option.icon;
+
+                if (option.value === "status") {
+                  return (
+                    <DropdownMenu key={option.value}>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant={
+                            sortBy === option.value ? "default" : "outline"
+                          }
+                          size="sm"
+                          className="gap-2"
+                          data-testid={`button-sort-${option.value}`}
+                        >
+                          <IconComponent className="h-4 w-4" />
+                          {statusFilter !== "all"
+                            ? `Sort by ${statusFilter}`
+                            : option.label}
+                          <ChevronDown className="h-3 w-3" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent>
+                        {statusOptions.map((statusOption) => (
+                          <DropdownMenuItem
+                            key={statusOption.value}
+                            onClick={() => handleStatusSort(statusOption.value)}
+                            className={
+                              statusFilter === statusOption.value
+                                ? "bg-accent"
+                                : ""
+                            }
+                          >
+                            {statusOption.label}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  );
+                }
+
                 return (
                   <Button
                     key={option.value}

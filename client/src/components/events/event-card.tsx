@@ -52,7 +52,7 @@ export function EventCard({ event, variant = "default" }: EventCardProps) {
   const handleRegisterToggle = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!user) return; // guarded by UI
+    if (!user) return;
     if (registered) {
       unregisterFromEvent(event.id);
     } else {
@@ -78,12 +78,30 @@ export function EventCard({ event, variant = "default" }: EventCardProps) {
             alt={event.name}
             className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
           />
-          <div className="absolute top-4 left-4 flex gap-2">
+          <div className="absolute top-4 left-4 flex gap-2 flex-wrap">
             {variant === "highlight" && (
               <Badge className="bg-primary text-primary-foreground">
                 Featured
               </Badge>
             )}
+            <Badge
+              variant={
+                event.status === "upcoming"
+                  ? "default"
+                  : event.status === "ongoing"
+                  ? "secondary"
+                  : "outline"
+              }
+              className={
+                event.status === "upcoming"
+                  ? "bg-green-600 text-white hover:bg-green-700"
+                  : event.status === "ongoing"
+                  ? "bg-yellow-600 text-white hover:bg-yellow-700"
+                  : "bg-gray-600 text-white hover:bg-gray-700"
+              }
+            >
+              {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
+            </Badge>
           </div>
           {user && user.role !== "visitor" && (
             <div className="absolute top-4 right-4">
@@ -106,9 +124,30 @@ export function EventCard({ event, variant = "default" }: EventCardProps) {
 
         <CardContent className="p-6 flex flex-col flex-grow">
           <div className="flex items-center justify-between mb-3">
-            <Badge className={categoryColors[event.category]}>
-              {event.category.charAt(0).toUpperCase() + event.category.slice(1)}
-            </Badge>
+            <div className="flex gap-2 flex-wrap">
+              <Badge className={categoryColors[event.category]}>
+                {event.category.charAt(0).toUpperCase() +
+                  event.category.slice(1)}
+              </Badge>
+              <Badge
+                variant={
+                  event.status === "upcoming"
+                    ? "default"
+                    : event.status === "ongoing"
+                    ? "secondary"
+                    : "outline"
+                }
+                className={
+                  event.status === "upcoming"
+                    ? "bg-green-100 text-green-800 hover:bg-green-200 border-green-200"
+                    : event.status === "ongoing"
+                    ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border-yellow-200"
+                    : "bg-gray-100 text-gray-800 hover:bg-gray-200 border-gray-200"
+                }
+              >
+                {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
+              </Badge>
+            </div>
             <span
               className="text-sm text-muted-foreground"
               data-testid={`text-event-date-${event.id}`}
