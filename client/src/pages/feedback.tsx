@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useEvents } from "@/hooks/use-events";
 import { useValidation } from "@/hooks/use-validation";
 import {
   validateName,
@@ -24,6 +25,7 @@ export default function Feedback() {
   const { toast } = useToast();
   const { errors, validate, clearError, clearAllErrors } = useValidation();
   const [rating, setRating] = useState(0);
+  const { events } = useEvents();
   const [hoveredRating, setHoveredRating] = useState(0);
 
   // Form state
@@ -36,6 +38,20 @@ export default function Feedback() {
     suggestions: "",
   });
 
+  const recentEvents = useMemo(() => {
+    const oneMonthAgo = new Date();
+    oneMonthAgo.setDate(oneMonthAgo.getDate() - 30);
+    oneMonthAgo.setHours(0, 0, 0, 0);
+
+    return events.filter((event) => {
+      if (event.status !== "completed") {
+        return false;
+      }
+      const eventEndDate = new Date(event.dateEnd);
+      return eventEndDate >= oneMonthAgo;
+    });
+  }, [events]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -45,13 +61,16 @@ export default function Feedback() {
     });
     const isEmailValid = validate("feedback-email", formData.email, {
       required: true,
+      pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
     });
     const isUserTypeValid = validate("feedback-user-type", formData.userType, {
       required: true,
     });
-    const isEventValid = validate("feedback-event", formData.eventAttended, {
-      required: true,
-    });
+    const isEventValid = validate(
+      "feedback-eventAttended",
+      formData.eventAttended,
+      { required: true }
+    );
     const isFeedbackValid = validate("feedback-content", formData.feedback, {
       required: true,
     });
@@ -188,6 +207,7 @@ export default function Feedback() {
                       onBlur={() =>
                         validate("feedback-email", formData.email, {
                           required: true,
+                          pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
                         })
                       }
                       className={
@@ -241,43 +261,41 @@ export default function Feedback() {
                     <Label htmlFor="event-attended">Event Attended *</Label>
                     <Select
                       value={formData.eventAttended}
-                      onValueChange={(value) =>
-                        handleInputChange("eventAttended", value)
-                      }
+                      onValueChange={(value) => {
+                        handleInputChange("eventAttended", value);
+                      }}
                       required
+                      disabled={recentEvents.length === 0}
                     >
                       <SelectTrigger
                         data-testid="select-feedback-event"
                         className={
-                          errors["feedback-event"] ? "border-red-500" : ""
+                          errors["feedback-eventAttended"]
+                            ? "border-red-500"
+                            : ""
                         }
                       >
-                        <SelectValue placeholder="Select event" />
+                        <SelectValue
+                          placeholder={
+                            recentEvents.length > 0
+                              ? "Select an event"
+                              : "No recent events to review"
+                          }
+                        />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="techfest-2024">
-                          TechFest 2024
-                        </SelectItem>
-                        <SelectItem value="cultural-week">
-                          Cultural Week 2024
-                        </SelectItem>
-                        <SelectItem value="sports-meet">
-                          Inter-College Sports Meet
-                        </SelectItem>
-                        <SelectItem value="innovation-expo">
-                          Innovation Expo
-                        </SelectItem>
-                        <SelectItem value="annual-day">
-                          Annual Day Celebration
-                        </SelectItem>
-                        <SelectItem value="robotics-championship">
-                          Robotics Championship
-                        </SelectItem>
-                        <SelectItem value="music-festival">
-                          Music Festival
-                        </SelectItem>
+                        {recentEvents.map((event) => (
+                          <SelectItem key={event.id} value={event.name}>
+                            {event.name}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
+                    {errors["feedback-eventAttended"] && (
+                      <p className="text-sm text-red-500">
+                        {errors["feedback-eventAttended"]}
+                      </p>
+                    )}
                   </div>
                 </div>
 
