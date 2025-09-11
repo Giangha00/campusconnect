@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { Event, EventCategory, EventStatus, EventSortBy } from "@/types/event";
 import eventsData from "@/data/events.json";
+import { calculateEventStatus } from "@/lib/event-status";
 
 export function useEvents() {
   const [filter, setFilter] = useState<EventCategory>("all");
@@ -9,39 +10,8 @@ export function useEvents() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const allEventsWithStatus = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
     return (eventsData as Event[]).map((event) => {
-      const dateStart = new Date(event.dateStart);
-      const dateEnd = new Date(event.dateEnd);
-
-      let status: EventStatus = "completed";
-
-      if (today > dateEnd) {
-        status = "completed";
-      } else if (today >= dateStart && today <= dateEnd) {
-        status = "ongoing";
-      } else if (today < dateStart) {
-        const registrationStart = event.registrationStart
-          ? new Date(event.registrationStart)
-          : null;
-        const registrationEnd = event.registrationEnd
-          ? new Date(event.registrationEnd)
-          : null;
-
-        if (
-          event.registrationRequired &&
-          registrationStart &&
-          registrationEnd &&
-          today >= registrationStart &&
-          today <= registrationEnd
-        ) {
-          status = "upcoming";
-        } else {
-          status = "incoming";
-        }
-      }
+      const status = calculateEventStatus(event);
       return { ...event, status };
     });
   }, []);
@@ -72,7 +42,7 @@ export function useEvents() {
     // Apply status filter
     if (statusFilter !== "all") {
       filteredEvents = filteredEvents.filter(
-        (event) => event.status === statusFilter
+        (event) => calculateEventStatus(event) === statusFilter
       );
     }
 
@@ -101,7 +71,7 @@ export function useEvents() {
           completed: 3,
         };
         sortedEvents.sort(
-          (a, b) => statusOrder[a.status] - statusOrder[b.status]
+          (a, b) => statusOrder[calculateEventStatus(a)] - statusOrder[calculateEventStatus(b)]
         );
         break;
       case "time":
@@ -114,7 +84,7 @@ export function useEvents() {
 
   const upcomingEvents = useMemo(() => {
     return allEventsWithStatus
-      .filter((event) => event.status === "upcoming")
+      .filter((event) => calculateEventStatus(event) === "upcoming")
       .sort(
         (a, b) =>
           new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime()
