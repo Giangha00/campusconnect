@@ -40,7 +40,7 @@ import {
 
 export default function AdminPage() {
   const { user } = useUser();
-  const { getRegistrationsByEvent, getRegistrationCount } = useRegistration();
+  const { getRegistrationsByEvent } = useRegistration();
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [expanded, setExpanded] = useState<Record<number, boolean>>({});
@@ -55,11 +55,11 @@ export default function AdminPage() {
     setCurrentPage(1);
   }, [query, startDate, endDate, statusFilter]);
 
-  const events = useMemo(() => {
+  const allEventsWithStatus = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0); // So sánh ngày, không tính giờ
 
-    let list = (eventsData as Event[]).map((event) => {
+    return (eventsData as Event[]).map((event) => {
       const dateStart = new Date(event.dateStart);
       const dateEnd = new Date(event.dateEnd);
 
@@ -93,7 +93,10 @@ export default function AdminPage() {
       }
       return { ...event, status };
     });
+  }, []);
 
+  const events = useMemo(() => {
+    let list = allEventsWithStatus;
     const q = query.toLowerCase().trim();
 
     return list.filter((e) => {
@@ -113,7 +116,7 @@ export default function AdminPage() {
 
       return matchesQuery && matchesDate && matchesStatus;
     });
-  }, [query, startDate, endDate, statusFilter]);
+  }, [allEventsWithStatus, query, startDate, endDate, statusFilter]);
 
   // Pagination logic
   const indexOfLastEvent = currentPage * eventsPerPage;
@@ -183,21 +186,21 @@ export default function AdminPage() {
 
   // Calculate statistics
   const stats = useMemo(() => {
-    const incomingEventsCount = events.filter(
+    const incomingEventsCount = allEventsWithStatus.filter(
       (e) => e.status === "incoming"
     ).length;
-    const upcomingEventsCount = events.filter(
-      (e) => calculateEventStatus(e) === "upcoming"
+    const upcomingEventsCount = allEventsWithStatus.filter(
+      (e) => e.status === "upcoming"
     ).length;
-    const ongoingEventsCount = events.filter(
-      (e) => calculateEventStatus(e) === "ongoing"
+    const ongoingEventsCount = allEventsWithStatus.filter(
+      (e) => e.status === "ongoing"
     ).length;
-    const completedEventsCount = events.filter(
-      (e) => calculateEventStatus(e) === "completed"
+    const completedEventsCount = allEventsWithStatus.filter(
+      (e) => e.status === "completed"
     ).length;
-    const registrationsForUpcoming = events
-      .filter((e) => calculateEventStatus(e) === "upcoming")
-      .reduce((sum, event) => sum + getRegistrationCount(event.id), 0);
+    const registrationsForUpcoming = allEventsWithStatus
+      .filter((e) => e.status === "upcoming")
+      .reduce((sum, event) => sum + event.attendees, 0);
 
     return {
       incomingEvents: incomingEventsCount,
@@ -206,7 +209,7 @@ export default function AdminPage() {
       completedEvents: completedEventsCount,
       registrationsForUpcoming,
     };
-  }, [events, getRegistrationCount]);
+  }, [allEventsWithStatus]);
 
   if (!isAdmin) {
     return (
@@ -309,9 +312,9 @@ export default function AdminPage() {
         {/* Stats Section */}
         <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card
-            className={`cursor-pointer bg-gradient-to-br from-yellow-400 to-orange-500 text-white transition-all duration-300 hover:scale-105 ${
+            className={`cursor-pointer bg-gradient-to-br from-yellow-300 to-orange-400 text-white transition-all duration-300 hover:scale-105 ${
               statusFilter === "ongoing"
-                ? "ring-4 ring-offset-2 ring-yellow-500 shadow-xl"
+                ? "ring-4 ring-offset-2 ring-yellow-400 shadow-xl"
                 : "shadow-lg"
             }`}
             onClick={() =>
@@ -321,22 +324,24 @@ export default function AdminPage() {
             }
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+              <CardTitle className="text-sm font-medium [text-shadow:0_1px_2px_rgba(0,0,0,0.1)]">
                 Ongoing Events
               </CardTitle>
               <Activity className="h-4 w-4 text-white/80" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.ongoingEvents}</div>
-              <p className="text-xs text-white/80">
+              <div className="text-3xl font-bold [text-shadow:0_2px_4px_rgba(0,0,0,0.2)]">
+                {stats.ongoingEvents}
+              </div>
+              <p className="text-xs text-white/80 [text-shadow:0_1px_2px_rgba(0,0,0,0.1)]">
                 Events currently happening
               </p>
             </CardContent>
           </Card>
           <Card
-            className={`cursor-pointer bg-gradient-to-br from-green-400 to-teal-500 text-white transition-all duration-300 hover:scale-105 ${
+            className={`cursor-pointer bg-gradient-to-br from-green-300 to-teal-400 text-white transition-all duration-300 hover:scale-105 ${
               statusFilter === "upcoming"
-                ? "ring-4 ring-offset-2 ring-green-500 shadow-xl"
+                ? "ring-4 ring-offset-2 ring-green-400 shadow-xl"
                 : "shadow-lg"
             }`}
             onClick={() =>
@@ -346,22 +351,24 @@ export default function AdminPage() {
             }
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+              <CardTitle className="text-sm font-medium [text-shadow:0_1px_2px_rgba(0,0,0,0.1)]">
                 Upcoming Events
               </CardTitle>
               <Calendar className="h-4 w-4 text-white/80" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.upcomingEvents}</div>
-              <p className="text-xs text-white/80">
+              <div className="text-3xl font-bold [text-shadow:0_2px_4px_rgba(0,0,0,0.2)]">
+                {stats.upcomingEvents}
+              </div>
+              <p className="text-xs text-white/80 [text-shadow:0_1px_2px_rgba(0,0,0,0.1)]">
                 Events open for registration
               </p>
             </CardContent>
           </Card>
           <Card
-            className={`cursor-pointer bg-gradient-to-br from-blue-400 to-indigo-500 text-white transition-all duration-300 hover:scale-105 ${
+            className={`cursor-pointer bg-gradient-to-br from-blue-300 to-indigo-400 text-white transition-all duration-300 hover:scale-105 ${
               statusFilter === "completed"
-                ? "ring-4 ring-offset-2 ring-blue-500 shadow-xl"
+                ? "ring-4 ring-offset-2 ring-blue-400 shadow-xl"
                 : "shadow-lg"
             }`}
             onClick={() =>
@@ -371,22 +378,24 @@ export default function AdminPage() {
             }
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+              <CardTitle className="text-sm font-medium [text-shadow:0_1px_2px_rgba(0,0,0,0.1)]">
                 Completed Events
               </CardTitle>
               <CheckCircle className="h-4 w-4 text-white/80" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.completedEvents}</div>
-              <p className="text-xs text-white/80">
+              <div className="text-3xl font-bold [text-shadow:0_2px_4px_rgba(0,0,0,0.2)]">
+                {stats.completedEvents}
+              </div>
+              <p className="text-xs text-white/80 [text-shadow:0_1px_2px_rgba(0,0,0,0.1)]">
                 Finished events in selection
               </p>
             </CardContent>
           </Card>
           <Card
-            className={`cursor-pointer bg-gradient-to-br from-purple-400 to-pink-500 text-white transition-all duration-300 hover:scale-105 ${
+            className={`cursor-pointer bg-gradient-to-br from-purple-300 to-pink-400 text-white transition-all duration-300 hover:scale-105 ${
               statusFilter === "upcoming"
-                ? "ring-4 ring-offset-2 ring-purple-500 shadow-xl"
+                ? "ring-4 ring-offset-2 ring-purple-400 shadow-xl"
                 : "shadow-lg"
             }`}
             onClick={() =>
@@ -396,16 +405,18 @@ export default function AdminPage() {
             }
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+              <CardTitle className="text-sm font-medium [text-shadow:0_1px_2px_rgba(0,0,0,0.1)]">
                 Upcoming Registrations
               </CardTitle>
               <Users className="h-4 w-4 text-white/80" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-3xl font-bold [text-shadow:0_2px_4px_rgba(0,0,0,0.2)]">
                 {stats.registrationsForUpcoming}
               </div>
-              <p className="text-xs text-white/80">Total for upcoming events</p>
+              <p className="text-xs text-white/80 [text-shadow:0_1px_2px_rgba(0,0,0,0.1)]">
+                Total for upcoming events
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -506,13 +517,15 @@ export default function AdminPage() {
         {/* Events Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {(currentEvents as Event[]).map((event) => {
-            const count = getRegistrationCount(event.id);
+            const count = event.attendees;
             const isOpen = !!expanded[event.id];
             const registrations = isOpen
               ? getRegistrationsByEvent(event.id)
               : [];
             const capacityPercentage =
-              event.capacity && typeof event.capacity === "number"
+              event.capacity &&
+              typeof event.capacity === "number" &&
+              event.capacity > 0
                 ? (count / event.capacity) * 100
                 : 0;
 
@@ -530,7 +543,11 @@ export default function AdminPage() {
                       </CardTitle>
                       <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
                         <Calendar className="h-4 w-4" />
-                        <span>{event.date}</span>
+                        <span>
+                          {event.dateStart !== event.dateEnd
+                            ? `${event.dateStart} to ${event.dateEnd}`
+                            : event.dateStart}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2 mt-1 text-sm text-gray-600">
                         <MapPin className="h-4 w-4" />
@@ -592,11 +609,9 @@ export default function AdminPage() {
                       )}
                       <Badge
                         variant="outline"
-                        className={`${getStatusColor(
-                          calculateEventStatus(event)
-                        )} border`}
+                        className={`${getStatusColor(event.status)} border`}
                       >
-                        {getStatusLabel(calculateEventStatus(event))}
+                        {getStatusLabel(event.status)}
                       </Badge>
                     </div>
 
