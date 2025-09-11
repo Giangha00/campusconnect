@@ -19,8 +19,15 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserRole } from "@/types/event";
 import { useUser } from "@/contexts/user-context";
-import { User, LogIn, LogOut } from "lucide-react";
+import { User, LogIn, LogOut, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useValidation } from "@/hooks/use-validation";
+import {
+  validateUsername,
+  validatePassword,
+  validateName,
+  validateDepartment,
+} from "@/lib/validation";
 
 interface LoginDialogProps {
   children?: React.ReactNode;
@@ -34,15 +41,18 @@ export function LoginDialog({ children }: LoginDialogProps) {
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
 
   const [regUsername, setRegUsername] = useState("");
   const [regPassword, setRegPassword] = useState("");
+  const [showRegPassword, setShowRegPassword] = useState(false);
   const [name, setName] = useState("");
   const [role, setRole] = useState<UserRole>("student");
   const [department, setDepartment] = useState("");
 
   const { user, login, register, logout } = useUser();
   const { toast } = useToast();
+  const { errors, validate, clearError, clearAllErrors } = useValidation();
 
   const resetAll = () => {
     setUsername("");
@@ -52,18 +62,31 @@ export function LoginDialog({ children }: LoginDialogProps) {
     setName("");
     setRole("student");
     setDepartment("");
+    setShowPassword(false);
+    setShowRegPassword(false);
+    clearAllErrors();
   };
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!username.trim() || !password) {
+
+    // Validate login fields
+    const isUsernameValid = validate("login-username", username, {
+      required: true,
+    });
+    const isPasswordValid = validate("login-password", password, {
+      required: true,
+    });
+
+    if (!isUsernameValid || !isPasswordValid) {
       toast({
-        title: "Error",
-        description: "Please enter both username and password",
+        title: "Validation Error",
+        description: "Please fix the errors and try again",
         variant: "destructive",
       });
       return;
     }
+
     const res = login(username.trim(), password);
     if (res.ok) {
       toast({ title: "Login successful" });
@@ -81,14 +104,47 @@ export function LoginDialog({ children }: LoginDialogProps) {
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!regUsername.trim() || !regPassword || !name.trim()) {
+
+    // Validate registration fields
+    const isUsernameValid = validate("reg-username", regUsername, {
+      required: true,
+      minLength: 3,
+      maxLength: 20,
+      pattern: /^[a-zA-Z0-9_]+$/,
+    });
+    const isPasswordValid = validate("reg-password", regPassword, {
+      required: true,
+      minLength: 6,
+      maxLength: 50,
+    });
+    const isNameValid = validate("reg-name", name, {
+      required: true,
+      minLength: 2,
+      maxLength: 50,
+      pattern: /^[a-zA-Z\s]+$/,
+    });
+    const isDepartmentValid = department
+      ? validate("reg-department", department, {
+          minLength: 2,
+          maxLength: 50,
+          pattern: /^[a-zA-Z0-9\s\-_]+$/,
+        })
+      : true;
+
+    if (
+      !isUsernameValid ||
+      !isPasswordValid ||
+      !isNameValid ||
+      !isDepartmentValid
+    ) {
       toast({
-        title: "Error",
-        description: "Please fill in all required fields",
+        title: "Validation Error",
+        description: "Please fix the errors and try again",
         variant: "destructive",
       });
       return;
     }
+
     const res = register({
       username: regUsername.trim(),
       password: regPassword,
@@ -191,22 +247,63 @@ export function LoginDialog({ children }: LoginDialogProps) {
                     type="text"
                     placeholder="Enter username"
                     value={username}
-                    onChange={(e) => setUsername(e.target.value)}
+                    onChange={(e) => {
+                      setUsername(e.target.value);
+                      clearError("login-username");
+                    }}
+                    onBlur={() =>
+                      validate("login-username", username, { required: true })
+                    }
+                    className={errors["login-username"] ? "border-red-500" : ""}
                     required
                     data-testid="input-login-username"
                   />
+                  {errors["login-username"] && (
+                    <p className="text-sm text-red-500">
+                      {errors["login-username"]}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="login-password">Password *</Label>
-                  <Input
-                    id="login-password"
-                    type="password"
-                    placeholder="Enter password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                    data-testid="input-login-password"
-                  />
+                  <div className="relative">
+                    <Input
+                      id="login-password"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter password"
+                      value={password}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        clearError("login-password");
+                      }}
+                      onBlur={() =>
+                        validate("login-password", password, { required: true })
+                      }
+                      className={
+                        errors["login-password"] ? "border-red-500" : ""
+                      }
+                      required
+                      data-testid="input-login-password"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                  {errors["login-password"] && (
+                    <p className="text-sm text-red-500">
+                      {errors["login-password"]}
+                    </p>
+                  )}
                 </div>
                 <Button
                   type="submit"
@@ -243,36 +340,99 @@ export function LoginDialog({ children }: LoginDialogProps) {
                   <Input
                     id="reg-username"
                     type="text"
-                    placeholder="Choose a username"
+                    placeholder="Choose a username (3-20 characters, letters, numbers, underscore only)"
                     value={regUsername}
-                    onChange={(e) => setRegUsername(e.target.value)}
+                    onChange={(e) => {
+                      setRegUsername(e.target.value);
+                      clearError("reg-username");
+                    }}
+                    onBlur={() =>
+                      validate("reg-username", regUsername, {
+                        required: true,
+                        minLength: 3,
+                        maxLength: 20,
+                        pattern: /^[a-zA-Z0-9_]+$/,
+                      })
+                    }
+                    className={errors["reg-username"] ? "border-red-500" : ""}
                     required
                     data-testid="input-register-username"
                   />
+                  {errors["reg-username"] && (
+                    <p className="text-sm text-red-500">
+                      {errors["reg-username"]}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="reg-password">Password *</Label>
-                  <Input
-                    id="reg-password"
-                    type="password"
-                    placeholder="Create a password"
-                    value={regPassword}
-                    onChange={(e) => setRegPassword(e.target.value)}
-                    required
-                    data-testid="input-register-password"
-                  />
+                  <div className="relative">
+                    <Input
+                      id="reg-password"
+                      type={showRegPassword ? "text" : "password"}
+                      placeholder="Create a password (min 6 characters)"
+                      value={regPassword}
+                      onChange={(e) => {
+                        setRegPassword(e.target.value);
+                        clearError("reg-password");
+                      }}
+                      onBlur={() =>
+                        validate("reg-password", regPassword, {
+                          required: true,
+                          minLength: 6,
+                          maxLength: 50,
+                        })
+                      }
+                      className={errors["reg-password"] ? "border-red-500" : ""}
+                      required
+                      data-testid="input-register-password"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowRegPassword(!showRegPassword)}
+                    >
+                      {showRegPassword ? (
+                        <EyeOff className="h-4 w-4" />
+                      ) : (
+                        <Eye className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                  {errors["reg-password"] && (
+                    <p className="text-sm text-red-500">
+                      {errors["reg-password"]}
+                    </p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="reg-name">Full Name *</Label>
                   <Input
                     id="reg-name"
                     type="text"
-                    placeholder="Enter your full name"
+                    placeholder="Enter your full name (letters and spaces only)"
                     value={name}
-                    onChange={(e) => setName(e.target.value)}
+                    onChange={(e) => {
+                      setName(e.target.value);
+                      clearError("reg-name");
+                    }}
+                    onBlur={() =>
+                      validate("reg-name", name, {
+                        required: true,
+                        minLength: 2,
+                        maxLength: 50,
+                        pattern: /^[a-zA-Z\s]+$/,
+                      })
+                    }
+                    className={errors["reg-name"] ? "border-red-500" : ""}
                     required
                     data-testid="input-register-name"
                   />
+                  {errors["reg-name"] && (
+                    <p className="text-sm text-red-500">{errors["reg-name"]}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="reg-role">Role *</Label>
@@ -296,11 +456,31 @@ export function LoginDialog({ children }: LoginDialogProps) {
                     <Input
                       id="reg-department"
                       type="text"
-                      placeholder="Enter department"
+                      placeholder="Enter department (optional)"
                       value={department}
-                      onChange={(e) => setDepartment(e.target.value)}
+                      onChange={(e) => {
+                        setDepartment(e.target.value);
+                        clearError("reg-department");
+                      }}
+                      onBlur={() =>
+                        department
+                          ? validate("reg-department", department, {
+                              minLength: 2,
+                              maxLength: 50,
+                              pattern: /^[a-zA-Z0-9\s\-_]+$/,
+                            })
+                          : clearError("reg-department")
+                      }
+                      className={
+                        errors["reg-department"] ? "border-red-500" : ""
+                      }
                       data-testid="input-register-department"
                     />
+                    {errors["reg-department"] && (
+                      <p className="text-sm text-red-500">
+                        {errors["reg-department"]}
+                      </p>
+                    )}
                   </div>
                 )}
                 <Button

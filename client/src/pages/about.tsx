@@ -82,7 +82,7 @@ export default function About() {
   return (
     <div className="pt-16">
       {/* Hero Section */}
-      <section className="hero-section h-[50vh]">
+      <section className="hero-section h-[50vh] min-h-[250px]">
         <div
           className="hero-background"
           style={{

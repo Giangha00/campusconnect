@@ -335,9 +335,10 @@ export default function AdminPage() {
             const registrations = isOpen
               ? getRegistrationsByEvent(event.id)
               : [];
-            const capacityPercentage = event.capacity
-              ? (count / event.capacity) * 100
-              : 0;
+            const capacityPercentage =
+              event.capacity && typeof event.capacity === "number"
+                ? (count / event.capacity) * 100
+                : 0;
 
             return (
               <Card
@@ -443,10 +444,12 @@ export default function AdminPage() {
                         </div>
                         <span className="text-sm font-bold text-gray-900">
                           {count}
-                          {event.capacity ? `/${event.capacity}` : ""}
+                          {event.capacity && typeof event.capacity === "number"
+                            ? `/${event.capacity}`
+                            : ""}
                         </span>
                       </div>
-                      {event.capacity && (
+                      {event.capacity && typeof event.capacity === "number" && (
                         <div className="w-full bg-gray-200 rounded-full h-2">
                           <div
                             className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-300"
@@ -456,7 +459,7 @@ export default function AdminPage() {
                           ></div>
                         </div>
                       )}
-                      {event.capacity && (
+                      {event.capacity && typeof event.capacity === "number" && (
                         <div className="text-xs text-gray-500 mt-1">
                           {capacityPercentage.toFixed(1)}% capacity
                         </div>
