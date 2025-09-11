@@ -86,19 +86,19 @@ export default function About() {
         <div
           className="hero-background"
           style={{
-            backgroundImage: "url('/images/schools/School_7.jpg')",
+            backgroundImage: "url('/images/schools/School_9.jpg')",
           }}
         />
         <div className="absolute inset-0 hero-gradient" />
         <div className="hero-content">
           <h1
-            className="hero-title text-5xl"
+            className="hero-title text-6xl"
             data-testid="text-about-hero-title"
           >
             About Campus Connect College
           </h1>
           <p
-            className="hero-description text-xl"
+            className="hero-description text-2xl"
             data-testid="text-about-hero-description"
           >
             Empowering minds, fostering innovation, and building the leaders of
