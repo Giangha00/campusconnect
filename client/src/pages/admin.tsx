@@ -13,6 +13,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Download,
   Eye,
   EyeOff,
@@ -33,8 +40,9 @@ import {
 
 export default function AdminPage() {
   const { user } = useUser();
-  const { getRegistrationsByEvent, getRegistrationCount } = useRegistration();
+  const { getRegistrationsByEvent } = useRegistration();
   const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
   const [expanded, setExpanded] = useState<Record<number, boolean>>({});
   const [currentPage, setCurrentPage] = useState(1);
   const [startDate, setStartDate] = useState("");
@@ -45,10 +53,50 @@ export default function AdminPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [query, startDate, endDate]);
+  }, [query, startDate, endDate, statusFilter]);
+
+  const allEventsWithStatus = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // So sánh ngày, không tính giờ
+
+    return (eventsData as Event[]).map((event) => {
+      const dateStart = new Date(event.dateStart);
+      const dateEnd = new Date(event.dateEnd);
+
+      let status: "incoming" | "upcoming" | "ongoing" | "completed" =
+        "completed";
+
+      if (today > dateEnd) {
+        status = "completed";
+      } else if (today >= dateStart && today <= dateEnd) {
+        status = "ongoing";
+      } else if (today < dateStart) {
+        // Sự kiện trong tương lai
+        const registrationStart = event.registrationStart
+          ? new Date(event.registrationStart)
+          : null;
+        const registrationEnd = event.registrationEnd
+          ? new Date(event.registrationEnd)
+          : null;
+
+        if (
+          event.registrationRequired &&
+          registrationStart &&
+          registrationEnd &&
+          today >= registrationStart &&
+          today <= registrationEnd
+        ) {
+          status = "upcoming"; // Đang mở đăng ký
+        } else {
+          status = "incoming"; // Sắp diễn ra (chưa tới ngày đăng ký, hoặc đã qua, hoặc không cần)
+        }
+      }
+      return { ...event, status };
+    });
+  }, []);
 
   const events = useMemo(() => {
-    let list = eventsData as Event[];
+    let list = allEventsWithStatus;
     const q = query.toLowerCase().trim();
 
     return list.filter((e) => {
@@ -61,11 +109,14 @@ export default function AdminPage() {
         e.venue.toLowerCase().includes(q);
 
       const matchesDate =
-        (!startDate || e.date >= startDate) && (!endDate || e.date <= endDate);
+        (!startDate || e.dateStart >= startDate) &&
+        (!endDate || e.dateStart <= endDate);
 
-      return matchesQuery && matchesDate;
+      const matchesStatus = statusFilter === "all" || e.status === statusFilter;
+
+      return matchesQuery && matchesDate && matchesStatus;
     });
-  }, [query, startDate, endDate]);
+  }, [allEventsWithStatus, query, startDate, endDate, statusFilter]);
 
   // Pagination logic
   const indexOfLastEvent = currentPage * eventsPerPage;
@@ -76,28 +127,89 @@ export default function AdminPage() {
 
   const totalPages = Math.ceil(events.length / eventsPerPage);
 
+  const paginationItems = useMemo(() => {
+    if (totalPages <= 1) return [];
+
+    const pageNumbers: (number | string)[] = [];
+    const siblingCount = 1;
+    // The number of pages to show is based on:
+    // 1 (current) + 2*siblings + firstPage + lastPage + 2*DOTS
+    const totalPageNumbers = siblingCount * 2 + 5;
+
+    // Case 1: Number of pages is less than the page numbers we want to show.
+    // We just show all the page numbers.
+    if (totalPages <= totalPageNumbers) {
+      for (let i = 1; i <= totalPages; i++) {
+        pageNumbers.push(i);
+      }
+      return pageNumbers;
+    }
+
+    const leftSiblingIndex = Math.max(currentPage - siblingCount, 1);
+    const rightSiblingIndex = Math.min(currentPage + siblingCount, totalPages);
+
+    const shouldShowLeftDots = leftSiblingIndex > 2;
+    const shouldShowRightDots = rightSiblingIndex < totalPages - 2;
+
+    const firstPageIndex = 1;
+    const lastPageIndex = totalPages;
+
+    // Case 2: No left dots to show, but rights dots to be shown
+    if (!shouldShowLeftDots && shouldShowRightDots) {
+      let leftItemCount = 3 + 2 * siblingCount;
+      for (let i = 1; i <= leftItemCount; i++) {
+        pageNumbers.push(i);
+      }
+      pageNumbers.push("...");
+      pageNumbers.push(totalPages);
+    } // Case 3: No right dots to show, but left dots to be shown
+    else if (shouldShowLeftDots && !shouldShowRightDots) {
+      let rightItemCount = 3 + 2 * siblingCount;
+      pageNumbers.push(firstPageIndex);
+      pageNumbers.push("...");
+      for (let i = totalPages - rightItemCount + 1; i <= totalPages; i++) {
+        pageNumbers.push(i);
+      }
+    } // Case 4: Both left and right dots to be shown
+    else if (shouldShowLeftDots && shouldShowRightDots) {
+      pageNumbers.push(firstPageIndex);
+      pageNumbers.push("...");
+      for (let i = leftSiblingIndex; i <= rightSiblingIndex; i++) {
+        pageNumbers.push(i);
+      }
+      pageNumbers.push("...");
+      pageNumbers.push(lastPageIndex);
+    }
+
+    return pageNumbers;
+  }, [totalPages, currentPage]);
+
   // Calculate statistics
   const stats = useMemo(() => {
-    const upcomingEventsCount = events.filter(
-      (e) => calculateEventStatus(e) === "upcoming"
+    const incomingEventsCount = allEventsWithStatus.filter(
+      (e) => e.status === "incoming"
     ).length;
-    const ongoingEventsCount = events.filter(
-      (e) => calculateEventStatus(e) === "ongoing"
+    const upcomingEventsCount = allEventsWithStatus.filter(
+      (e) => e.status === "upcoming"
     ).length;
-    const completedEventsCount = events.filter(
-      (e) => calculateEventStatus(e) === "completed"
+    const ongoingEventsCount = allEventsWithStatus.filter(
+      (e) => e.status === "ongoing"
     ).length;
-    const registrationsForUpcoming = events
-      .filter((e) => calculateEventStatus(e) === "upcoming")
-      .reduce((sum, event) => sum + getRegistrationCount(event.id), 0);
+    const completedEventsCount = allEventsWithStatus.filter(
+      (e) => e.status === "completed"
+    ).length;
+    const registrationsForUpcoming = allEventsWithStatus
+      .filter((e) => e.status === "upcoming")
+      .reduce((sum, event) => sum + event.attendees, 0);
 
     return {
+      incomingEvents: incomingEventsCount,
       upcomingEvents: upcomingEventsCount,
       ongoingEvents: ongoingEventsCount,
       completedEvents: completedEventsCount,
       registrationsForUpcoming,
     };
-  }, [events, getRegistrationCount]);
+  }, [allEventsWithStatus]);
 
   if (!isAdmin) {
     return (
@@ -199,66 +311,110 @@ export default function AdminPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         {/* Stats Section */}
         <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="bg-yellow-50 border-yellow-200 hover:shadow-lg transition-shadow">
+          <Card
+            className={`cursor-pointer bg-gradient-to-br from-yellow-300 to-orange-400 text-white transition-all duration-300 hover:scale-105 ${
+              statusFilter === "ongoing"
+                ? "ring-4 ring-offset-2 ring-yellow-400 shadow-xl"
+                : "shadow-lg"
+            }`}
+            onClick={() =>
+              setStatusFilter((prev) =>
+                prev === "ongoing" ? "all" : "ongoing"
+              )
+            }
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+              <CardTitle className="text-sm font-medium [text-shadow:0_1px_2px_rgba(0,0,0,0.1)]">
                 Ongoing Events
               </CardTitle>
-              <Activity className="h-4 w-4 text-yellow-600" />
+              <Activity className="h-4 w-4 text-white/80" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-yellow-800">
+              <div className="text-3xl font-bold [text-shadow:0_2px_4px_rgba(0,0,0,0.2)]">
                 {stats.ongoingEvents}
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-white/80 [text-shadow:0_1px_2px_rgba(0,0,0,0.1)]">
                 Events currently happening
               </p>
             </CardContent>
           </Card>
-          <Card className="bg-green-50 border-green-200 hover:shadow-lg transition-shadow">
+          <Card
+            className={`cursor-pointer bg-gradient-to-br from-green-300 to-teal-400 text-white transition-all duration-300 hover:scale-105 ${
+              statusFilter === "upcoming"
+                ? "ring-4 ring-offset-2 ring-green-400 shadow-xl"
+                : "shadow-lg"
+            }`}
+            onClick={() =>
+              setStatusFilter((prev) =>
+                prev === "upcoming" ? "all" : "upcoming"
+              )
+            }
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+              <CardTitle className="text-sm font-medium [text-shadow:0_1px_2px_rgba(0,0,0,0.1)]">
                 Upcoming Events
               </CardTitle>
-              <Calendar className="h-4 w-4 text-green-600" />
+              <Calendar className="h-4 w-4 text-white/80" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-green-800">
+              <div className="text-3xl font-bold [text-shadow:0_2px_4px_rgba(0,0,0,0.2)]">
                 {stats.upcomingEvents}
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-white/80 [text-shadow:0_1px_2px_rgba(0,0,0,0.1)]">
                 Events open for registration
               </p>
             </CardContent>
           </Card>
-          <Card className="bg-blue-50 border-blue-200 hover:shadow-lg transition-shadow">
+          <Card
+            className={`cursor-pointer bg-gradient-to-br from-blue-300 to-indigo-400 text-white transition-all duration-300 hover:scale-105 ${
+              statusFilter === "completed"
+                ? "ring-4 ring-offset-2 ring-blue-400 shadow-xl"
+                : "shadow-lg"
+            }`}
+            onClick={() =>
+              setStatusFilter((prev) =>
+                prev === "completed" ? "all" : "completed"
+              )
+            }
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+              <CardTitle className="text-sm font-medium [text-shadow:0_1px_2px_rgba(0,0,0,0.1)]">
                 Completed Events
               </CardTitle>
-              <CheckCircle className="h-4 w-4 text-blue-600" />
+              <CheckCircle className="h-4 w-4 text-white/80" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-blue-800">
+              <div className="text-3xl font-bold [text-shadow:0_2px_4px_rgba(0,0,0,0.2)]">
                 {stats.completedEvents}
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-white/80 [text-shadow:0_1px_2px_rgba(0,0,0,0.1)]">
                 Finished events in selection
               </p>
             </CardContent>
           </Card>
-          <Card className="bg-purple-50 border-purple-200 hover:shadow-lg transition-shadow">
+          <Card
+            className={`cursor-pointer bg-gradient-to-br from-purple-300 to-pink-400 text-white transition-all duration-300 hover:scale-105 ${
+              statusFilter === "upcoming"
+                ? "ring-4 ring-offset-2 ring-purple-400 shadow-xl"
+                : "shadow-lg"
+            }`}
+            onClick={() =>
+              setStatusFilter((prev) =>
+                prev === "upcoming" ? "all" : "upcoming"
+              )
+            }
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+              <CardTitle className="text-sm font-medium [text-shadow:0_1px_2px_rgba(0,0,0,0.1)]">
                 Upcoming Registrations
               </CardTitle>
-              <Users className="h-4 w-4 text-purple-600" />
+              <Users className="h-4 w-4 text-white/80" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-purple-800">
+              <div className="text-3xl font-bold [text-shadow:0_2px_4px_rgba(0,0,0,0.2)]">
                 {stats.registrationsForUpcoming}
               </div>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-white/80 [text-shadow:0_1px_2px_rgba(0,0,0,0.1)]">
                 Total for upcoming events
               </p>
             </CardContent>
@@ -293,6 +449,32 @@ export default function AdminPage() {
                     data-testid="input-admin-search"
                   />
                 </div>
+              </div>
+
+              {/* Status Filter */}
+              <div className="w-full md:w-auto">
+                <label
+                  htmlFor="status-filter"
+                  className="text-sm font-medium text-gray-700 mb-1 block"
+                >
+                  Filter by status
+                </label>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger
+                    id="status-filter"
+                    className="w-full md:w-[180px]"
+                    data-testid="select-admin-status-filter"
+                  >
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="incoming">Incoming</SelectItem>
+                    <SelectItem value="upcoming">Upcoming</SelectItem>
+                    <SelectItem value="ongoing">Ongoing</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               {/* Date Range Search */}
@@ -335,13 +517,15 @@ export default function AdminPage() {
         {/* Events Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {(currentEvents as Event[]).map((event) => {
-            const count = getRegistrationCount(event.id);
+            const count = event.attendees;
             const isOpen = !!expanded[event.id];
             const registrations = isOpen
               ? getRegistrationsByEvent(event.id)
               : [];
             const capacityPercentage =
-              event.capacity && typeof event.capacity === "number"
+              event.capacity &&
+              typeof event.capacity === "number" &&
+              event.capacity > 0
                 ? (count / event.capacity) * 100
                 : 0;
 
@@ -359,7 +543,11 @@ export default function AdminPage() {
                       </CardTitle>
                       <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
                         <Calendar className="h-4 w-4" />
-                        <span>{event.date}</span>
+                        <span>
+                          {event.dateStart !== event.dateEnd
+                            ? `${event.dateStart} to ${event.dateEnd}`
+                            : event.dateStart}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2 mt-1 text-sm text-gray-600">
                         <MapPin className="h-4 w-4" />
@@ -421,11 +609,9 @@ export default function AdminPage() {
                       )}
                       <Badge
                         variant="outline"
-                        className={`${getStatusColor(
-                          calculateEventStatus(event)
-                        )} border`}
+                        className={`${getStatusColor(event.status)} border`}
                       >
-                        {getStatusLabel(calculateEventStatus(event))}
+                        {getStatusLabel(event.status)}
                       </Badge>
                     </div>
 
@@ -535,15 +721,34 @@ export default function AdminPage() {
           })}
         </div>
         {/* Pagination Controls */}
-        {events.length > eventsPerPage && (
-          <div className="flex justify-center mt-8">
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center mt-8 space-x-2">
             <Button
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
               disabled={currentPage === 1}
-              className="mr-2"
             >
               Previous
             </Button>
+            {paginationItems.map((page, index) => {
+              if (typeof page === "string") {
+                return (
+                  <span key={`ellipsis-${index}`} className="px-1">
+                    ...
+                  </span>
+                );
+              }
+              return (
+                <Button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  variant={currentPage === page ? "default" : "outline"}
+                  size="icon"
+                  className="h-10 w-10"
+                >
+                  {page}
+                </Button>
+              );
+            })}
             <Button
               onClick={() =>
                 setCurrentPage((prev) => Math.min(prev + 1, totalPages))
