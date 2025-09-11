@@ -1,7 +1,9 @@
 export interface Event {
   id: number;
   name: string;
-  date: string;
+  date: string; // Keep for backward compatibility
+  dateStart: string;
+  dateEnd: string;
   time: string;
   venue: string;
   category: 'academic' | 'cultural' | 'sports' | 'technical';
@@ -9,11 +11,13 @@ export interface Event {
   description: string;
   organizer: string;
   image: string;
-  status: 'upcoming' | 'ongoing' | 'past';
+  status: 'incoming' | 'upcoming' | 'ongoing' | 'completed';
   registrationRequired?: boolean;
   capacity?: number | "No limit";
   attendees?: number;
   bookmarked?: boolean;
+  registrationStart?: string;
+  registrationEnd?: string;
 }
 
 export type EventCategory = Event['category'] | 'all';
