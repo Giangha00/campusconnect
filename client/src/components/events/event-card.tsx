@@ -4,6 +4,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { formatDate } from "@/lib/date-utils";
 import {
+  calculateEventStatus,
+  getStatusColor,
+  getStatusLabel,
+} from "@/lib/event-status";
+import {
   Clock,
   MapPin,
   User,
@@ -38,6 +43,9 @@ export function EventCard({ event, variant = "default" }: EventCardProps) {
   const isBookmarked = isEventBookmarked(event.id);
   const registered = isEventRegistered(event.id);
   const regCount = getRegistrationCount(event.id);
+
+  // Calculate current status based on dates
+  const currentStatus = calculateEventStatus(event);
 
   const handleBookmarkToggle = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -88,22 +96,10 @@ export function EventCard({ event, variant = "default" }: EventCardProps) {
               </Badge>
             )}
             <Badge
-              variant={
-                event.status === "upcoming"
-                  ? "default"
-                  : event.status === "ongoing"
-                  ? "secondary"
-                  : "outline"
-              }
-              className={
-                event.status === "upcoming"
-                  ? "bg-green-600 text-white hover:bg-green-700"
-                  : event.status === "ongoing"
-                  ? "bg-yellow-600 text-white hover:bg-yellow-700"
-                  : "bg-gray-600 text-white hover:bg-gray-700"
-              }
+              variant="outline"
+              className={`${getStatusColor(currentStatus)} border`}
             >
-              {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
+              {getStatusLabel(currentStatus)}
             </Badge>
           </div>
           {user && user.role !== "visitor" && (
@@ -126,36 +122,25 @@ export function EventCard({ event, variant = "default" }: EventCardProps) {
         </div>
 
         <CardContent className="p-6 flex flex-col flex-grow">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex flex-col items-start justify-start mb-3 gap-2">
             <div className="flex gap-2 flex-wrap">
               <Badge className={categoryColors[event.category]}>
                 {event.category.charAt(0).toUpperCase() +
                   event.category.slice(1)}
               </Badge>
               <Badge
-                variant={
-                  event.status === "upcoming"
-                    ? "default"
-                    : event.status === "ongoing"
-                    ? "secondary"
-                    : "outline"
-                }
-                className={
-                  event.status === "upcoming"
-                    ? "bg-green-100 text-green-800 hover:bg-green-200 border-green-200"
-                    : event.status === "ongoing"
-                    ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-200 border-yellow-200"
-                    : "bg-gray-100 text-gray-800 hover:bg-gray-200 border-gray-200"
-                }
+                variant="outline"
+                className={`${getStatusColor(currentStatus)} border`}
               >
-                {event.status.charAt(0).toUpperCase() + event.status.slice(1)}
+                {getStatusLabel(currentStatus)}
               </Badge>
             </div>
             <span
-              className="text-sm text-muted-foreground"
+              className="text-sm text-muted-foreground flex gap-1 justify-between w-full"
               data-testid={`text-event-date-${event.id}`}
             >
-              {formatDate(event.date)}
+              <p className="font-bold">Start: {event.dateStart}</p>
+              <p className="font-bold">End: {event.dateEnd}</p>
             </span>
           </div>
 

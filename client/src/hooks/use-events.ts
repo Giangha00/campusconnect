@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Event, EventCategory, EventStatus, EventSortBy } from '@/types/event';
+import { calculateEventStatus } from '@/lib/event-status';
 import eventsData from '@/data/events.json';
 
 export function useEvents() {
@@ -28,15 +29,20 @@ export function useEvents() {
       filteredEvents = filteredEvents.filter(event => event.category === filter);
     }
 
-    // Apply status filter
+    // Apply status filter using calculated status
     if (statusFilter !== 'all') {
-      filteredEvents = filteredEvents.filter(event => event.status === statusFilter);
+      filteredEvents = filteredEvents.filter(event => calculateEventStatus(event) === statusFilter);
     }
 
     // Apply sorting
     switch (sortBy) {
       case 'date':
-        filteredEvents.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        // Newest first: sort by dateStart descending, fallback to date if needed
+        filteredEvents.sort((a, b) => {
+          const aTime = new Date(a.dateStart ?? a.date).getTime();
+          const bTime = new Date(b.dateStart ?? b.date).getTime();
+          return bTime - aTime;
+        });
         break;
       case 'name':
         filteredEvents.sort((a, b) => a.name.localeCompare(b.name));
@@ -45,9 +51,13 @@ export function useEvents() {
         filteredEvents.sort((a, b) => a.category.localeCompare(b.category));
         break;
       case 'status':
-        // Sort by status in logical order: upcoming -> ongoing -> past
-        const statusOrder = { upcoming: 0, ongoing: 1, past: 2 };
-        filteredEvents.sort((a, b) => statusOrder[a.status] - statusOrder[b.status]);
+        // Sort by status in logical order: incoming -> upcoming -> ongoing -> completed
+        const statusOrder = { incoming: 0, upcoming: 1, ongoing: 2, completed: 3 };
+        filteredEvents.sort((a, b) => {
+          const statusA = calculateEventStatus(a);
+          const statusB = calculateEventStatus(b);
+          return statusOrder[statusA] - statusOrder[statusB];
+        });
         break;
       case 'time':
         filteredEvents.sort((a, b) => a.time.localeCompare(b.time));
@@ -59,8 +69,8 @@ export function useEvents() {
 
   const upcomingEvents = useMemo(() => {
     return (eventsData as Event[])
-      .filter(event => event.status === 'upcoming')
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+      .filter(event => calculateEventStatus(event) === 'upcoming')
+      .sort((a, b) => new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime())
       .slice(0, 3);
   }, []);
 
