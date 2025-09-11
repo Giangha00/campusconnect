@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import eventsData from "@/data/events.json";
 import { Event } from "@/types/event";
 import { useUser } from "@/contexts/user-context";
@@ -27,6 +27,8 @@ import {
   TrendingUp,
   FileText,
   Shield,
+  Activity,
+  CheckCircle,
 } from "lucide-react";
 
 export default function AdminPage() {
@@ -34,40 +36,66 @@ export default function AdminPage() {
   const { getRegistrationsByEvent, getRegistrationCount } = useRegistration();
   const [query, setQuery] = useState("");
   const [expanded, setExpanded] = useState<Record<number, boolean>>({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const eventsPerPage = 6;
 
   const isAdmin = user && user.role === "faculty"; // simple guard
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [query, startDate, endDate]);
+
   const events = useMemo(() => {
-    const list = eventsData as Event[];
-    if (!query.trim()) return list;
+    let list = eventsData as Event[];
     const q = query.toLowerCase().trim();
-    return list.filter(
-      (e) =>
+
+    return list.filter((e) => {
+      const matchesQuery =
+        !q ||
         e.name.toLowerCase().includes(q) ||
         e.description.toLowerCase().includes(q) ||
         e.department.toLowerCase().includes(q) ||
         e.organizer.toLowerCase().includes(q) ||
-        e.venue.toLowerCase().includes(q)
-    );
-  }, [query]);
+        e.venue.toLowerCase().includes(q);
+
+      const matchesDate =
+        (!startDate || e.date >= startDate) && (!endDate || e.date <= endDate);
+
+      return matchesQuery && matchesDate;
+    });
+  }, [query, startDate, endDate]);
+
+  // Pagination logic
+  const indexOfLastEvent = currentPage * eventsPerPage;
+  const indexOfFirstEvent = indexOfLastEvent - eventsPerPage;
+  const currentEvents = useMemo(() => {
+    return events.slice(indexOfFirstEvent, indexOfLastEvent);
+  }, [events, currentPage]);
+
+  const totalPages = Math.ceil(events.length / eventsPerPage);
 
   // Calculate statistics
   const stats = useMemo(() => {
-    const totalEvents = events.length;
-    const totalRegistrations = events.reduce(
-      (sum, event) => sum + getRegistrationCount(event.id),
-      0
-    );
-    const upcomingEvents = events.filter((e) => e.status === "upcoming").length;
-    const eventsWithRegistrations = events.filter(
-      (e) => getRegistrationCount(e.id) > 0
+    const upcomingEventsCount = events.filter(
+      (e) => e.status === "upcoming"
     ).length;
+    const ongoingEventsCount = events.filter(
+      (e) => e.status === "ongoing"
+    ).length;
+    const completedEventsCount = events.filter(
+      (e) => e.status === "completed"
+    ).length;
+    const registrationsForUpcoming = events
+      .filter((e) => e.status === "upcoming")
+      .reduce((sum, event) => sum + getRegistrationCount(event.id), 0);
 
     return {
-      totalEvents,
-      totalRegistrations,
-      upcomingEvents,
-      eventsWithRegistrations,
+      upcomingEvents: upcomingEventsCount,
+      ongoingEvents: ongoingEventsCount,
+      completedEvents: completedEventsCount,
+      registrationsForUpcoming,
     };
   }, [events, getRegistrationCount]);
 
@@ -169,6 +197,73 @@ export default function AdminPage() {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {/* Stats Section */}
+        <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <Card className="bg-yellow-50 border-yellow-200 hover:shadow-lg transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Ongoing Events
+              </CardTitle>
+              <Activity className="h-4 w-4 text-yellow-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-yellow-800">
+                {stats.ongoingEvents}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Events currently happening
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="bg-green-50 border-green-200 hover:shadow-lg transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Upcoming Events
+              </CardTitle>
+              <Calendar className="h-4 w-4 text-green-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-800">
+                {stats.upcomingEvents}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Events open for registration
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="bg-blue-50 border-blue-200 hover:shadow-lg transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Completed Events
+              </CardTitle>
+              <CheckCircle className="h-4 w-4 text-blue-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-blue-800">
+                {stats.completedEvents}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Finished events in selection
+              </p>
+            </CardContent>
+          </Card>
+          <Card className="bg-purple-50 border-purple-200 hover:shadow-lg transition-shadow">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                Upcoming Registrations
+              </CardTitle>
+              <Users className="h-4 w-4 text-purple-600" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-purple-800">
+                {stats.registrationsForUpcoming}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Total for upcoming events
+              </p>
+            </CardContent>
+          </Card>
+        </div>
         {/* Search Section */}
         <Card className="mb-8 shadow-lg">
           <CardHeader>
@@ -178,22 +273,68 @@ export default function AdminPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="relative max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search by name, description, department, venue..."
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="pl-10"
-                data-testid="input-admin-search"
-              />
+            <div className="flex flex-col md:flex-row gap-4 items-end">
+              {/* Text Search */}
+              <div className="flex-grow w-full">
+                <label
+                  htmlFor="search-text"
+                  className="text-sm font-medium text-gray-700 mb-1 block"
+                >
+                  Search by keyword
+                </label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    id="search-text"
+                    placeholder="Name, venue, department..."
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    className="pl-10"
+                    data-testid="input-admin-search"
+                  />
+                </div>
+              </div>
+
+              {/* Date Range Search */}
+              <div className="flex gap-2 items-end w-full md:w-auto">
+                <div>
+                  <label
+                    htmlFor="start-date"
+                    className="text-sm font-medium text-gray-700 mb-1 block"
+                  >
+                    From
+                  </label>
+                  <Input
+                    id="start-date"
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    data-testid="input-admin-start-date"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="end-date"
+                    className="text-sm font-medium text-gray-700 mb-1 block"
+                  >
+                    To
+                  </label>
+                  <Input
+                    id="end-date"
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    data-testid="input-admin-end-date"
+                  />
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Events Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {(events as Event[]).map((event) => {
+          {(currentEvents as Event[]).map((event) => {
             const count = getRegistrationCount(event.id);
             const isOpen = !!expanded[event.id];
             const registrations = isOpen
@@ -393,6 +534,27 @@ export default function AdminPage() {
             );
           })}
         </div>
+        {/* Pagination Controls */}
+        {events.length > eventsPerPage && (
+          <div className="flex justify-center mt-8">
+            <Button
+              onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+              disabled={currentPage === 1}
+              className="mr-2"
+            >
+              Previous
+            </Button>
+            <Button
+              onClick={() =>
+                setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+              }
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </Button>
+          </div>
+        )}
+        {/* End Pagination Controls */}
       </div>
     </div>
   );
