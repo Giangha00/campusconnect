@@ -219,7 +219,7 @@ export function EventCard({ event, variant = "default" }: EventCardProps) {
             </div>
 
             {/* Register for Event button for non-logged in users */}
-            {!user && currentStatus === "upcoming" && (
+            {/* {!user && currentStatus === "upcoming" && (
               <div className="mt-4">
                 <Button
                   onClick={handleRegisterForNonLoggedInUser}
@@ -231,7 +231,7 @@ export function EventCard({ event, variant = "default" }: EventCardProps) {
                   Register for Event
                 </Button>
               </div>
-            )}
+            )} */}
           </div>
         </CardContent>
       </Card>

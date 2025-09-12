@@ -1,8 +1,11 @@
 import { useMemo, useState, useEffect } from "react";
-import eventsData from "@/data/events.json";
+import { Link } from "wouter";
 import { Event } from "@/types/event";
 import { useAdmin } from "@/contexts/admin-context";
+import { useEvents } from "@/contexts/events-context";
 import { useRegistration } from "@/contexts/registration-context";
+import { useLocation } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 import {
   calculateEventStatus,
   getStatusColor,
@@ -20,9 +23,27 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  Download,
-  Eye,
-  EyeOff,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
   Users,
   Calendar,
   MapPin,
@@ -36,64 +57,71 @@ import {
   Shield,
   Activity,
   CheckCircle,
+  Edit,
+  Trash2,
+  Plus,
 } from "lucide-react";
 import { AdminNavbar } from "@/components/admin/admin-navbar";
 
 export default function AdminEventsPage() {
   const { admin } = useAdmin();
+  const { events: eventsData, deleteEvent, createEvent } = useEvents();
   const { getRegistrationsByEvent } = useRegistration();
+  const { toast } = useToast();
+  const [location] = useLocation();
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [expanded, setExpanded] = useState<Record<number, boolean>>({});
   const [currentPage, setCurrentPage] = useState(1);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [eventToDelete, setEventToDelete] = useState<any>(null);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [newEvent, setNewEvent] = useState({
+    name: "",
+    dateStart: "",
+    dateEnd: "",
+    time: "",
+    venue: "",
+    category: "",
+    department: "",
+    description: "",
+    organizer: "",
+    image: "",
+    registrationRequired: true,
+    capacity: "",
+    registrationStart: "",
+    registrationEnd: "",
+  });
   const eventsPerPage = 6;
 
   const isAdmin = !!admin;
+
+  // Handle query parameter for initial filter
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const filterParam = urlParams.get("filter");
+    if (
+      filterParam &&
+      ["all", "incoming", "upcoming", "ongoing", "completed"].includes(
+        filterParam
+      )
+    ) {
+      setStatusFilter(filterParam);
+    }
+  }, [location]);
 
   useEffect(() => {
     setCurrentPage(1);
   }, [query, startDate, endDate, statusFilter]);
 
   const allEventsWithStatus = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    return (eventsData as Event[]).map((event) => {
-      const dateStart = new Date(event.dateStart);
-      const dateEnd = new Date(event.dateEnd);
-
-      let status: "incoming" | "upcoming" | "ongoing" | "completed" =
-        "completed";
-
-      if (today > dateEnd) {
-        status = "completed";
-      } else if (today >= dateStart && today <= dateEnd) {
-        status = "ongoing";
-      } else if (today < dateStart) {
-        const registrationStart = event.registrationStart
-          ? new Date(event.registrationStart)
-          : null;
-        const registrationEnd = event.registrationEnd
-          ? new Date(event.registrationEnd)
-          : null;
-
-        if (
-          event.registrationRequired &&
-          registrationStart &&
-          registrationEnd &&
-          today >= registrationStart &&
-          today <= registrationEnd
-        ) {
-          status = "upcoming";
-        } else {
-          status = "incoming";
-        }
-      }
+    return eventsData.map((event) => {
+      const status = calculateEventStatus(event as any);
       return { ...event, status };
     });
-  }, []);
+  }, [eventsData]);
 
   const events = useMemo(() => {
     let list = allEventsWithStatus;
@@ -265,6 +293,133 @@ export default function AdminEventsPage() {
     URL.revokeObjectURL(url);
   };
 
+  const handleEditEvent = (eventId: number) => {
+    // Navigate to event detail page for editing with edit mode enabled
+    window.location.href = `/admin/dashboard/events/${eventId}?edit=true`;
+  };
+
+  const handleDeleteEvent = (event: any) => {
+    setEventToDelete(event);
+    setShowDeleteDialog(true);
+  };
+
+  const confirmDeleteEvent = () => {
+    if (!eventToDelete) return;
+
+    try {
+      deleteEvent(eventToDelete.id);
+
+      toast({
+        title: "Event Deleted",
+        description: `"${eventToDelete.name}" has been successfully deleted.`,
+        variant: "destructive",
+      });
+
+      setShowDeleteDialog(false);
+      setEventToDelete(null);
+    } catch (error) {
+      console.error("Error deleting event:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete event. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const cancelDeleteEvent = () => {
+    setShowDeleteDialog(false);
+    setEventToDelete(null);
+  };
+
+  const handleCreateEvent = () => {
+    try {
+      // Validate required fields
+      if (
+        !newEvent.name ||
+        !newEvent.dateStart ||
+        !newEvent.dateEnd ||
+        !newEvent.venue
+      ) {
+        toast({
+          title: "Validation Error",
+          description:
+            "Please fill in all required fields (Name, Start Date, End Date, Venue).",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Convert capacity to number if provided
+      const capacity = newEvent.capacity
+        ? parseInt(newEvent.capacity)
+        : "No limit";
+
+      createEvent({
+        ...newEvent,
+        capacity,
+      });
+
+      toast({
+        title: "Event Created",
+        description: `"${newEvent.name}" has been successfully created.`,
+      });
+
+      // Reset form and close dialog
+      setNewEvent({
+        name: "",
+        dateStart: "",
+        dateEnd: "",
+        time: "",
+        venue: "",
+        category: "",
+        department: "",
+        description: "",
+        organizer: "",
+        image: "",
+        registrationRequired: true,
+        capacity: "",
+        registrationStart: "",
+        registrationEnd: "",
+      });
+      setShowCreateDialog(false);
+    } catch (error) {
+      console.error("Error creating event:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create event. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleInputChange = (field: string, value: any) => {
+    setNewEvent((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
+
+  const cancelCreateEvent = () => {
+    setShowCreateDialog(false);
+    setNewEvent({
+      name: "",
+      dateStart: "",
+      dateEnd: "",
+      time: "",
+      venue: "",
+      category: "",
+      department: "",
+      description: "",
+      organizer: "",
+      image: "",
+      registrationRequired: true,
+      capacity: "",
+      registrationStart: "",
+      registrationEnd: "",
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
       <AdminNavbar currentPage="events" />
@@ -283,6 +438,254 @@ export default function AdminEventsPage() {
                 engagement metrics
               </p>
             </div>
+            <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+              <DialogTrigger asChild>
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Event
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle>Create New Event</DialogTitle>
+                  <DialogDescription>
+                    Fill in the details below to create a new campus event.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  {/* Event Name */}
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="name" className="text-right">
+                      Event Name *
+                    </Label>
+                    <Input
+                      id="name"
+                      value={newEvent.name}
+                      onChange={(e) =>
+                        handleInputChange("name", e.target.value)
+                      }
+                      className="col-span-3"
+                      placeholder="Enter event name"
+                    />
+                  </div>
+
+                  {/* Event Description */}
+                  <div className="grid grid-cols-4 items-start gap-4">
+                    <Label htmlFor="description" className="text-right pt-2">
+                      Description
+                    </Label>
+                    <Textarea
+                      id="description"
+                      value={newEvent.description}
+                      onChange={(e) =>
+                        handleInputChange("description", e.target.value)
+                      }
+                      className="col-span-3 min-h-[100px]"
+                      placeholder="Enter event description"
+                    />
+                  </div>
+
+                  {/* Date and Time */}
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="dateStart" className="text-right">
+                      Start Date *
+                    </Label>
+                    <Input
+                      id="dateStart"
+                      type="date"
+                      value={newEvent.dateStart}
+                      onChange={(e) =>
+                        handleInputChange("dateStart", e.target.value)
+                      }
+                      className="col-span-3"
+                      min={new Date().toISOString().split("T")[0]}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="dateEnd" className="text-right">
+                      End Date *
+                    </Label>
+                    <Input
+                      id="dateEnd"
+                      type="date"
+                      value={newEvent.dateEnd}
+                      onChange={(e) =>
+                        handleInputChange("dateEnd", e.target.value)
+                      }
+                      className="col-span-3"
+                      min={
+                        newEvent.dateStart ||
+                        new Date().toISOString().split("T")[0]
+                      }
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="time" className="text-right">
+                      Time
+                    </Label>
+                    <Input
+                      id="time"
+                      value={newEvent.time}
+                      onChange={(e) =>
+                        handleInputChange("time", e.target.value)
+                      }
+                      className="col-span-3"
+                      placeholder="e.g., 10:00 AM - 6:00 PM"
+                    />
+                  </div>
+
+                  {/* Venue and Organizer */}
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="venue" className="text-right">
+                      Venue *
+                    </Label>
+                    <Input
+                      id="venue"
+                      value={newEvent.venue}
+                      onChange={(e) =>
+                        handleInputChange("venue", e.target.value)
+                      }
+                      className="col-span-3"
+                      placeholder="Enter venue"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="organizer" className="text-right">
+                      Organizer
+                    </Label>
+                    <Input
+                      id="organizer"
+                      value={newEvent.organizer}
+                      onChange={(e) =>
+                        handleInputChange("organizer", e.target.value)
+                      }
+                      className="col-span-3"
+                      placeholder="Enter organizer"
+                    />
+                  </div>
+
+                  {/* Category and Department */}
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="category" className="text-right">
+                      Category
+                    </Label>
+                    <Select
+                      value={newEvent.category}
+                      onValueChange={(value) =>
+                        handleInputChange("category", value)
+                      }
+                    >
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="academic">Academic</SelectItem>
+                        <SelectItem value="cultural">Cultural</SelectItem>
+                        <SelectItem value="sports">Sports</SelectItem>
+                        <SelectItem value="technical">Technical</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="department" className="text-right">
+                      Department
+                    </Label>
+                    <Input
+                      id="department"
+                      value={newEvent.department}
+                      onChange={(e) =>
+                        handleInputChange("department", e.target.value)
+                      }
+                      className="col-span-3"
+                      placeholder="Enter department"
+                    />
+                  </div>
+
+                  {/* Registration Settings */}
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="capacity" className="text-right">
+                      Capacity
+                    </Label>
+                    <Input
+                      id="capacity"
+                      type="number"
+                      value={newEvent.capacity}
+                      onChange={(e) =>
+                        handleInputChange("capacity", e.target.value)
+                      }
+                      className="col-span-3"
+                      placeholder="Enter capacity (leave empty for no limit)"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="image" className="text-right">
+                      Image URL
+                    </Label>
+                    <Input
+                      id="image"
+                      value={newEvent.image}
+                      onChange={(e) =>
+                        handleInputChange("image", e.target.value)
+                      }
+                      className="col-span-3"
+                      placeholder="Enter image URL"
+                    />
+                  </div>
+
+                  {/* Registration Dates */}
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="registrationStart" className="text-right">
+                      Registration Start
+                    </Label>
+                    <Input
+                      id="registrationStart"
+                      type="date"
+                      value={newEvent.registrationStart}
+                      onChange={(e) =>
+                        handleInputChange("registrationStart", e.target.value)
+                      }
+                      className="col-span-3"
+                      min={new Date().toISOString().split("T")[0]}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="registrationEnd" className="text-right">
+                      Registration End
+                    </Label>
+                    <Input
+                      id="registrationEnd"
+                      type="date"
+                      value={newEvent.registrationEnd}
+                      onChange={(e) =>
+                        handleInputChange("registrationEnd", e.target.value)
+                      }
+                      className="col-span-3"
+                      min={
+                        newEvent.registrationStart ||
+                        new Date().toISOString().split("T")[0]
+                      }
+                    />
+                  </div>
+                </div>
+                <DialogFooter>
+                  <Button variant="outline" onClick={cancelCreateEvent}>
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleCreateEvent}
+                    className="bg-blue-600 hover:bg-blue-700"
+                  >
+                    Create Event
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
           </div>
         </div>
       </div>
@@ -291,9 +694,9 @@ export default function AdminEventsPage() {
         {/* Stats Section */}
         <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card
-            className={`cursor-pointer bg-gradient-to-br from-yellow-300 to-orange-400 text-white transition-all duration-300 hover:scale-105 ${
+            className={`cursor-pointer  bg-blue-400 text-white transition-all duration-300 hover:scale-105 ${
               statusFilter === "ongoing"
-                ? "ring-4 ring-offset-2 ring-yellow-400 shadow-xl"
+                ? "ring-4 ring-offset-2 bg-blue-400 shadow-xl"
                 : "shadow-lg"
             }`}
             onClick={() =>
@@ -318,9 +721,9 @@ export default function AdminEventsPage() {
             </CardContent>
           </Card>
           <Card
-            className={`cursor-pointer bg-gradient-to-br from-green-300 to-teal-400 text-white transition-all duration-300 hover:scale-105 ${
+            className={`cursor-pointer bg-blue-400 text-white transition-all duration-300 hover:scale-105 ${
               statusFilter === "upcoming"
-                ? "ring-4 ring-offset-2 ring-green-400 shadow-xl"
+                ? "ring-4 ring-offset-2 bg-blue-400 shadow-xl"
                 : "shadow-lg"
             }`}
             onClick={() =>
@@ -345,9 +748,9 @@ export default function AdminEventsPage() {
             </CardContent>
           </Card>
           <Card
-            className={`cursor-pointer bg-gradient-to-br from-blue-300 to-indigo-400 text-white transition-all duration-300 hover:scale-105 ${
+            className={`cursor-pointer  bg-blue-400 text-white transition-all duration-300 hover:scale-105 ${
               statusFilter === "completed"
-                ? "ring-4 ring-offset-2 ring-blue-400 shadow-xl"
+                ? "ring-4 ring-offset-2 bg-blue-400 shadow-xl"
                 : "shadow-lg"
             }`}
             onClick={() =>
@@ -372,9 +775,9 @@ export default function AdminEventsPage() {
             </CardContent>
           </Card>
           <Card
-            className={`cursor-pointer bg-gradient-to-br from-purple-300 to-pink-400 text-white transition-all duration-300 hover:scale-105 ${
+            className={`cursor-pointer  bg-blue-400 text-white transition-all duration-300 hover:scale-105 ${
               statusFilter === "upcoming"
-                ? "ring-4 ring-offset-2 ring-purple-400 shadow-xl"
+                ? "ring-4 ring-offset-2 bg-blue-400 shadow-xl"
                 : "shadow-lg"
             }`}
             onClick={() =>
@@ -496,17 +899,25 @@ export default function AdminEventsPage() {
 
         {/* Events Grid */}
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {(currentEvents as Event[]).map((event) => {
+          {currentEvents.map((event) => {
             const count = event.attendees || 0;
             const isOpen = !!expanded[event.id];
             const registrations = isOpen
               ? getRegistrationsByEvent(event.id)
               : [];
+            const checkInCount = event.checkedIn || 0;
             const capacityPercentage =
               event.capacity &&
               typeof event.capacity === "number" &&
               event.capacity > 0
                 ? (count / event.capacity) * 100
+                : 0;
+
+            const checkInCapacityPercentage =
+              event.capacity &&
+              typeof event.capacity === "number" &&
+              event.capacity > 0
+                ? (checkInCount / event.capacity) * 100
                 : 0;
 
             return (
@@ -518,9 +929,11 @@ export default function AdminEventsPage() {
                 <CardHeader className="pb-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2">
-                        {event.name}
-                      </CardTitle>
+                      <Link href={`/admin/dashboard/events/${event.id}`}>
+                        <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2 cursor-pointer hover:underline">
+                          {event.name}
+                        </CardTitle>
+                      </Link>
                       <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
                         <Calendar className="h-4 w-4" />
                         <span>
@@ -538,31 +951,22 @@ export default function AdminEventsPage() {
                       <Button
                         variant="outline"
                         size="icon"
-                        title={isOpen ? "Hide registrants" : "View registrants"}
-                        onClick={() =>
-                          setExpanded((prev) => ({
-                            ...prev,
-                            [event.id]: !prev[event.id],
-                          }))
-                        }
+                        title="Edit event"
+                        onClick={() => handleEditEvent(event.id)}
                         className="h-8 w-8 hover:bg-blue-50 hover:border-blue-200"
-                        data-testid={`button-toggle-registrants-${event.id}`}
+                        data-testid={`button-edit-${event.id}`}
                       >
-                        {isOpen ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
+                        <Edit className="h-4 w-4" />
                       </Button>
                       <Button
                         variant="outline"
                         size="icon"
-                        title="Export registrants to CSV"
-                        onClick={() => exportCSV(event.id)}
-                        className="h-8 w-8 hover:bg-green-50 hover:border-green-200"
-                        data-testid={`button-export-csv-${event.id}`}
+                        title="Delete event"
+                        onClick={() => handleDeleteEvent(event)}
+                        className="h-8 w-8 hover:bg-red-50 hover:border-red-200"
+                        data-testid={`button-delete-${event.id}`}
                       >
-                        <Download className="h-4 w-4" />
+                        <Trash2 className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
@@ -612,7 +1016,7 @@ export default function AdminEventsPage() {
                       {event.capacity && typeof event.capacity === "number" && (
                         <div className="w-full bg-gray-200 rounded-full h-2">
                           <div
-                            className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-300"
+                            className="bg-gradient-to-r from-green-400 to-green-500 h-2 rounded-full transition-all duration-300"
                             style={{
                               width: `${Math.min(capacityPercentage, 100)}%`,
                             }}
@@ -622,6 +1026,40 @@ export default function AdminEventsPage() {
                       {event.capacity && typeof event.capacity === "number" && (
                         <div className="text-xs text-gray-500 mt-1">
                           {capacityPercentage.toFixed(1)}% capacity
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Check-in Stats */}
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2 text-sm font-medium text-gray-700">
+                          <Users className="h-4 w-4" />
+                          <span>Check-ins</span>
+                        </div>
+                        <span className="text-sm font-bold text-gray-900">
+                          {checkInCount}
+                          {event.capacity && typeof event.capacity === "number"
+                            ? `/${event.capacity}`
+                            : ""}
+                        </span>
+                      </div>
+                      {event.capacity && typeof event.capacity === "number" && (
+                        <div className="w-full bg-gray-200 rounded-full h-2">
+                          <div
+                            className="bg-gradient-to-r from-green-400 to-green-500 h-2 rounded-full transition-all duration-300"
+                            style={{
+                              width: `${Math.min(
+                                checkInCapacityPercentage,
+                                100
+                              )}%`,
+                            }}
+                          ></div>
+                        </div>
+                      )}
+                      {event.capacity && typeof event.capacity === "number" && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          {checkInCapacityPercentage.toFixed(1)}% capacity
                         </div>
                       )}
                     </div>
@@ -686,13 +1124,60 @@ export default function AdminEventsPage() {
                                   </div>
                                 </div>
                               </div>
-                              <div className="text-xs text-gray-500">
-                                {new Date(r.registeredAt).toLocaleDateString()}
+                              <div className="flex flex-col items-end gap-2">
+                                <div className="text-xs text-gray-500">
+                                  {new Date(
+                                    r.registeredAt
+                                  ).toLocaleDateString()}
+                                </div>
                               </div>
                             </div>
                           ))}
                         </div>
                       )}
+                    </div>
+                  )}
+
+                  {/* Check-in Progress Bar */}
+                  {isOpen && count > 0 && (
+                    <div className="mt-4 p-4 bg-gray-50 rounded-lg border">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
+                            <Users className="h-3 w-3 text-white" />
+                          </div>
+                          <span className="font-medium text-gray-900">
+                            Check-ins
+                          </span>
+                        </div>
+                        <span className="text-sm font-semibold text-gray-700">
+                          {checkInCount}/{count}
+                        </span>
+                      </div>
+
+                      <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                        <div
+                          className="h-full bg-gradient-to-r from-green-400 to-green-500 transition-all duration-300 ease-in-out"
+                          style={{
+                            width: `${
+                              count > 0 ? (checkInCount / count) * 100 : 0
+                            }%`,
+                          }}
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-xs text-gray-600">
+                          {count > 0
+                            ? `${((checkInCount / count) * 100).toFixed(
+                                1
+                              )}% capacity`
+                            : "0% capacity"}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {count - checkInCount} pending
+                        </span>
+                      </div>
                     </div>
                   )}
                 </CardContent>
@@ -741,6 +1226,34 @@ export default function AdminEventsPage() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Event</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete "{eventToDelete?.name}"? This
+              action cannot be undone.
+              <br />
+              <br />
+              <strong>Warning:</strong> All event data, registrations, and
+              check-in information will be permanently removed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={cancelDeleteEvent}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteEvent}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              Delete Event
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

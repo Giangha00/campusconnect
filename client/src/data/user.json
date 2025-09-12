@@ -1,0 +1,20 @@
+[
+    {
+        "id": "1757656589753-ill19dxk",
+        "username": "user",
+        "password": "123456",
+        "name": "user",
+        "email": "gianghacd@gmail.com",
+        "role": "student",
+        "department": "cskh"
+    },
+    {
+        "id": "1757656691536-ywvw13bz",
+        "username": "faculty",
+        "password": "123456",
+        "name": "faculty",
+        "email": "giangha@yopmail.com",
+        "role": "faculty",
+        "department": "cskh"
+    }
+]

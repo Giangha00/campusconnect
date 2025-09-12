@@ -1,11 +1,27 @@
 import { Button } from "@/components/ui/button";
 import { EventCard } from "@/components/events/event-card";
-import { useEvents } from "@/hooks/use-events";
+import { useEvents } from "@/contexts/events-context";
 import { Link } from "wouter";
 import { ArrowRight } from "lucide-react";
+import { useMemo } from "react";
+import { calculateEventStatus } from "@/lib/event-status";
 
 export default function Home() {
-  const { upcomingEvents } = useEvents();
+  const { events } = useEvents();
+
+  const upcomingEvents = useMemo(() => {
+    return events
+      .map((event) => ({
+        ...event,
+        status: calculateEventStatus(event as any),
+      }))
+      .filter((event) => event.status === "upcoming")
+      .sort(
+        (a, b) =>
+          new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime()
+      )
+      .slice(0, 3);
+  }, [events]);
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
@@ -94,7 +110,11 @@ export default function Home() {
 
           <div className="grid md:grid-cols-3 gap-8">
             {upcomingEvents.map((event) => (
-              <EventCard key={event.id} event={event} variant="highlight" />
+              <EventCard
+                key={event.id}
+                event={event as any}
+                variant="highlight"
+              />
             ))}
           </div>
 

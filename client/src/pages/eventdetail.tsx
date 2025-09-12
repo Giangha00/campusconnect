@@ -22,11 +22,13 @@ import {
   UserCheck,
   UserPlus,
 } from "lucide-react";
+import { useState } from "react";
 import { useUser } from "@/contexts/user-context";
+import { useEvents } from "@/contexts/events-context";
 import { useRegistration } from "@/contexts/registration-context";
-import { useEvents } from "@/hooks/use-events";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
+import { LoginDialog } from "@/components/auth/login-dialog";
 
 const categoryColors = {
   academic: "bg-primary text-primary-foreground",
@@ -42,12 +44,13 @@ export default function EventDetail() {
     useRegistration();
   const { events } = useEvents();
   const { toast } = useToast();
+  const [showLoginDialog, setShowLoginDialog] = useState(false);
 
   const eventId = params?.id ? parseInt(params.id) : null;
-  const event = events?.find((e: Event) => e.id === eventId);
+  const event = events?.find((e: any) => e.id === eventId);
 
   // Calculate current status based on dates
-  const currentStatus = event ? calculateEventStatus(event) : null;
+  const currentStatus = event ? calculateEventStatus(event as any) : null;
 
   if (!event) {
     return (
@@ -105,11 +108,7 @@ export default function EventDetail() {
 
   const handleRegisterForNonLoggedInUser = () => {
     if (currentStatus === "upcoming") {
-      toast({
-        title: "Login Required",
-        description: "Please log in to register for the event",
-        variant: "destructive",
-      });
+      setShowLoginDialog(true);
     }
   };
 
@@ -350,6 +349,27 @@ export default function EventDetail() {
           </Card>
         </div>
       </div>
+
+      {/* Login Dialog */}
+      {showLoginDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Login Required</h2>
+              <button
+                onClick={() => setShowLoginDialog(false)}
+                className="text-gray-500 hover:text-gray-700 text-2xl"
+              >
+                ×
+              </button>
+            </div>
+            <p className="text-gray-600 mb-4">
+              Please log in to register for this event.
+            </p>
+            <LoginDialog />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

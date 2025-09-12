@@ -22,14 +22,19 @@ interface Registration {
   department?: string;
   registeredAt: string;
   ticket?: string;
+  checkedIn?: boolean;
+  checkedInAt?: string;
 }
 
 interface RegistrationContextType {
   getRegistrationsByEvent: (eventId: number) => Registration[];
   getRegistrationCount: (eventId: number) => number;
+  getCheckInCount: (eventId: number) => number;
   registerForEvent: (eventId: number) => Promise<void>;
   unregisterFromEvent: (eventId: number) => void;
   isEventRegistered: (eventId: number) => boolean;
+  checkInUser: (eventId: number, userId: string) => void;
+  checkOutUser: (eventId: number, userId: string) => void;
 }
 
 const RegistrationContext = createContext<RegistrationContextType | undefined>(
@@ -150,12 +155,49 @@ export function RegistrationProvider({ children }: RegistrationProviderProps) {
     );
   };
 
+  const getCheckInCount = (eventId: number): number => {
+    return registrations.filter(
+      (r) => r.eventId === eventId && r.checkedIn === true
+    ).length;
+  };
+
+  const checkInUser = (eventId: number, userId: string) => {
+    setRegistrations((prev) =>
+      prev.map((r) =>
+        r.eventId === eventId && r.userId === userId
+          ? {
+              ...r,
+              checkedIn: true,
+              checkedInAt: new Date().toISOString(),
+            }
+          : r
+      )
+    );
+  };
+
+  const checkOutUser = (eventId: number, userId: string) => {
+    setRegistrations((prev) =>
+      prev.map((r) =>
+        r.eventId === eventId && r.userId === userId
+          ? {
+              ...r,
+              checkedIn: false,
+              checkedInAt: undefined,
+            }
+          : r
+      )
+    );
+  };
+
   const value: RegistrationContextType = {
     getRegistrationsByEvent,
     getRegistrationCount,
+    getCheckInCount,
     registerForEvent,
     unregisterFromEvent,
     isEventRegistered,
+    checkInUser,
+    checkOutUser,
   };
 
   return (

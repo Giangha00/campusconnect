@@ -13,8 +13,9 @@ import {
 } from "@/components/ui/select";
 import { Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useEvents } from "@/hooks/use-events";
+import { useEvents } from "@/contexts/events-context";
 import { useValidation } from "@/hooks/use-validation";
+import { calculateEventStatus } from "@/lib/event-status";
 import {
   validateName,
   validateEmail,
@@ -43,13 +44,18 @@ export default function Feedback() {
     oneMonthAgo.setDate(oneMonthAgo.getDate() - 30);
     oneMonthAgo.setHours(0, 0, 0, 0);
 
-    return events.filter((event) => {
-      if (event.status !== "completed") {
-        return false;
-      }
-      const eventEndDate = new Date(event.dateEnd);
-      return eventEndDate >= oneMonthAgo;
-    });
+    return events
+      .map((event) => ({
+        ...event,
+        status: calculateEventStatus(event as any),
+      }))
+      .filter((event) => {
+        if (event.status !== "completed") {
+          return false;
+        }
+        const eventEndDate = new Date(event.dateEnd);
+        return eventEndDate >= oneMonthAgo;
+      });
   }, [events]);
 
   const handleSubmit = (e: React.FormEvent) => {

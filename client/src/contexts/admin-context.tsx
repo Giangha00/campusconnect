@@ -46,19 +46,23 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = (username: string, password: string) => {
-    // Check against admin.json data
-    if (adminData.username === username && adminData.password === password) {
-      const adminUser: AdminUser = {
-        id: adminData.id,
-        username: adminData.username,
-        password: adminData.password,
-        name: adminData.name,
-        email: adminData.email,
+    // Check against admin.json data (adminData is an array with one admin object)
+    const adminUser = adminData.find(
+      (admin) => admin.username === username && admin.password === password
+    );
+
+    if (adminUser) {
+      const loggedInAdmin: AdminUser = {
+        id: adminUser.id,
+        username: adminUser.username,
+        password: adminUser.password,
+        name: adminUser.name,
+        email: adminUser.email,
         role: "admin",
       };
 
-      setAdmin(adminUser);
-      localStorage.setItem("admin", JSON.stringify(adminUser));
+      setAdmin(loggedInAdmin);
+      localStorage.setItem("admin", JSON.stringify(loggedInAdmin));
       return { ok: true, message: "Login successful" };
     }
 

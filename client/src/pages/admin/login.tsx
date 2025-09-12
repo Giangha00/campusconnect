@@ -75,7 +75,7 @@ export default function AdminLoginPage() {
         {/* Login Card */}
         <Card className="shadow-2xl border-0 bg-white/95 backdrop-blur-sm">
           <CardHeader className="text-center pb-4">
-            <div className="mx-auto w-16 h-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full flex items-center justify-center mb-4">
+            <div className="mx-auto w-16 h-16 bg-gradient-to-r from-green-600 to-green-600 rounded-full flex items-center justify-center mb-4">
               <Shield className="h-8 w-8 text-white" />
             </div>
             <CardTitle className="text-2xl font-bold text-gray-900">
@@ -164,7 +164,7 @@ export default function AdminLoginPage() {
 
               <Button
                 type="submit"
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium py-2.5"
+                className="w-full bg-gradient-to-r from-green-600 to-green-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium py-2.5"
                 data-testid="button-admin-login"
               >
                 <LogIn className="h-4 w-4 mr-2" />

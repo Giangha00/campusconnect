@@ -2,7 +2,7 @@ import { EventCard } from "@/components/events/event-card";
 import { EventFilters } from "@/components/events/event-filters";
 import { EventCarousel } from "@/components/events/event-carousel";
 import { SearchBar } from "@/components/search/search-bar";
-import { useEvents } from "@/hooks/use-events";
+import { useEvents } from "@/contexts/events-context";
 import {
   Select,
   SelectContent,
@@ -26,19 +26,15 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
+import { EventCategory, EventStatus, EventSortBy } from "@/types/event";
+import { calculateEventStatus } from "@/lib/event-status";
 
 export default function Events() {
-  const {
-    events,
-    filter,
-    setFilter,
-    statusFilter,
-    setStatusFilter,
-    sortBy,
-    setSortBy,
-    searchQuery,
-    setSearchQuery,
-  } = useEvents();
+  const { events } = useEvents();
+  const [filter, setFilter] = useState<EventCategory>("all");
+  const [statusFilter, setStatusFilter] = useState<EventStatus>("all");
+  const [sortBy, setSortBy] = useState<EventSortBy>("date");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const [currentPage, setCurrentPage] = useState(1);
   const eventsPerPage = 9;
@@ -47,14 +43,140 @@ export default function Events() {
     setCurrentPage(1);
   }, [searchQuery, filter, statusFilter, sortBy]);
 
+  // Add status to events and apply filtering/sorting
+  const processedEvents = useMemo(() => {
+    // Add status to each event and preserve creation order (newer events have lower index)
+    const eventsWithStatus = events.map((event, index) => ({
+      ...event,
+      status: calculateEventStatus(event as any),
+      creationOrder: index, // Lower index = more recently created
+    }));
+
+    let filteredEvents = eventsWithStatus;
+
+    // Apply search filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase().trim();
+      filteredEvents = filteredEvents.filter(
+        (event) =>
+          event.name.toLowerCase().includes(query) ||
+          event.description.toLowerCase().includes(query) ||
+          event.department.toLowerCase().includes(query) ||
+          event.organizer.toLowerCase().includes(query) ||
+          event.venue.toLowerCase().includes(query)
+      );
+    }
+
+    // Apply category filter
+    if (filter !== "all") {
+      filteredEvents = filteredEvents.filter(
+        (event) => event.category === filter
+      );
+    }
+
+    // Apply status filter
+    if (statusFilter !== "all") {
+      filteredEvents = filteredEvents.filter(
+        (event) => event.status === statusFilter
+      );
+    }
+
+    // Apply sorting
+    const sortedEvents = [...filteredEvents];
+    switch (sortBy) {
+      case "date":
+        // Sort by creation order first (newer events first), then by status priority, then by date
+        const statusPriority = {
+          ongoing: 0,
+          upcoming: 1,
+          incoming: 2,
+          completed: 3,
+        };
+        sortedEvents.sort((a, b) => {
+          // First, sort by creation order (newer events first)
+          if (a.creationOrder !== b.creationOrder) {
+            return a.creationOrder - b.creationOrder;
+          }
+          // Then by status priority
+          if (statusPriority[a.status] !== statusPriority[b.status]) {
+            return statusPriority[a.status] - statusPriority[b.status];
+          }
+          // Finally by date (newest first within each status group)
+          return (
+            new Date(b.dateStart).getTime() - new Date(a.dateStart).getTime()
+          );
+        });
+        break;
+      case "name":
+        sortedEvents.sort((a, b) => {
+          // First by creation order, then by name
+          if (a.creationOrder !== b.creationOrder) {
+            return a.creationOrder - b.creationOrder;
+          }
+          return a.name.localeCompare(b.name);
+        });
+        break;
+      case "category":
+        sortedEvents.sort((a, b) => {
+          // First by creation order, then by category
+          if (a.creationOrder !== b.creationOrder) {
+            return a.creationOrder - b.creationOrder;
+          }
+          return a.category.localeCompare(b.category);
+        });
+        break;
+      case "status":
+        const statusOrder = {
+          incoming: 0,
+          upcoming: 1,
+          ongoing: 2,
+          completed: 3,
+        };
+        sortedEvents.sort((a, b) => {
+          // First by creation order, then by status
+          if (a.creationOrder !== b.creationOrder) {
+            return a.creationOrder - b.creationOrder;
+          }
+          return statusOrder[a.status] - statusOrder[b.status];
+        });
+        break;
+      case "time":
+        sortedEvents.sort((a, b) => {
+          // First by creation order, then by time
+          if (a.creationOrder !== b.creationOrder) {
+            return a.creationOrder - b.creationOrder;
+          }
+          return a.time.localeCompare(b.time);
+        });
+        break;
+    }
+
+    return sortedEvents;
+  }, [events, filter, statusFilter, sortBy, searchQuery]);
+
+  // Get upcoming events for carousel
+  const upcomingEvents = useMemo(() => {
+    return events
+      .map((event) => ({
+        ...event,
+        status: calculateEventStatus(event as any),
+      }))
+      .filter((event) => event.status === "upcoming")
+      .sort(
+        (a, b) =>
+          new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime()
+      )
+      .slice(0, 3);
+  }, [events]);
+
   // Pagination logic
   const indexOfLastEvent = currentPage * eventsPerPage;
   const indexOfFirstEvent = indexOfLastEvent - eventsPerPage;
   const currentEvents = useMemo(() => {
-    return events.slice(indexOfFirstEvent, indexOfLastEvent);
-  }, [events, currentPage]);
+    return processedEvents.slice(indexOfFirstEvent, indexOfLastEvent);
+  }, [processedEvents, currentPage]);
 
-  const totalPages = Math.ceil(events.length / eventsPerPage);
+  const totalPages = Math.ceil(processedEvents.length / eventsPerPage);
 
   const paginationItems = useMemo(() => {
     if (totalPages <= 1) return [];
@@ -131,7 +253,7 @@ export default function Events() {
   return (
     <div className="pt-16">
       {/* Event Carousel */}
-      <EventCarousel events={events} />
+      <EventCarousel events={upcomingEvents as any} />
 
       {/* Search and Filters */}
       <section className="py-8 bg-white border-b">
@@ -224,7 +346,7 @@ export default function Events() {
       {/* Events Grid */}
       <section className="py-16 bg-muted">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {events.length === 0 ? (
+          {processedEvents.length === 0 ? (
             <div className="text-center py-12">
               <h3
                 className="text-2xl font-semibold text-foreground mb-4"
@@ -248,7 +370,7 @@ export default function Events() {
                   className="text-2xl font-semibold text-foreground"
                   data-testid="text-events-count"
                 >
-                  Showing {events.length} events
+                  Showing {processedEvents.length} events
                   {searchQuery && (
                     <span className="text-muted-foreground">
                       {" "}
@@ -275,7 +397,7 @@ export default function Events() {
 
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {currentEvents.map((event) => (
-                  <EventCard key={event.id} event={event} />
+                  <EventCard key={event.id} event={event as any} />
                 ))}
               </div>
             </>

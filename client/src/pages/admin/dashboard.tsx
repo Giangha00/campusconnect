@@ -1,9 +1,9 @@
 import { useMemo } from "react";
 import { Link } from "wouter";
-import eventsData from "@/data/events.json";
 import usersData from "@/data/users.json";
 import { Event } from "@/types/event";
 import { useAdmin } from "@/contexts/admin-context";
+import { useEvents } from "@/contexts/events-context";
 import { useRegistration } from "@/contexts/registration-context";
 import {
   calculateEventStatus,
@@ -26,16 +26,17 @@ import { AdminNavbar } from "@/components/admin/admin-navbar";
 
 export default function AdminDashboard() {
   const { admin } = useAdmin();
+  const { events: eventsData } = useEvents();
   const { getRegistrationsByEvent } = useRegistration();
 
   const isAdmin = !!admin;
 
   const allEventsWithStatus = useMemo(() => {
-    return (eventsData as Event[]).map((event) => {
-      const status = calculateEventStatus(event);
+    return eventsData.map((event) => {
+      const status = calculateEventStatus(event as any);
       return { ...event, status };
     });
-  }, []);
+  }, [eventsData]);
 
   const users = usersData.users;
 
@@ -111,36 +112,23 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gray-50">
       <AdminNavbar currentPage="dashboard" />
 
-      {/* Hero Section */}
-      <div className="pt-20 text-white relative min-h-[100px]">
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat bg-gray-80 "
-          style={{
-            backgroundImage: "url('/images/schools/School_7.jpg')",
-          }}
-        />
-        <div className="absolute inset-0 hero-gradient" />
-        <div className="relative z-10">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-            <div className="text-center mb-12">
-              <div className="mx-auto w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-6">
-                <BarChart3 className="h-8 w-8" />
-              </div>
-              <h1
-                className="text-4xl md:text-5xl font-bold mb-4 drop-shadow-2xl"
-                style={{ textShadow: "0 4px 8px rgba(0,0,0,0.8)" }}
-              >
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+              <BarChart3 className="h-6 w-6 text-blue-600" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
                 Admin Dashboard
               </h1>
-              <p
-                className="text-xl text-blue-100 max-w-2xl mx-auto drop-shadow-lg"
-                style={{ textShadow: "0 2px 4px rgba(0,0,0,0.7)" }}
-              >
-                Welcome back, {admin?.name}. Manage campus events, track
-                registrations, and analyze engagement metrics.
+              <p className="text-gray-600">
+                Welcome back, {admin?.name}. Manage campus events and track
+                registrations.
               </p>
             </div>
           </div>
@@ -148,66 +136,76 @@ export default function AdminDashboard() {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Overview Stats */}
         <div className="mb-12">
           <h2 className="text-2xl font-bold text-gray-900 mb-6">Overview</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-blue-100 text-sm font-medium">
-                      Total Events
-                    </p>
-                    <p className="text-3xl font-bold">{stats.events.total}</p>
+            <Link href="/admin/dashboard/events">
+              <Card className="cursor-pointer bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-blue-100 text-sm font-medium">
+                        Total Events
+                      </p>
+                      <p className="text-3xl font-bold">{stats.events.total}</p>
+                    </div>
+                    <Calendar className="h-8 w-8 text-blue-200" />
                   </div>
-                  <Calendar className="h-8 w-8 text-blue-200" />
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </Link>
 
-            <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-green-100 text-sm font-medium">
-                      Total Users
-                    </p>
-                    <p className="text-3xl font-bold">{stats.users.total}</p>
+            <Link href="/admin/dashboard/users">
+              <Card className="cursor-pointer bg-gradient-to-br from-green-500 to-green-600 text-white">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-green-100 text-sm font-medium">
+                        Total Users
+                      </p>
+                      <p className="text-3xl font-bold">{stats.users.total}</p>
+                    </div>
+                    <Users className="h-8 w-8 text-green-200" />
                   </div>
-                  <Users className="h-8 w-8 text-green-200" />
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </Link>
 
-            <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-purple-100 text-sm font-medium">
-                      Total Registrations
-                    </p>
-                    <p className="text-3xl font-bold">{stats.registrations}</p>
+            <Link href="/admin/dashboard/events">
+              <Card className="cursor-pointer bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-purple-100 text-sm font-medium">
+                        Total Registrations
+                      </p>
+                      <p className="text-3xl font-bold">
+                        {stats.registrations}
+                      </p>
+                    </div>
+                    <TrendingUp className="h-8 w-8 text-purple-200" />
                   </div>
-                  <TrendingUp className="h-8 w-8 text-purple-200" />
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </Link>
 
-            <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-orange-100 text-sm font-medium">
-                      Active Users
-                    </p>
-                    <p className="text-3xl font-bold">{stats.users.active}</p>
+            <Link href="/admin/dashboard/users">
+              <Card className="cursor-pointer bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-orange-100 text-sm font-medium">
+                        Active Users
+                      </p>
+                      <p className="text-3xl font-bold">{stats.users.active}</p>
+                    </div>
+                    <Activity className="h-8 w-8 text-orange-200" />
                   </div>
-                  <Activity className="h-8 w-8 text-orange-200" />
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </Link>
           </div>
         </div>
 
@@ -217,8 +215,8 @@ export default function AdminDashboard() {
             Event Status Breakdown
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <Link href="/admin/dashboard/events">
-              <Card className="cursor-pointer bg-gradient-to-br from-yellow-300 to-orange-400 text-white transition-all duration-300 hover:scale-105 shadow-lg">
+            <Link href="/admin/dashboard/events?filter=ongoing">
+              <Card className="cursor-pointer bg-gradient-to-br from-yellow-500 to-orange-600 text-white">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -231,16 +229,12 @@ export default function AdminDashboard() {
                     </div>
                     <Activity className="h-8 w-8 text-orange-200" />
                   </div>
-                  <div className="mt-4 flex items-center text-orange-200">
-                    <span className="text-sm">View Details</span>
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </div>
                 </CardContent>
               </Card>
             </Link>
 
-            <Link href="/admin/dashboard/events">
-              <Card className="cursor-pointer bg-gradient-to-br from-green-300 to-teal-400 text-white transition-all duration-300 hover:scale-105 shadow-lg">
+            <Link href="/admin/dashboard/events?filter=upcoming">
+              <Card className="cursor-pointer bg-gradient-to-br from-green-500 to-teal-600 text-white">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -253,16 +247,12 @@ export default function AdminDashboard() {
                     </div>
                     <Calendar className="h-8 w-8 text-green-200" />
                   </div>
-                  <div className="mt-4 flex items-center text-green-200">
-                    <span className="text-sm">View Details</span>
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </div>
                 </CardContent>
               </Card>
             </Link>
 
-            <Link href="/admin/dashboard/events">
-              <Card className="cursor-pointer bg-gradient-to-br from-blue-300 to-indigo-400 text-white transition-all duration-300 hover:scale-105 shadow-lg">
+            <Link href="/admin/dashboard/events?filter=completed">
+              <Card className="cursor-pointer bg-gradient-to-br from-blue-500 to-indigo-600 text-white">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -275,16 +265,12 @@ export default function AdminDashboard() {
                     </div>
                     <CheckCircle className="h-8 w-8 text-blue-200" />
                   </div>
-                  <div className="mt-4 flex items-center text-blue-200">
-                    <span className="text-sm">View Details</span>
-                    <ArrowRight className="h-4 w-4 ml-2" />
-                  </div>
                 </CardContent>
               </Card>
             </Link>
 
-            <Link href="/admin/dashboard/events">
-              <Card className="cursor-pointer bg-gradient-to-br from-gray-300 to-gray-400 text-white transition-all duration-300 hover:scale-105 shadow-lg">
+            <Link href="/admin/dashboard/events?filter=incoming">
+              <Card className="cursor-pointer bg-gradient-to-br from-gray-500 to-gray-600 text-white">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -296,10 +282,6 @@ export default function AdminDashboard() {
                       </p>
                     </div>
                     <Calendar className="h-8 w-8 text-gray-200" />
-                  </div>
-                  <div className="mt-4 flex items-center text-gray-200">
-                    <span className="text-sm">View Details</span>
-                    <ArrowRight className="h-4 w-4 ml-2" />
                   </div>
                 </CardContent>
               </Card>

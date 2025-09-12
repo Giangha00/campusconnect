@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { UserProvider } from "@/contexts/user-context";
 import { AdminProvider } from "@/contexts/admin-context";
+import { EventsProvider } from "@/contexts/events-context";
 import { RegistrationProvider } from "@/contexts/registration-context";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
@@ -23,6 +24,7 @@ import NotFound from "@/pages/not-found";
 import AdminLoginPage from "@/pages/admin/login";
 import AdminDashboard from "@/pages/admin/dashboard";
 import AdminEventsPage from "@/pages/admin/events";
+import AdminEventDetail from "@/pages/admin/event-detail";
 import AdminUsersPage from "@/pages/admin/users";
 
 function Router() {
@@ -48,6 +50,10 @@ function Router() {
           <Route path="/admin" component={AdminLoginPage} />
           <Route path="/admin/dashboard" component={AdminDashboard} />
           <Route path="/admin/dashboard/events" component={AdminEventsPage} />
+          <Route
+            path="/admin/dashboard/events/:id"
+            component={AdminEventDetail}
+          />
           <Route path="/admin/dashboard/users" component={AdminUsersPage} />
           <Route component={NotFound} />
         </Switch>
@@ -61,17 +67,19 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <UserProvider>
-        <AdminProvider>
-          <TooltipProvider>
-            <Toaster />
-            {/* Provide registration context globally */}
-            <RegistrationProvider>
-              <Router />
-            </RegistrationProvider>
-          </TooltipProvider>
-        </AdminProvider>
-      </UserProvider>
+      <EventsProvider>
+        <UserProvider>
+          <AdminProvider>
+            <TooltipProvider>
+              <Toaster />
+              {/* Provide registration context globally */}
+              <RegistrationProvider>
+                <Router />
+              </RegistrationProvider>
+            </TooltipProvider>
+          </AdminProvider>
+        </UserProvider>
+      </EventsProvider>
     </QueryClientProvider>
   );
 }

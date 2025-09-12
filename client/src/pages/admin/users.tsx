@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -176,13 +177,6 @@ export default function AdminUsersPage() {
                 Manage campus users, roles, and permissions
               </p>
             </div>
-            <Button
-              onClick={exportUsersCSV}
-              className="bg-green-600 hover:bg-green-700"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Export CSV
-            </Button>
           </div>
         </div>
       </div>
@@ -190,7 +184,13 @@ export default function AdminUsersPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-          <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+          <Card
+            className="cursor-pointer bg-gradient-to-br from-blue-500 to-blue-600 text-white"
+            onClick={() => {
+              setRoleFilter("all");
+              setStatusFilter("all");
+            }}
+          >
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -204,7 +204,13 @@ export default function AdminUsersPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white">
+          <Card
+            className="cursor-pointer bg-gradient-to-br from-green-500 to-green-600 text-white"
+            onClick={() => {
+              setRoleFilter("all");
+              setStatusFilter("active");
+            }}
+          >
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -218,7 +224,13 @@ export default function AdminUsersPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+          <Card
+            className="cursor-pointer bg-gradient-to-br from-purple-500 to-purple-600 text-white"
+            onClick={() => {
+              setRoleFilter("faculty");
+              setStatusFilter("all");
+            }}
+          >
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -230,7 +242,13 @@ export default function AdminUsersPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+          <Card
+            className="cursor-pointer bg-gradient-to-br from-orange-500 to-orange-600 text-white"
+            onClick={() => {
+              setRoleFilter("student");
+              setStatusFilter("all");
+            }}
+          >
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -244,7 +262,13 @@ export default function AdminUsersPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-gray-500 to-gray-600 text-white">
+          <Card
+            className="cursor-pointer bg-gradient-to-br from-gray-500 to-gray-600 text-white"
+            onClick={() => {
+              setRoleFilter("visitor");
+              setStatusFilter("all");
+            }}
+          >
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
