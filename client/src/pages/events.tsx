@@ -117,7 +117,7 @@ export default function Events() {
     { value: "date", label: "Sort by date", icon: Calendar },
     { value: "name", label: "Sort by name", icon: User },
     { value: "status", label: "Sort by status", icon: Activity },
-    { value: "time", label: "Sort by time", icon: Clock },
+    // { value: "time", label: "Sort by time", icon: Clock },
   ];
 
   const statusOptions = [

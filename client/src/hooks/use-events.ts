@@ -52,10 +52,25 @@ export function useEvents() {
     // Apply sorting
     switch (sortBy) {
       case "date":
-        sortedEvents.sort(
-          (a, b) =>
-            new Date(b.dateStart).getTime() - new Date(a.dateStart).getTime()
-        );
+        // Sort by status priority first (Ongoing → Upcoming → Incoming → Complete), then by date within each status
+        const statusPriority = {
+          ongoing: 0,
+          upcoming: 1,
+          incoming: 2,
+          completed: 3,
+        };
+        sortedEvents.sort((a, b) => {
+          const statusA = calculateEventStatus(a);
+          const statusB = calculateEventStatus(b);
+          
+          // First, sort by status priority
+          if (statusPriority[statusA] !== statusPriority[statusB]) {
+            return statusPriority[statusA] - statusPriority[statusB];
+          }
+          
+          // If same status, sort by date (newest first within each status group)
+          return new Date(b.dateStart).getTime() - new Date(a.dateStart).getTime();
+        });
         break;
       case "name":
         sortedEvents.sort((a, b) => a.name.localeCompare(b.name));
