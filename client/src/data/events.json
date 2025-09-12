@@ -48,8 +48,8 @@
     "organizer": "Physics Department",
     "image": "https://www.cedarville.edu/images/default-source/event/research-symposium/research-symposium-logo.jpg?sfvrsn=8c7008e7_0",
     "registrationRequired": true,
-    "capacity": 260,
-    "attendees": 258,
+    "capacity": 258,
+    "attendees": 220,
     "registrationStart": "2025-08-18",
     "registrationEnd": "2025-09-13"
   },
@@ -102,8 +102,8 @@
     "organizer": "Fine Arts Department",
     "image": "https://media.dpssrinagar.com/v2/media/2023/06/Painting-Competition.jpg",
     "registrationRequired": true,
-    "capacity": 455,
-    "attendees": 450,
+    "capacity": 450,
+    "attendees": 415,
     "registrationStart": "2025-08-22",
     "registrationEnd": "2025-09-17"
   },
@@ -211,7 +211,7 @@
     "image": "https://static.vecteezy.com/system/resources/previews/000/098/099/original/free-chemistry-vector.jpg",
     "registrationRequired": true,
     "capacity": 400,
-    "attendees": 390,
+    "attendees": 320,
     "registrationStart": "2025-08-16",
     "registrationEnd": "2025-09-11"
   },
