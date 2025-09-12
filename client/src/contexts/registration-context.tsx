@@ -113,22 +113,23 @@ export function RegistrationProvider({ children }: RegistrationProviderProps) {
 
       if (emailResult.success) {
         toast({
-          title: "Đăng ký thành công!",
-          description: "Email xác nhận đã được gửi đến hộp thư của bạn.",
+          title: "Login Success!",
+          description:
+            "Email confirmation has been sent to your email address.",
         });
       } else {
         toast({
-          title: "Đăng ký thành công!",
+          title: "Register Success!",
           description:
-            "Tuy nhiên, không thể gửi email xác nhận. Vui lòng kiểm tra lại thông tin email.",
+            "However, we were unable to send the email confirmation. Please check your email address.",
           variant: "destructive",
         });
       }
     } catch (error) {
       console.error("Error sending confirmation email:", error);
       toast({
-        title: "Đăng ký thành công!",
-        description: "Tuy nhiên, không thể gửi email xác nhận.",
+        title: "Register Success!",
+        description: "However, we were unable to send the email confirmation.",
         variant: "destructive",
       });
     }

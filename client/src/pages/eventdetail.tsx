@@ -20,6 +20,7 @@ import {
   Calendar,
   Building2,
   UserCheck,
+  UserPlus,
 } from "lucide-react";
 import { useUser } from "@/contexts/user-context";
 import { useRegistration } from "@/contexts/registration-context";
@@ -99,6 +100,16 @@ export default function EventDetail() {
     } else {
       await registerForEvent(event.id);
       // Toast notification is now handled in the registration context
+    }
+  };
+
+  const handleRegisterForNonLoggedInUser = () => {
+    if (currentStatus === "upcoming") {
+      toast({
+        title: "Login Required",
+        description: "Please log in to register for the event",
+        variant: "destructive",
+      });
     }
   };
 
@@ -316,9 +327,24 @@ export default function EventDetail() {
                   </Button>
                 )}
 
-                <Button variant="outline" className="w-full" size="lg">
-                  Share Event
-                </Button>
+                {/* Register for Event button for non-logged in users on upcoming events */}
+                {!user && currentStatus === "upcoming" && (
+                  <Button
+                    onClick={handleRegisterForNonLoggedInUser}
+                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                    size="lg"
+                  >
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Register for Event
+                  </Button>
+                )}
+
+                {/* Share Event button for other cases */}
+                {!(currentStatus === "upcoming" && !user) && (
+                  <Button variant="outline" className="w-full" size="lg">
+                    Share Event
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>

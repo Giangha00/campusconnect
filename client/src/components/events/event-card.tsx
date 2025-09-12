@@ -15,9 +15,11 @@ import {
   Users,
   Bookmark,
   BookmarkCheck,
+  UserPlus,
 } from "lucide-react";
 import { useUser } from "@/contexts/user-context";
 import { useRegistration } from "@/contexts/registration-context";
+import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 
 interface EventCardProps {
@@ -40,6 +42,7 @@ export function EventCard({ event, variant = "default" }: EventCardProps) {
     unregisterFromEvent,
     getRegistrationCount,
   } = useRegistration();
+  const { toast } = useToast();
   const isBookmarked = isEventBookmarked(event.id);
   const registered = isEventRegistered(event.id);
   const regCount = getRegistrationCount(event.id);
@@ -65,6 +68,18 @@ export function EventCard({ event, variant = "default" }: EventCardProps) {
       unregisterFromEvent(event.id);
     } else {
       registerForEvent(event.id);
+    }
+  };
+
+  const handleRegisterForNonLoggedInUser = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (currentStatus === "upcoming") {
+      toast({
+        title: "Login Required",
+        description: "Please log in to register for the event",
+        variant: "destructive",
+      });
     }
   };
 
@@ -202,6 +217,21 @@ export function EventCard({ event, variant = "default" }: EventCardProps) {
                 </Badge>
               )}
             </div>
+
+            {/* Register for Event button for non-logged in users */}
+            {!user && currentStatus === "upcoming" && (
+              <div className="mt-4">
+                <Button
+                  onClick={handleRegisterForNonLoggedInUser}
+                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+                  size="sm"
+                  data-testid={`button-register-${event.id}`}
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Register for Event
+                </Button>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
