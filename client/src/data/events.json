@@ -2,8 +2,8 @@
   {
     "id": 1,
     "name": "TechFest 2025",
-    "dateStart": "2025-08-15",
-    "dateEnd": "2025-08-20",
+    "dateStart": "2025-09-11",
+    "dateEnd": "2025-09-20",
     "time": "10:00 AM - 6:00 PM",
     "venue": "Main Auditorium",
     "category": "academic",
@@ -11,11 +11,11 @@
     "description": "TechFest 2025 is the largest annual technology festival at our university, bringing together over 500 students, faculty, and industry professionals from across the region. This comprehensive event features cutting-edge project exhibitions, intense coding competitions, 48-hour hackathons, and keynote presentations from leading tech industry experts. Participants can attend hands-on workshops covering AI, blockchain, IoT, and cybersecurity, while exploring an innovation showcase featuring 20+ student startup projects. The event includes dedicated networking sessions with recruiters from major tech companies, career counseling booths, and a startup pitch competition with a total prize pool of $50,000. TechFest also hosts a technology expo with 30+ industry partners, live coding demonstrations, and interactive VR/AR experiences. This is the perfect platform for students to showcase their technical skills, connect with potential employers, and gain insights into the latest technological trends shaping our digital future.",
     "organizer": "CS Department",
     "image": "https://i0.wp.com/whataftercollege.com/wp-content/uploads/2018/03/Techfest-featured-Image.jpg?fit=800%2C418",
-    "registrationRequired": false,
-    "capacity": "No limit",
-    "attendees": 450,
-    "registrationStart": "2025-07-15",
-    "registrationEnd": "2025-08-10"
+    "registrationRequired": true,
+    "capacity": 500,
+    "attendees": 500,
+    "registrationStart": "2025-08-11",
+    "registrationEnd": "2025-09-06"
   },
   {
     "id": 2,
@@ -31,15 +31,15 @@
     "image": "https://cdn.iplocation.net/assets/images/blog/featured/ai-ml-real-world-applications.png",
     "registrationRequired": true,
     "capacity": 180,
-    "attendees": 150,
+    "attendees": 0,
     "registrationStart": "2025-09-20",
     "registrationEnd": "2025-10-15"
   },
   {
     "id": 3,
     "name": "Physics Research Symposium",
-    "dateStart": "2025-02-18",
-    "dateEnd": "2025-02-18",
+    "dateStart": "2025-09-18",
+    "dateEnd": "2025-09-18",
     "time": "09:30 AM - 5:00 PM",
     "venue": "Seminar Hall 2",
     "department": "Physics",
@@ -49,9 +49,9 @@
     "image": "https://www.cedarville.edu/images/default-source/event/research-symposium/research-symposium-logo.jpg?sfvrsn=8c7008e7_0",
     "registrationRequired": true,
     "capacity": 260,
-    "attendees": 245,
-    "registrationStart": "2025-01-18",
-    "registrationEnd": "2025-02-13"
+    "attendees": 258,
+    "registrationStart": "2025-08-18",
+    "registrationEnd": "2025-09-13"
   },
   {
     "id": 4,
@@ -74,8 +74,8 @@
   {
     "id": 5,
     "name": "Art & Culture Expo",
-    "dateStart": "2025-04-15",
-    "dateEnd": "2025-04-17",
+    "dateStart": "2025-09-07",
+    "dateEnd": "2025-09-17",
     "time": "10:00 AM - 6:00 PM",
     "venue": "Exhibition Hall",
     "department": "Fine Arts",
@@ -83,17 +83,17 @@
     "description": "The Art & Culture Expo 2025 is the largest creative festival of the year, spanning 3 days and featuring over 200 artworks from Fine Arts students. The exhibition includes 5 main sections: painting with 80 oil, acrylic, and watercolor works; sculpture with 30 pieces in clay, wood, and metal; photography with 50 artistic images; music with 15 live performances; and theater with 8 short plays. The event features 10 guest artists from other universities and 5 interactive workshops on painting techniques, pottery making, and photography. Over 1,000 visitors including students, faculty, and local community members will experience live performances, interactive art installations, and cultural exchange activities. The expo includes a student art market, cultural food stalls, and collaborative art projects. Special highlights include a digital art showcase, multimedia installations, and performances by the university's award-winning choir and orchestra. This celebration of creativity aims to foster cultural exchange and highlight the diverse artistic voices within our university community.",
     "organizer": "Fine Arts Department",
     "image": "https://www.ticket2u.com.my/ticket2u/site/news/assets/img/2025/exhibition-my.png",
-    "registrationRequired": false,
-    "capacity": "No limit",
-    "attendees": 450,
-    "registrationStart": "2025-03-15",
-    "registrationEnd": "2025-04-10"
+    "registrationRequired": true,
+    "capacity": 450,
+    "attendees": 444,
+    "registrationStart": "2025-08-07",
+    "registrationEnd": "2025-09-02"
   },
   {
     "id": 6,
     "name": "Annual Painting Competition",
-    "dateStart": "2025-08-22",
-    "dateEnd": "2025-08-22",
+    "dateStart": "2025-09-22",
+    "dateEnd": "2025-09-22",
     "time": "09:00 AM - 5:00 PM",
     "venue": "Fine Arts Studio",
     "department": "Fine Arts",
@@ -101,11 +101,11 @@
     "description": "The Annual Painting Competition 2025 with the theme 'Green Future' brings together over 150 participants from 8 universities across the region, including fine arts students and art enthusiasts. This intensive 8-hour competition features three categories: oil painting, watercolor, and acrylic. The judging panel consists of 5 art professionals, including renowned environmental artist Sarah Martinez and Professor David Chen from the National Art University. Participants must create works that express their vision of sustainability, environmental consciousness, and harmony between humanity and nature. The competition offers substantial prizes: 1st place ($10,000), 2nd place ($5,000 each for two winners), 3rd place ($3,000 each for three winners), and 5 honorable mentions. Winning artworks will be displayed in the university gallery for 2 months and featured in the prestigious 'Creative Campus' art magazine. The event includes live painting demonstrations, art supply vendors, and networking opportunities with gallery owners and art collectors.",
     "organizer": "Fine Arts Department",
     "image": "https://media.dpssrinagar.com/v2/media/2023/06/Painting-Competition.jpg",
-    "registrationRequired": false,
-    "capacity": "No limit",
+    "registrationRequired": true,
+    "capacity": 455,
     "attendees": 450,
-    "registrationStart": "2025-07-22",
-    "registrationEnd": "2025-08-17"
+    "registrationStart": "2025-08-22",
+    "registrationEnd": "2025-09-17"
   },
   {
     "id": 7,
@@ -200,8 +200,8 @@
   {
     "id": 12,
     "name": "Chemistry Fair",
-    "dateStart": "2025-09-18",
-    "dateEnd": "2025-09-18",
+    "dateStart": "2025-09-16",
+    "dateEnd": "2025-09-16",
     "time": "10:00 AM",
     "venue": "Exhibition Hall",
     "department": "Chemistry",
@@ -211,9 +211,9 @@
     "image": "https://static.vecteezy.com/system/resources/previews/000/098/099/original/free-chemistry-vector.jpg",
     "registrationRequired": true,
     "capacity": 400,
-    "attendees": 0,
-    "registrationStart": "2025-08-18",
-    "registrationEnd": "2025-09-13"
+    "attendees": 390,
+    "registrationStart": "2025-08-16",
+    "registrationEnd": "2025-09-11"
   },
   {
     "id": 13,
@@ -283,7 +283,7 @@
     "image": "https://www.lawof.in/wp-content/uploads/2019/09/Moot-Court-Competition_.jpg",
     "registrationRequired": true,
     "capacity": 280,
-    "attendees": 0,
+    "attendees": 240,
     "registrationStart": "2025-08-12",
     "registrationEnd": "2025-09-07"
   },

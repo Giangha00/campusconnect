@@ -21,6 +21,8 @@ interface CountdownTimer {
   hours: number;
   minutes: number;
   seconds: number;
+  isEnded?: boolean;
+  isOngoing?: boolean;
 }
 
 export function EventCarousel({ events }: EventCarouselProps) {
@@ -76,19 +78,46 @@ export function EventCarousel({ events }: EventCarouselProps) {
     const calculateCountdowns = () => {
       const now = new Date();
       const timers = displayEvents.map((event) => {
-        const eventDate = new Date(event.dateStart);
-        const timeDiff = eventDate.getTime() - now.getTime();
+        const eventStartDate = new Date(event.dateStart);
+        const eventEndDate = new Date(event.dateEnd);
+        const startTimeDiff = eventStartDate.getTime() - now.getTime();
+        const endTimeDiff = eventEndDate.getTime() - now.getTime();
 
-        if (timeDiff <= 0) {
+        // If event has ended (past dateEnd), return special status
+        if (endTimeDiff <= 0) {
+          return {
+            days: -1,
+            hours: -1,
+            minutes: -1,
+            seconds: -1,
+            isEnded: true,
+          };
+        }
+
+        // If event has started but not ended (ongoing), return special status
+        if (startTimeDiff <= 0 && endTimeDiff > 0) {
+          return {
+            days: -2,
+            hours: -2,
+            minutes: -2,
+            seconds: -2,
+            isOngoing: true,
+          };
+        }
+
+        // If event hasn't started yet, calculate countdown to start
+        if (startTimeDiff <= 0) {
           return { days: 0, hours: 0, minutes: 0, seconds: 0 };
         }
 
-        const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+        const days = Math.floor(startTimeDiff / (1000 * 60 * 60 * 24));
         const hours = Math.floor(
-          (timeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
+          (startTimeDiff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)
         );
-        const minutes = Math.floor((timeDiff % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((timeDiff % (1000 * 60)) / 1000);
+        const minutes = Math.floor(
+          (startTimeDiff % (1000 * 60 * 60)) / (1000 * 60)
+        );
+        const seconds = Math.floor((startTimeDiff % (1000 * 60)) / 1000);
 
         return { days, hours, minutes, seconds };
       });
@@ -250,6 +279,14 @@ export function EventCarousel({ events }: EventCarouselProps) {
                       <div className="text-white/80 text-lg">
                         Loading countdown...
                       </div>
+                    ) : currentCountdown.isEnded ? (
+                      <div className="text-red-400 font-bold text-lg">
+                        Event Closed
+                      </div>
+                    ) : currentCountdown.isOngoing ? (
+                      <div className="text-orange-400 font-bold text-lg">
+                        Event Ongoing
+                      </div>
                     ) : currentCountdown.days === 0 &&
                       currentCountdown.hours === 0 &&
                       currentCountdown.minutes === 0 &&
@@ -287,7 +324,11 @@ export function EventCarousel({ events }: EventCarouselProps) {
                     )}
 
                     <div className="text-sm text-white/80">
-                      Until event starts
+                      {currentCountdown.isEnded
+                        ? "Event has ended"
+                        : currentCountdown.isOngoing
+                        ? "Event is currently happening"
+                        : "Until event starts"}
                     </div>
                   </div>
                 </CardContent>
