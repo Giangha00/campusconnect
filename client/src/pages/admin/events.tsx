@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect } from "react";
 import eventsData from "@/data/events.json";
 import { Event } from "@/types/event";
-import { useUser } from "@/contexts/user-context";
+import { useAdmin } from "@/contexts/admin-context";
 import { useRegistration } from "@/contexts/registration-context";
 import {
   calculateEventStatus,
@@ -37,9 +37,10 @@ import {
   Activity,
   CheckCircle,
 } from "lucide-react";
+import { AdminNavbar } from "@/components/admin/admin-navbar";
 
-export default function AdminPage() {
-  const { user } = useUser();
+export default function AdminEventsPage() {
+  const { admin } = useAdmin();
   const { getRegistrationsByEvent } = useRegistration();
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -49,7 +50,7 @@ export default function AdminPage() {
   const [endDate, setEndDate] = useState("");
   const eventsPerPage = 6;
 
-  const isAdmin = user && user.role === "faculty"; // simple guard
+  const isAdmin = !!admin;
 
   useEffect(() => {
     setCurrentPage(1);
@@ -57,7 +58,7 @@ export default function AdminPage() {
 
   const allEventsWithStatus = useMemo(() => {
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // So sánh ngày, không tính giờ
+    today.setHours(0, 0, 0, 0);
 
     return (eventsData as Event[]).map((event) => {
       const dateStart = new Date(event.dateStart);
@@ -71,7 +72,6 @@ export default function AdminPage() {
       } else if (today >= dateStart && today <= dateEnd) {
         status = "ongoing";
       } else if (today < dateStart) {
-        // Sự kiện trong tương lai
         const registrationStart = event.registrationStart
           ? new Date(event.registrationStart)
           : null;
@@ -86,9 +86,9 @@ export default function AdminPage() {
           today >= registrationStart &&
           today <= registrationEnd
         ) {
-          status = "upcoming"; // Đang mở đăng ký
+          status = "upcoming";
         } else {
-          status = "incoming"; // Sắp diễn ra (chưa tới ngày đăng ký, hoặc đã qua, hoặc không cần)
+          status = "incoming";
         }
       }
       return { ...event, status };
@@ -132,12 +132,8 @@ export default function AdminPage() {
 
     const pageNumbers: (number | string)[] = [];
     const siblingCount = 1;
-    // The number of pages to show is based on:
-    // 1 (current) + 2*siblings + firstPage + lastPage + 2*DOTS
     const totalPageNumbers = siblingCount * 2 + 5;
 
-    // Case 1: Number of pages is less than the page numbers we want to show.
-    // We just show all the page numbers.
     if (totalPages <= totalPageNumbers) {
       for (let i = 1; i <= totalPages; i++) {
         pageNumbers.push(i);
@@ -154,7 +150,6 @@ export default function AdminPage() {
     const firstPageIndex = 1;
     const lastPageIndex = totalPages;
 
-    // Case 2: No left dots to show, but rights dots to be shown
     if (!shouldShowLeftDots && shouldShowRightDots) {
       let leftItemCount = 3 + 2 * siblingCount;
       for (let i = 1; i <= leftItemCount; i++) {
@@ -162,16 +157,14 @@ export default function AdminPage() {
       }
       pageNumbers.push("...");
       pageNumbers.push(totalPages);
-    } // Case 3: No right dots to show, but left dots to be shown
-    else if (shouldShowLeftDots && !shouldShowRightDots) {
+    } else if (shouldShowLeftDots && !shouldShowRightDots) {
       let rightItemCount = 3 + 2 * siblingCount;
       pageNumbers.push(firstPageIndex);
       pageNumbers.push("...");
       for (let i = totalPages - rightItemCount + 1; i <= totalPages; i++) {
         pageNumbers.push(i);
       }
-    } // Case 4: Both left and right dots to be shown
-    else if (shouldShowLeftDots && shouldShowRightDots) {
+    } else if (shouldShowLeftDots && shouldShowRightDots) {
       pageNumbers.push(firstPageIndex);
       pageNumbers.push("...");
       for (let i = leftSiblingIndex; i <= rightSiblingIndex; i++) {
@@ -274,31 +267,18 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
-      {/* Hero Section */}
-      <div className="pt-20 text-white relative">
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat bg-gray-800"
-          style={{
-            backgroundImage: "url('/images/schools/School_7.jpg')",
-          }}
-        />
-        <div className="absolute inset-0 hero-gradient" />
-        <div className="relative z-10">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
-            <div className="text-center mb-12">
-              <div className="mx-auto w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mb-6">
-                <BarChart3 className="h-8 w-8" />
-              </div>
-              <h1
-                className="text-4xl md:text-5xl font-bold mb-4 drop-shadow-2xl"
-                style={{ textShadow: "0 4px 8px rgba(0,0,0,0.8)" }}
-              >
-                Admin Dashboard
+      <AdminNavbar currentPage="events" />
+
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                <Calendar className="h-8 w-8 text-blue-600" />
+                Event Management
               </h1>
-              <p
-                className="text-xl text-blue-100 max-w-2xl mx-auto drop-shadow-lg"
-                style={{ textShadow: "0 2px 4px rgba(0,0,0,0.7)" }}
-              >
+              <p className="text-gray-600 mt-2">
                 Manage campus events, track registrations, and analyze
                 engagement metrics
               </p>
@@ -307,8 +287,7 @@ export default function AdminPage() {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Section */}
         <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card
@@ -420,6 +399,7 @@ export default function AdminPage() {
             </CardContent>
           </Card>
         </div>
+
         {/* Search Section */}
         <Card className="mb-8 shadow-lg">
           <CardHeader>
@@ -720,6 +700,7 @@ export default function AdminPage() {
             );
           })}
         </div>
+
         {/* Pagination Controls */}
         {totalPages > 1 && (
           <div className="flex justify-center items-center mt-8 space-x-2">
@@ -759,7 +740,6 @@ export default function AdminPage() {
             </Button>
           </div>
         )}
-        {/* End Pagination Controls */}
       </div>
     </div>
   );

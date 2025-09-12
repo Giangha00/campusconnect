@@ -26,20 +26,9 @@ export function Header() {
     userNavigation.push({ name: "Bookmarks", href: "/bookmarks" });
   }
 
-  if (user && user.role === "faculty") {
-    userNavigation.push({
-      name: "Admin",
-      href: "/admin",
-    });
-  }
-
   return (
     <nav className="bg-white shadow-md fixed top-0 w-full z-50">
-      <div
-        className={`${
-          user && user.role === "faculty" ? "max-w-full" : "max-w-7xl"
-        } mx-auto px-4 sm:px-6 lg:px-8`}
-      >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16 min-w-0">
           <div className="flex items-center">
             <Link
@@ -57,7 +46,7 @@ export function Header() {
 
           <div
             className={`hidden ${
-              user && user.role === "faculty"
+              user && user.role !== "visitor"
                 ? "xl:flex xl:items-center xl:space-x-4"
                 : "lg:flex lg:items-center lg:space-x-4"
             } lg:flex-1 lg:justify-end`}
@@ -86,39 +75,34 @@ export function Header() {
           </div>
 
           <div
-            className={`hidden md:flex ${
-              user && user.role === "faculty" ? "xl:hidden" : "lg:hidden"
-            } md:items-center md:space-x-2`}
+            className={`hidden md:flex ${"lg:hidden"} md:items-center md:space-x-2`}
           >
             <div className="flex items-baseline space-x-1 lg:space-x-2">
-              {userNavigation
-                .slice(0, user && user.role === "faculty" ? 3 : 4)
-                .map((item) => (
-                  <Link
-                    key={item.name}
-                    href={item.href}
-                    data-testid={`link-nav-${item.name.toLowerCase()}`}
+              {userNavigation.slice(0, 4).map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  data-testid={`link-nav-${item.name.toLowerCase()}`}
+                >
+                  <Button
+                    variant="ghost"
+                    className={`px-2 py-2 rounded-md ${
+                      user && user.role !== "visitor"
+                        ? "text-xs"
+                        : "text-xs lg:text-sm"
+                    } font-medium transition-colors ${
+                      location === item.href
+                        ? "text-primary bg-accent"
+                        : "text-foreground hover:text-primary hover:bg-accent"
+                    }`}
                   >
-                    <Button
-                      variant="ghost"
-                      className={`px-2 py-2 rounded-md ${
-                        user && user.role === "faculty"
-                          ? "text-xs"
-                          : "text-xs lg:text-sm"
-                      } font-medium transition-colors ${
-                        location === item.href
-                          ? "text-primary bg-accent"
-                          : "text-foreground hover:text-primary hover:bg-accent"
-                      }`}
-                    >
-                      {item.name}
-                    </Button>
-                  </Link>
-                ))}
+                    {item.name}
+                  </Button>
+                </Link>
+              ))}
             </div>
             <div className="flex items-center space-x-1">
-              {userNavigation.length >
-                (user && user.role === "faculty" ? 3 : 4) && (
+              {userNavigation.length > 4 && (
                 <Sheet>
                   <SheetTrigger asChild>
                     <Button
@@ -135,26 +119,24 @@ export function Header() {
                       <div className="pb-4 border-b">
                         <LoginDialog />
                       </div>
-                      {userNavigation
-                        .slice(user && user.role === "faculty" ? 3 : 4)
-                        .map((item) => (
-                          <Link
-                            key={item.name}
-                            href={item.href}
-                            data-testid={`link-tablet-nav-${item.name.toLowerCase()}`}
+                      {userNavigation.slice(4).map((item) => (
+                        <Link
+                          key={item.name}
+                          href={item.href}
+                          data-testid={`link-tablet-nav-${item.name.toLowerCase()}`}
+                        >
+                          <Button
+                            variant="ghost"
+                            className={`w-full justify-start text-left ${
+                              location === item.href
+                                ? "text-primary bg-accent"
+                                : "text-foreground hover:text-primary hover:bg-accent"
+                            }`}
                           >
-                            <Button
-                              variant="ghost"
-                              className={`w-full justify-start text-left ${
-                                location === item.href
-                                  ? "text-primary bg-accent"
-                                  : "text-foreground hover:text-primary hover:bg-accent"
-                              }`}
-                            >
-                              {item.name}
-                            </Button>
-                          </Link>
-                        ))}
+                            {item.name}
+                          </Button>
+                        </Link>
+                      ))}
                     </div>
                   </SheetContent>
                 </Sheet>

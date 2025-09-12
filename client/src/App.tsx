@@ -1,9 +1,10 @@
-import { Switch, Route } from "wouter";
+import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { UserProvider } from "@/contexts/user-context";
+import { AdminProvider } from "@/contexts/admin-context";
 import { RegistrationProvider } from "@/contexts/registration-context";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
@@ -19,13 +20,21 @@ import Contact from "@/pages/contact";
 import Bookmarks from "@/pages/bookmarks";
 import NotFound from "@/pages/not-found";
 
-import AdminPage from "@/pages/admin";
+import AdminLoginPage from "@/pages/admin/login";
+import AdminDashboard from "@/pages/admin/dashboard";
+import AdminEventsPage from "@/pages/admin/events";
+import AdminUsersPage from "@/pages/admin/users";
 
 function Router() {
+  const [location] = useLocation();
+
+  // Hide header and footer for admin login page
+  const isAdminLoginPage = location === "/admin";
+
   return (
     <div className="min-h-screen flex flex-col">
       <ScrollToTop />
-      <Header />
+      {!isAdminLoginPage && <Header />}
       <main className="flex-1">
         <Switch>
           <Route path="/" component={Home} />
@@ -36,12 +45,15 @@ function Router() {
           <Route path="/feedback" component={Feedback} />
           <Route path="/contact" component={Contact} />
           <Route path="/bookmarks" component={Bookmarks} />
-          <Route path="/admin" component={AdminPage} />
+          <Route path="/admin" component={AdminLoginPage} />
+          <Route path="/admin/dashboard" component={AdminDashboard} />
+          <Route path="/admin/dashboard/events" component={AdminEventsPage} />
+          <Route path="/admin/dashboard/users" component={AdminUsersPage} />
           <Route component={NotFound} />
         </Switch>
       </main>
-      <Footer />
-      <BackToTop />
+      {!isAdminLoginPage && <Footer />}
+      {!isAdminLoginPage && <BackToTop />}
     </div>
   );
 }
@@ -50,13 +62,15 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <UserProvider>
-        <TooltipProvider>
-          <Toaster />
-          {/* Provide registration context globally */}
-          <RegistrationProvider>
-            <Router />
-          </RegistrationProvider>
-        </TooltipProvider>
+        <AdminProvider>
+          <TooltipProvider>
+            <Toaster />
+            {/* Provide registration context globally */}
+            <RegistrationProvider>
+              <Router />
+            </RegistrationProvider>
+          </TooltipProvider>
+        </AdminProvider>
       </UserProvider>
     </QueryClientProvider>
   );
