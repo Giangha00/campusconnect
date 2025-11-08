@@ -335,21 +335,23 @@ export default function AdminDashboard() {
               </Card>
             </Link>
 
-            <Card className="cursor-pointer hover:shadow-lg transition-shadow border-l-4 border-l-purple-500">
-              <CardContent className="p-6">
-                <div className="flex items-center space-x-4">
-                  <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <BarChart3 className="h-6 w-6 text-purple-600" />
+            <Link href="/admin/dashboard/analytics">
+              <Card className="cursor-pointer hover:shadow-lg transition-shadow border-l-4 border-l-purple-500">
+                <CardContent className="p-6">
+                  <div className="flex items-center space-x-4">
+                    <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                      <BarChart3 className="h-6 w-6 text-purple-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-gray-900">Analytics</h3>
+                      <p className="text-sm text-gray-600">
+                        View detailed analytics and reports
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Analytics</h3>
-                    <p className="text-sm text-gray-600">
-                      View detailed analytics and reports
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            </Link>
           </div>
         </div>
       </div>

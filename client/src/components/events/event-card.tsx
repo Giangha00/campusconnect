@@ -98,11 +98,17 @@ export function EventCard({ event, variant = "default" }: EventCardProps) {
         className="overflow-hidden shadow-lg card-hover cursor-pointer transition-all duration-200 hover:shadow-xl h-full flex flex-col"
         data-testid={`card-event-${event.id}`}
       >
-        <div className="aspect-video relative overflow-hidden">
+        <div className="aspect-video relative overflow-hidden bg-muted flex items-center justify-center">
           <img
             src={event.image}
             alt={event.name}
-            className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+            className="w-full h-full object-contain transition-transform duration-300 hover:scale-105"
+            loading="lazy"
+            onError={(e) => {
+              // Fallback nếu ảnh lỗi
+              const target = e.target as HTMLImageElement;
+              target.src = "/images/schools/School_1.jpg";
+            }}
           />
           <div className="absolute top-4 left-4 flex gap-2 flex-wrap">
             {variant === "highlight" && (

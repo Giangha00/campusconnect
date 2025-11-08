@@ -26,6 +26,7 @@ import AdminDashboard from "@/pages/admin/dashboard";
 import AdminEventsPage from "@/pages/admin/events";
 import AdminEventDetail from "@/pages/admin/event-detail";
 import AdminUsersPage from "@/pages/admin/users";
+import AdminAnalytics from "@/pages/admin/analytics";
 
 function Router() {
   const [location] = useLocation();
@@ -55,6 +56,7 @@ function Router() {
             component={AdminEventDetail}
           />
           <Route path="/admin/dashboard/users" component={AdminUsersPage} />
+          <Route path="/admin/dashboard/analytics" component={AdminAnalytics} />
           <Route component={NotFound} />
         </Switch>
       </main>

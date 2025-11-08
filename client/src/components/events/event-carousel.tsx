@@ -159,7 +159,7 @@ export function EventCarousel({ events }: EventCarouselProps) {
 
   if (displayEvents.length === 0) {
     return (
-      <section className="hero-section h-[50vh] min-h-[400px]">
+      <section className="hero-section min-h-[500px] md:min-h-[600px] lg:h-[50vh] lg:min-h-[500px]">
         <div
           className="hero-background"
           style={{
@@ -191,7 +191,7 @@ export function EventCarousel({ events }: EventCarouselProps) {
   // Safety check to ensure we have a valid event
   if (!currentEvent) {
     return (
-      <section className="hero-section h-[50vh] min-h-[400px]">
+      <section className="hero-section min-h-[500px] md:min-h-[600px] lg:h-[50vh] lg:min-h-[500px]">
         <div
           className="hero-background"
           style={{
@@ -212,7 +212,7 @@ export function EventCarousel({ events }: EventCarouselProps) {
   }
 
   return (
-    <section className="relative h-[50vh] min-h-[400px] overflow-hidden">
+    <section className="relative min-h-[500px] md:min-h-[600px] lg:h-[50vh] lg:min-h-[500px] overflow-hidden py-8 lg:py-0">
       {/* Background Image */}
       <div
         className="absolute inset-0 bg-cover bg-center bg-no-repeat carousel-slide"
@@ -225,12 +225,12 @@ export function EventCarousel({ events }: EventCarouselProps) {
       <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/50 to-black/30" />
 
       {/* Content */}
-      <div className="relative z-10 h-full flex items-center">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+      <div className="relative z-10 h-full flex items-center min-h-[500px] md:min-h-[600px] lg:min-h-[500px]">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-8 lg:py-0">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-start lg:items-center">
             {/* Event Information */}
-            <div className="text-white space-y-6">
-              <div className="space-y-4">
+            <div className="text-white space-y-4 lg:space-y-6 order-2 lg:order-1">
+              <div className="space-y-3 lg:space-y-4">
                 <Badge
                   variant="secondary"
                   className="bg-white/20 text-white border-white/30 backdrop-blur-sm"
@@ -239,91 +239,93 @@ export function EventCarousel({ events }: EventCarouselProps) {
                     currentEvent.category.slice(1)}
                 </Badge>
 
-                <h1 className="text-4xl md:text-5xl font-bold leading-tight">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight">
                   {currentEvent.name}
                 </h1>
 
-                <p className="text-lg text-white/90 leading-relaxed max-w-2xl">
+                <p className="text-base sm:text-lg text-white/90 leading-relaxed max-w-2xl line-clamp-3 lg:line-clamp-none">
                   {currentEvent.description.length > 200
                     ? `${currentEvent.description.substring(0, 200)}...`
                     : currentEvent.description}
                 </p>
 
-                <div className="flex flex-wrap gap-4 text-lg">
+                <div className="flex flex-wrap gap-3 sm:gap-4 text-sm sm:text-base lg:text-lg">
                   <div className="flex items-center gap-2">
-                    <Calendar className="h-5 w-5" />
+                    <Calendar className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
                     <span>
                       {new Date(currentEvent.dateStart).toLocaleDateString()}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Clock className="h-5 w-5" />
+                    <Clock className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
                     <span>{currentEvent.time}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <MapPin className="h-5 w-5" />
-                    <span>{currentEvent.venue}</span>
+                    <MapPin className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
+                    <span className="break-words">{currentEvent.venue}</span>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Countdown Timer */}
-            <div className="flex justify-center lg:justify-end">
-              <Card className="countdown-timer text-white max-w-md w-full bg-transparent border-white/20">
-                <CardContent className="p-6">
-                  <div className="text-center space-y-4">
-                    <h3 className="text-xl font-semibold">Time Until Event</h3>
+            <div className="flex justify-center lg:justify-end order-1 lg:order-2 mb-4 lg:mb-0">
+              <Card className="countdown-timer text-white max-w-md w-full bg-black/40 backdrop-blur-sm border-white/20">
+                <CardContent className="p-4 sm:p-6">
+                  <div className="text-center space-y-3 sm:space-y-4">
+                    <h3 className="text-lg sm:text-xl font-semibold">
+                      Time Until Event
+                    </h3>
 
                     {isLoading ? (
-                      <div className="text-white/80 text-lg">
+                      <div className="text-white/80 text-base sm:text-lg">
                         Loading countdown...
                       </div>
                     ) : currentCountdown.isEnded ? (
-                      <div className="text-red-400 font-bold text-lg">
+                      <div className="text-red-400 font-bold text-base sm:text-lg">
                         Event Closed
                       </div>
                     ) : currentCountdown.isOngoing ? (
-                      <div className="text-orange-400 font-bold text-lg">
+                      <div className="text-orange-400 font-bold text-base sm:text-lg">
                         Event Ongoing
                       </div>
                     ) : currentCountdown.days === 0 &&
                       currentCountdown.hours === 0 &&
                       currentCountdown.minutes === 0 &&
                       currentCountdown.seconds === 0 ? (
-                      <div className="text-red-400 font-bold text-lg">
+                      <div className="text-red-400 font-bold text-base sm:text-lg">
                         Event Started
                       </div>
                     ) : (
-                      <div className="grid grid-cols-4 gap-3">
+                      <div className="grid grid-cols-4 gap-2 sm:gap-3">
                         <div className="text-center">
-                          <div className="text-2xl md:text-3xl font-bold bg-white/10 rounded-lg p-3 border border-white/20">
+                          <div className="text-xl sm:text-2xl md:text-3xl font-bold bg-white/10 rounded-lg p-2 sm:p-3 border border-white/20">
                             {currentCountdown.days}
                           </div>
-                          <div className="text-sm mt-1">Days</div>
+                          <div className="text-xs sm:text-sm mt-1">Days</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-2xl md:text-3xl font-bold bg-white/10 rounded-lg p-3 border border-white/20">
+                          <div className="text-xl sm:text-2xl md:text-3xl font-bold bg-white/10 rounded-lg p-2 sm:p-3 border border-white/20">
                             {currentCountdown.hours}
                           </div>
-                          <div className="text-sm mt-1">Hours</div>
+                          <div className="text-xs sm:text-sm mt-1">Hours</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-2xl md:text-3xl font-bold bg-white/10 rounded-lg p-3 border border-white/20">
+                          <div className="text-xl sm:text-2xl md:text-3xl font-bold bg-white/10 rounded-lg p-2 sm:p-3 border border-white/20">
                             {currentCountdown.minutes}
                           </div>
-                          <div className="text-sm mt-1">Minutes</div>
+                          <div className="text-xs sm:text-sm mt-1">Minutes</div>
                         </div>
                         <div className="text-center">
-                          <div className="text-2xl md:text-3xl font-bold bg-white/10 rounded-lg p-3 border border-white/20">
+                          <div className="text-xl sm:text-2xl md:text-3xl font-bold bg-white/10 rounded-lg p-2 sm:p-3 border border-white/20">
                             {currentCountdown.seconds}
                           </div>
-                          <div className="text-sm mt-1">Seconds</div>
+                          <div className="text-xs sm:text-sm mt-1">Seconds</div>
                         </div>
                       </div>
                     )}
 
-                    <div className="text-sm text-white/80">
+                    <div className="text-xs sm:text-sm text-white/80">
                       {currentCountdown.isEnded
                         ? "Event has ended"
                         : currentCountdown.isOngoing

@@ -15,6 +15,7 @@ import {
   ChevronDown,
   Menu,
   X,
+  TrendingUp,
 } from "lucide-react";
 import { useAdmin } from "@/contexts/admin-context";
 
@@ -50,6 +51,12 @@ export function AdminNavbar({ currentPage }: AdminNavbarProps) {
       label: "Users",
       icon: Users,
       href: "/admin/dashboard/users",
+    },
+    {
+      id: "analytics",
+      label: "Analytics",
+      icon: TrendingUp,
+      href: "/admin/dashboard/analytics",
     },
   ];
 
