@@ -29,6 +29,7 @@ import { useRegistration } from "@/contexts/registration-context";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { LoginDialog } from "@/components/auth/login-dialog";
+import { SafeText, sanitizeAttribute } from "@/components/common/safe-text";
 
 const categoryColors = {
   academic: "bg-primary text-primary-foreground",
@@ -129,8 +130,9 @@ export default function EventDetail() {
           <div className="aspect-video relative overflow-hidden rounded-lg">
             <img
               src={event.image}
-              alt={event.name}
+              alt={sanitizeAttribute(event.name)}
               className="w-full h-full object-cover"
+              loading="lazy"
             />
             <div className="absolute top-4 left-4">
               <Badge
@@ -162,7 +164,7 @@ export default function EventDetail() {
 
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              {event.name}
+              <SafeText>{event.name}</SafeText>
             </h1>
             <div className="flex items-center gap-4 mb-4">
               <Badge
@@ -195,7 +197,7 @@ export default function EventDetail() {
             <CardContent className="p-6">
               <h2 className="text-xl font-semibold mb-4">About This Event</h2>
               <p className="text-gray-700 leading-relaxed">
-                {event.description}
+                <SafeText>{event.description}</SafeText>
               </p>
             </CardContent>
           </Card>

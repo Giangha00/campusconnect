@@ -48,6 +48,7 @@ export function GalleryGrid({ items }: GalleryGridProps) {
                     src={item.src}
                     alt={item.alt}
                     className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
+                    loading="lazy"
                   />
                 </button>
                 <CardContent className="p-3">
@@ -79,6 +80,7 @@ export function GalleryGrid({ items }: GalleryGridProps) {
                   src={selected.src}
                   alt={selected.alt}
                   className="w-full h-auto rounded-md"
+                  loading="lazy"
                 />
               </div>
               <p className="text-sm text-muted-foreground">{selected.alt}</p>

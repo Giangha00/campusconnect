@@ -22,7 +22,7 @@ export interface Event {
 
 export type EventCategory = Event['category'] | 'all';
 export type EventStatus = Event['status'] | 'all';
-export type EventSortBy = 'date' | 'name' | 'category' | 'status' | 'time';
+export type EventSortBy = 'date' | 'category' | 'status' | 'time';
 
 export type UserRole = 'student' | 'faculty' | 'visitor';
 

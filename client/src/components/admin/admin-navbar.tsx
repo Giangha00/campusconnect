@@ -46,12 +46,17 @@ export function AdminNavbar({ currentPage }: AdminNavbarProps) {
       icon: Calendar,
       href: "/admin/dashboard/events",
     },
-    {
-      id: "users",
-      label: "Users",
-      icon: Users,
-      href: "/admin/dashboard/users",
-    },
+    // Only show Users menu for admin role
+    ...(admin?.role === "admin"
+      ? [
+          {
+            id: "users",
+            label: "Users",
+            icon: Users,
+            href: "/admin/dashboard/users",
+          },
+        ]
+      : []),
     {
       id: "analytics",
       label: "Analytics",

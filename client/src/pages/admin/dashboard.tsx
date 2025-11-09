@@ -54,6 +54,7 @@ export default function AdminDashboard() {
     const completedEventsCount = allEventsWithStatus.filter(
       (e) => e.status === "completed"
     ).length;
+    // Calculate total registrations from events.json (sum of all attendees)
     const totalRegistrations = allEventsWithStatus.reduce(
       (sum, event) => sum + (event.attendees || 0),
       0
@@ -157,21 +158,23 @@ export default function AdminDashboard() {
               </Card>
             </Link>
 
-            <Link href="/admin/dashboard/users">
-              <Card className="cursor-pointer bg-gradient-to-br from-green-500 to-green-600 text-white">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-green-100 text-sm font-medium">
-                        Total Users
-                      </p>
-                      <p className="text-3xl font-bold">{stats.users.total}</p>
+            {admin?.role === "admin" && (
+              <Link href="/admin/dashboard/users">
+                <Card className="cursor-pointer bg-gradient-to-br from-green-500 to-green-600 text-white">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-green-100 text-sm font-medium">
+                          Total Users
+                        </p>
+                        <p className="text-3xl font-bold">{stats.users.total}</p>
+                      </div>
+                      <Users className="h-8 w-8 text-green-200" />
                     </div>
-                    <Users className="h-8 w-8 text-green-200" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+                  </CardContent>
+                </Card>
+              </Link>
+            )}
 
             <Link href="/admin/dashboard/events">
               <Card className="cursor-pointer bg-gradient-to-br from-purple-500 to-purple-600 text-white">
@@ -191,21 +194,23 @@ export default function AdminDashboard() {
               </Card>
             </Link>
 
-            <Link href="/admin/dashboard/users">
-              <Card className="cursor-pointer bg-gradient-to-br from-orange-500 to-orange-600 text-white">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-orange-100 text-sm font-medium">
-                        Active Users
-                      </p>
-                      <p className="text-3xl font-bold">{stats.users.active}</p>
+            {admin?.role === "admin" && (
+              <Link href="/admin/dashboard/users">
+                <Card className="cursor-pointer bg-gradient-to-br from-orange-500 to-orange-600 text-white">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-orange-100 text-sm font-medium">
+                          Active Users
+                        </p>
+                        <p className="text-3xl font-bold">{stats.users.active}</p>
+                      </div>
+                      <Activity className="h-8 w-8 text-orange-200" />
                     </div>
-                    <Activity className="h-8 w-8 text-orange-200" />
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+                  </CardContent>
+                </Card>
+              </Link>
+            )}
           </div>
         </div>
 
@@ -315,25 +320,27 @@ export default function AdminDashboard() {
               </Card>
             </Link>
 
-            <Link href="/admin/dashboard/users">
-              <Card className="cursor-pointer hover:shadow-lg transition-shadow border-l-4 border-l-green-500">
-                <CardContent className="p-6">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-                      <Users className="h-6 w-6 text-green-600" />
+            {admin?.role === "admin" && (
+              <Link href="/admin/dashboard/users">
+                <Card className="cursor-pointer hover:shadow-lg transition-shadow border-l-4 border-l-green-500">
+                  <CardContent className="p-6">
+                    <div className="flex items-center space-x-4">
+                      <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                        <Users className="h-6 w-6 text-green-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-900">
+                          Manage Users
+                        </h3>
+                        <p className="text-sm text-gray-600">
+                          View and manage user accounts
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900">
-                        Manage Users
-                      </h3>
-                      <p className="text-sm text-gray-600">
-                        View and manage user accounts
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </Link>
+                  </CardContent>
+                </Card>
+              </Link>
+            )}
 
             <Link href="/admin/dashboard/analytics">
               <Card className="cursor-pointer hover:shadow-lg transition-shadow border-l-4 border-l-purple-500">

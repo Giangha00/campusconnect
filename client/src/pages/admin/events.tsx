@@ -11,7 +11,9 @@ import {
   getStatusColor,
   getStatusLabel,
 } from "@/lib/event-status";
+import { formatDate } from "@/lib/date-utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SafeText } from "@/components/common/safe-text";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -294,6 +296,15 @@ export default function AdminEventsPage() {
   };
 
   const handleEditEvent = (eventId: number) => {
+    const event = allEventsWithStatus.find((e) => e.id === eventId);
+    if (event?.status === "completed") {
+      toast({
+        title: "Cannot Edit Completed Event",
+        description: "Completed events cannot be edited.",
+        variant: "destructive",
+      });
+      return;
+    }
     // Navigate to event detail page for editing with edit mode enabled
     window.location.href = `/admin/dashboard/events/${eventId}?edit=true`;
   };
@@ -931,15 +942,17 @@ export default function AdminEventsPage() {
                     <div className="flex-1 min-w-0">
                       <Link href={`/admin/dashboard/events/${event.id}`}>
                         <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2 cursor-pointer hover:underline">
-                          {event.name}
+                          <SafeText>{event.name}</SafeText>
                         </CardTitle>
                       </Link>
                       <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
                         <Calendar className="h-4 w-4" />
                         <span>
                           {event.dateStart !== event.dateEnd
-                            ? `${event.dateStart} to ${event.dateEnd}`
-                            : event.dateStart}
+                            ? `${formatDate(event.dateStart)} - ${formatDate(
+                                event.dateEnd
+                              )}`
+                            : formatDate(event.dateStart)}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 mt-1 text-sm text-gray-600">
@@ -951,9 +964,18 @@ export default function AdminEventsPage() {
                       <Button
                         variant="outline"
                         size="icon"
-                        title="Edit event"
+                        title={
+                          event.status === "completed"
+                            ? "Cannot edit completed event"
+                            : "Edit event"
+                        }
                         onClick={() => handleEditEvent(event.id)}
-                        className="h-8 w-8 hover:bg-blue-50 hover:border-blue-200"
+                        disabled={event.status === "completed"}
+                        className={`h-8 w-8 ${
+                          event.status === "completed"
+                            ? "opacity-50 cursor-not-allowed"
+                            : "hover:bg-blue-50 hover:border-blue-200"
+                        }`}
                         data-testid={`button-edit-${event.id}`}
                       >
                         <Edit className="h-4 w-4" />

@@ -6,7 +6,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { UserProvider } from "@/contexts/user-context";
 import { AdminProvider } from "@/contexts/admin-context";
 import { EventsProvider } from "@/contexts/events-context";
+import { UsersProvider } from "@/contexts/users-context";
 import { RegistrationProvider } from "@/contexts/registration-context";
+import { FeedbackProvider } from "@/contexts/feedback-context";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { ScrollToTop } from "@/components/ScrollToTop";
@@ -70,17 +72,22 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <EventsProvider>
-        <UserProvider>
-          <AdminProvider>
-            <TooltipProvider>
-              <Toaster />
-              {/* Provide registration context globally */}
-              <RegistrationProvider>
-                <Router />
-              </RegistrationProvider>
-            </TooltipProvider>
-          </AdminProvider>
-        </UserProvider>
+        <UsersProvider>
+          <UserProvider>
+            <AdminProvider>
+              <TooltipProvider>
+                <Toaster />
+                {/* Provide registration context globally */}
+                <RegistrationProvider>
+                  {/* Provide feedback context globally */}
+                  <FeedbackProvider>
+                    <Router />
+                  </FeedbackProvider>
+                </RegistrationProvider>
+              </TooltipProvider>
+            </AdminProvider>
+          </UserProvider>
+        </UsersProvider>
       </EventsProvider>
     </QueryClientProvider>
   );

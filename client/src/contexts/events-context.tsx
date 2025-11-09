@@ -43,16 +43,39 @@ export function EventsProvider({ children }: { children: ReactNode }) {
   const [events, setEvents] = useState<Event[]>(eventsDataRaw);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Initialize events data from localStorage if available
+  // Initialize events data - prioritize localStorage if available, otherwise use JSON file
+  // If JSON file has more events (newer data), merge them
   useEffect(() => {
-    const savedEvents = localStorage.getItem("events");
+    const savedEvents = localStorage.getItem("campusconnect-events");
     if (savedEvents) {
       try {
         const parsedEvents = JSON.parse(savedEvents);
-        setEvents(parsedEvents);
+        // Check if JSON file has more events (indicating new events were added)
+        if (eventsDataRaw.length > parsedEvents.length) {
+          // Merge: keep saved events but add new ones from JSON
+          const savedEventIds = new Set(parsedEvents.map((e: Event) => e.id));
+          const newEventsFromJson = eventsDataRaw.filter(
+            (e) => !savedEventIds.has(e.id)
+          );
+          // Merge saved events with new events from JSON
+          const mergedEvents = [...parsedEvents, ...newEventsFromJson];
+          setEvents(mergedEvents);
+          // Update localStorage with merged data
+          localStorage.setItem("campusconnect-events", JSON.stringify(mergedEvents));
+        } else {
+          // Use saved events if JSON doesn't have more
+          setEvents(parsedEvents);
+        }
       } catch (error) {
         console.error("Error parsing saved events:", error);
+        // Fallback to JSON file if localStorage is corrupted
+        setEvents(eventsDataRaw);
+        localStorage.setItem("campusconnect-events", JSON.stringify(eventsDataRaw));
       }
+    } else {
+      // No saved events, use JSON file and save to localStorage
+      setEvents(eventsDataRaw);
+      localStorage.setItem("campusconnect-events", JSON.stringify(eventsDataRaw));
     }
     setIsLoading(false);
   }, []);
@@ -64,7 +87,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
       );
 
       // Update localStorage
-      localStorage.setItem("events", JSON.stringify(updatedEvents));
+      localStorage.setItem("campusconnect-events", JSON.stringify(updatedEvents));
 
       return updatedEvents;
     });
@@ -75,7 +98,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
       const updatedEvents = prevEvents.filter((event) => event.id !== eventId);
 
       // Update localStorage
-      localStorage.setItem("events", JSON.stringify(updatedEvents));
+      localStorage.setItem("campusconnect-events", JSON.stringify(updatedEvents));
 
       return updatedEvents;
     });
@@ -98,7 +121,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
       const updatedEvents = [eventWithDefaults, ...prevEvents];
 
       // Update localStorage
-      localStorage.setItem("events", JSON.stringify(updatedEvents));
+      localStorage.setItem("campusconnect-events", JSON.stringify(updatedEvents));
 
       return updatedEvents;
     });

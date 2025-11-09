@@ -3,6 +3,7 @@ import { Event } from "@/types/event";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { calculateEventStatus } from "@/lib/event-status";
+import { formatDate } from "@/lib/date-utils";
 import {
   ChevronLeft,
   ChevronRight,
@@ -253,7 +254,7 @@ export function EventCarousel({ events }: EventCarouselProps) {
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4 sm:h-5 sm:w-5 flex-shrink-0" />
                     <span>
-                      {new Date(currentEvent.dateStart).toLocaleDateString()}
+                      {formatDate(currentEvent.dateStart)}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">

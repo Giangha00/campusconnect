@@ -43,13 +43,17 @@ import {
   Trash2,
   Save,
   X,
+  MessageSquare,
+  Star,
 } from "lucide-react";
 import { useAdmin } from "@/contexts/admin-context";
 import { useEvents } from "@/contexts/events-context";
 import { useRegistration } from "@/contexts/registration-context";
+import { useFeedback } from "@/contexts/feedback-context";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { AdminNavbar } from "@/components/admin/admin-navbar";
+import { SafeText, sanitizeAttribute } from "@/components/common/safe-text";
 
 const categoryColors = {
   academic: "bg-primary text-primary-foreground",
@@ -64,6 +68,7 @@ export default function AdminEventDetail() {
   const { admin } = useAdmin();
   const { events, updateEvent, deleteEvent } = useEvents();
   const { getRegistrationsByEvent } = useRegistration();
+  const { getFeedbacksByEvent } = useFeedback();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
@@ -99,6 +104,20 @@ export default function AdminEventDetail() {
     const editParam = urlParams.get("edit");
 
     if (editParam === "true" && event && editedEvent && !isEditing) {
+      // Check if event is completed - don't allow editing
+      const status = calculateEventStatus(event as any);
+      if (status === "completed") {
+        toast({
+          title: "Cannot Edit Completed Event",
+          description: "Completed events cannot be edited.",
+          variant: "destructive",
+        });
+        // Remove the edit parameter from the URL
+        const newUrl = window.location.pathname;
+        window.history.replaceState({}, "", newUrl);
+        return;
+      }
+
       console.log("Enabling edit mode automatically from query parameter");
       setIsEditing(true);
 
@@ -106,7 +125,7 @@ export default function AdminEventDetail() {
       const newUrl = window.location.pathname;
       window.history.replaceState({}, "", newUrl);
     }
-  }, [event, editedEvent, isEditing]);
+  }, [event, editedEvent, isEditing, toast]);
 
   // Calculate current status based on dates
   const currentStatus = event ? calculateEventStatus(event as any) : null;
@@ -157,6 +176,7 @@ export default function AdminEventDetail() {
   const registrations = getRegistrationsByEvent(event.id);
   const checkInCount = displayEvent?.checkedIn || 0;
   const count = displayEvent?.attendees || 0;
+  const eventFeedbacks = event ? getFeedbacksByEvent(event.name) : [];
   const capacityPercentage =
     event.capacity && typeof event.capacity === "number" && event.capacity > 0
       ? (count / event.capacity) * 100
@@ -191,11 +211,65 @@ export default function AdminEventDetail() {
   };
 
   const handleEditEvent = () => {
+    if (currentStatus === "completed") {
+      toast({
+        title: "Cannot Edit Completed Event",
+        description: "Completed events cannot be edited.",
+        variant: "destructive",
+      });
+      return;
+    }
     setIsEditing(true);
   };
 
   const handleSaveEvent = () => {
     if (!editedEvent || !event) return;
+
+    // Validate dates - must be greater than or equal to current date
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Set to start of day for comparison
+
+    const dateStart = editedEvent.dateStart
+      ? new Date(editedEvent.dateStart)
+      : null;
+    const dateEnd = editedEvent.dateEnd ? new Date(editedEvent.dateEnd) : null;
+
+    if (dateStart) {
+      dateStart.setHours(0, 0, 0, 0);
+      if (dateStart < today) {
+        toast({
+          title: "Invalid Date",
+          description:
+            "Event start date must be greater than or equal to today's date.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    if (dateEnd) {
+      dateEnd.setHours(0, 0, 0, 0);
+      if (dateEnd < today) {
+        toast({
+          title: "Invalid Date",
+          description:
+            "Event end date must be greater than or equal to today's date.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    // Validate that end date is not before start date
+    if (dateStart && dateEnd && dateEnd < dateStart) {
+      toast({
+        title: "Invalid Date Range",
+        description:
+          "Event end date must be greater than or equal to start date.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       // Update the event using the context
@@ -336,7 +410,7 @@ export default function AdminEventDetail() {
                       />
                     ) : (
                       <h3 className="text-xl font-semibold text-gray-900 mt-1">
-                        {displayEvent?.name}
+                        <SafeText>{displayEvent?.name}</SafeText>
                       </h3>
                     )}
                   </div>
@@ -361,7 +435,7 @@ export default function AdminEventDetail() {
                       />
                     ) : (
                       <p className="text-gray-700 mt-1 leading-relaxed">
-                        {displayEvent?.description}
+                        <SafeText>{displayEvent?.description}</SafeText>
                       </p>
                     )}
                   </div>
@@ -606,6 +680,80 @@ export default function AdminEventDetail() {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Event Feedbacks */}
+              <Card className="shadow-lg">
+                <CardContent className="p-6">
+                  <h2 className="text-2xl font-bold mb-6 text-gray-900">
+                    Event Feedbacks
+                  </h2>
+
+                  {eventFeedbacks.length === 0 ? (
+                    <div className="text-center py-8">
+                      <div className="mx-auto w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
+                        <MessageSquare className="h-6 w-6 text-gray-400" />
+                      </div>
+                      <p className="text-sm text-gray-500">
+                        No feedbacks yet for this event
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4 max-h-96 overflow-y-auto">
+                      {eventFeedbacks.map((feedback) => (
+                        <div
+                          key={feedback.id}
+                          className="bg-gray-50 rounded-lg p-4 border border-gray-200"
+                        >
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-semibold text-gray-900">
+                                  <SafeText>{feedback.name}</SafeText>
+                                </span>
+                                <Badge variant="outline" className="text-xs">
+                                  {feedback.userType}
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-gray-600">
+                                <SafeText>{feedback.email}</SafeText>
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              {[...Array(5)].map((_, i) => (
+                                <Star
+                                  key={i}
+                                  className={`h-4 w-4 ${
+                                    i < feedback.rating
+                                      ? "fill-yellow-400 text-yellow-400"
+                                      : "text-gray-300"
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                          <p className="text-sm text-gray-700 mb-2">
+                            <SafeText>{feedback.feedback}</SafeText>
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {formatDate(
+                              new Date(feedback.createdAt)
+                                .toISOString()
+                                .split("T")[0]
+                            )}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {eventFeedbacks.length > 0 && (
+                    <div className="mt-4 text-sm text-gray-600">
+                      Total: {eventFeedbacks.length} feedback
+                      {eventFeedbacks.length !== 1 ? "s" : ""}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </div>
 
             {/* Sidebar */}
@@ -615,8 +763,9 @@ export default function AdminEventDetail() {
                 <div className="aspect-video bg-gray-200">
                   <img
                     src={event.image}
-                    alt={event.name}
+                    alt={sanitizeAttribute(event.name)}
                     className="w-full h-full object-cover"
+                    loading="lazy"
                   />
                 </div>
               </Card>
@@ -647,6 +796,12 @@ export default function AdminEventDetail() {
                           onClick={handleEditEvent}
                           className="w-full"
                           variant="outline"
+                          disabled={currentStatus === "completed"}
+                          title={
+                            currentStatus === "completed"
+                              ? "Cannot edit completed event"
+                              : "Edit Event"
+                          }
                         >
                           <Edit className="h-4 w-4 mr-2" />
                           Edit Event

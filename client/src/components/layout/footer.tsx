@@ -6,6 +6,11 @@ export function Footer() {
   const mapsQuery = encodeURIComponent(address);
   const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${mapsQuery}&hl=en`;
   const mapsEmbed = `https://www.google.com/maps?q=${mapsQuery}&hl=en&output=embed`;
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <footer className="bg-primary text-primary-foreground py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -90,11 +95,35 @@ export function Footer() {
           {/* Event Categories */}
           <div>
             <h4 className="text-lg font-semibold mb-4">Event Categories</h4>
-            <ul className="space-y-2 text-primary-foreground/80">
-              <li>Academic Events</li>
-              <li>Cultural Events</li>
-              <li>Sports Events</li>
-              <li>Technical Events</li>
+            <ul className="space-y-2">
+              <li>
+                <Link href="/events?category=academic" data-testid="link-footer-category-academic" onClick={scrollToTop}>
+                  <span className="text-primary-foreground/80 hover:text-primary-foreground hover:underline underline-offset-4 transition-colors">
+                    Academic Events
+                  </span>
+                </Link>
+              </li>
+              <li>
+                <Link href="/events?category=cultural" data-testid="link-footer-category-cultural" onClick={scrollToTop}>
+                  <span className="text-primary-foreground/80 hover:text-primary-foreground hover:underline underline-offset-4 transition-colors">
+                    Cultural Events
+                  </span>
+                </Link>
+              </li>
+              <li>
+                <Link href="/events?category=sports" data-testid="link-footer-category-sports" onClick={scrollToTop}>
+                  <span className="text-primary-foreground/80 hover:text-primary-foreground hover:underline underline-offset-4 transition-colors">
+                    Sports Events
+                  </span>
+                </Link>
+              </li>
+              <li>
+                <Link href="/events?category=technical" data-testid="link-footer-category-technical" onClick={scrollToTop}>
+                  <span className="text-primary-foreground/80 hover:text-primary-foreground hover:underline underline-offset-4 transition-colors">
+                    Technical Events
+                  </span>
+                </Link>
+              </li>
             </ul>
           </div>
 

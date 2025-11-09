@@ -14,6 +14,8 @@ import {
 import { Star } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useEvents } from "@/contexts/events-context";
+import { useFeedback } from "@/contexts/feedback-context";
+import { useUser } from "@/contexts/user-context";
 import { useValidation } from "@/hooks/use-validation";
 import { calculateEventStatus } from "@/lib/event-status";
 import {
@@ -27,6 +29,8 @@ export default function Feedback() {
   const { errors, validate, clearError, clearAllErrors } = useValidation();
   const [rating, setRating] = useState(0);
   const { events } = useEvents();
+  const { addFeedback } = useFeedback();
+  const { user } = useUser();
   const [hoveredRating, setHoveredRating] = useState(0);
 
   // Form state
@@ -40,26 +44,28 @@ export default function Feedback() {
   });
 
   const recentEvents = useMemo(() => {
-    const oneMonthAgo = new Date();
-    oneMonthAgo.setDate(oneMonthAgo.getDate() - 30);
-    oneMonthAgo.setHours(0, 0, 0, 0);
-
     return events
       .map((event) => ({
         ...event,
         status: calculateEventStatus(event as any),
       }))
       .filter((event) => {
-        if (event.status !== "completed") {
-          return false;
-        }
-        const eventEndDate = new Date(event.dateEnd);
-        return eventEndDate >= oneMonthAgo;
+        return event.status === "ongoing" || event.status === "upcoming";
       });
   }, [events]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Check if user is logged in
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to submit your feedback.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     // Validate all required fields
     const isNameValid = validate("feedback-name", formData.name, {
@@ -97,6 +103,16 @@ export default function Feedback() {
       });
       return;
     }
+
+    // Save feedback to data
+    addFeedback({
+      eventAttended: formData.eventAttended,
+      name: formData.name,
+      email: formData.email,
+      userType: formData.userType as "student" | "faculty" | "visitor",
+      rating: rating,
+      feedback: formData.feedback,
+    });
 
     // Show success message
     toast({
@@ -252,9 +268,7 @@ export default function Feedback() {
                       <SelectContent>
                         <SelectItem value="student">Student</SelectItem>
                         <SelectItem value="faculty">Faculty</SelectItem>
-                        <SelectItem value="staff">Staff</SelectItem>
                         <SelectItem value="visitor">Visitor</SelectItem>
-                        <SelectItem value="alumni">Alumni</SelectItem>
                       </SelectContent>
                     </Select>
                     {errors["feedback-user-type"] && (

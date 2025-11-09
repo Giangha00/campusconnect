@@ -24,6 +24,8 @@ import {
   Download,
   Eye,
   MoreHorizontal,
+  Edit,
+  Trash2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -32,32 +34,50 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { AdminNavbar } from "@/components/admin/admin-navbar";
-import usersData from "@/data/users.json";
-
-interface User {
-  id: number;
-  name: string;
-  email: string;
-  role: "faculty" | "student" | "visitor";
-  department: string;
-  designation: string;
-  phone: string;
-  specialization: string;
-  avatar: string;
-  status: "active" | "inactive";
-  joinedDate: string;
-  lastLogin: string;
-  year?: string;
-}
+import { useAdmin } from "@/contexts/admin-context";
+import { useUsers, User } from "@/contexts/users-context";
+import { Shield } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
+import { SafeText, sanitizeAttribute } from "@/components/common/safe-text";
 
 export default function AdminUsersPage() {
+  const { admin } = useAdmin();
+  const { users, updateUser, deleteUser } = useUsers();
+  const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const usersPerPage = 8;
 
-  const users: User[] = usersData.users as User[];
+  // Dialog states
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [editFormData, setEditFormData] = useState<Partial<User>>({});
+
+  const isAdmin = admin?.role === "admin";
 
   const filteredUsers = useMemo(() => {
     return users.filter((user) => {
@@ -76,12 +96,6 @@ export default function AdminUsersPage() {
     });
   }, [users, searchQuery, roleFilter, statusFilter]);
 
-  // Pagination logic
-  const indexOfLastUser = currentPage * usersPerPage;
-  const indexOfFirstUser = indexOfLastUser - usersPerPage;
-  const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
-  const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
-
   // Statistics
   const stats = useMemo(() => {
     const totalUsers = users.length;
@@ -98,6 +112,42 @@ export default function AdminUsersPage() {
       visitorCount,
     };
   }, [users]);
+
+  // Check if user has admin role - must be after all hooks
+  if (!isAdmin) {
+    return (
+      <div className="pt-20 min-h-screen bg-gradient-to-br from-red-50 to-orange-50">
+        <div className="max-w-2xl mx-auto px-4 py-16">
+          <Card className="border-red-200 shadow-lg">
+            <CardContent className="p-12 text-center">
+              <div className="mx-auto w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-6">
+                <Shield className="h-8 w-8 text-red-600" />
+              </div>
+              <h1 className="text-3xl font-bold text-gray-900 mb-4">
+                Access Denied
+              </h1>
+              <p className="text-lg text-gray-600 mb-6">
+                This page is restricted to Administrators only. Faculty members
+                can only manage events.
+              </p>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <p className="text-sm text-red-700">
+                  Please contact your administrator if you believe you should
+                  have access to this page.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  // Pagination logic
+  const indexOfLastUser = currentPage * usersPerPage;
+  const indexOfFirstUser = indexOfLastUser - usersPerPage;
+  const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
+  const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
 
   const getRoleColor = (role: string) => {
     switch (role) {
@@ -116,6 +166,58 @@ export default function AdminUsersPage() {
     return status === "active"
       ? "bg-green-100 text-green-800 border-green-200"
       : "bg-red-100 text-red-800 border-red-200";
+  };
+
+  const handleViewUser = (user: User) => {
+    setSelectedUser(user);
+    setViewDialogOpen(true);
+  };
+
+  const handleEditUser = (user: User) => {
+    setSelectedUser(user);
+    setEditFormData({
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      department: user.department,
+      designation: user.designation,
+      phone: user.phone,
+      specialization: user.specialization,
+      status: user.status,
+      year: user.year,
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = () => {
+    if (!selectedUser) return;
+
+    updateUser(selectedUser.id, editFormData);
+    toast({
+      title: "User Updated",
+      description: "User information has been updated successfully.",
+    });
+    setEditDialogOpen(false);
+    setSelectedUser(null);
+    setEditFormData({});
+  };
+
+  const handleDeleteUser = () => {
+    if (!selectedUser) return;
+
+    deleteUser(selectedUser.id);
+    toast({
+      title: "User Deleted",
+      description: "User has been deleted successfully.",
+      variant: "destructive",
+    });
+    setDeleteDialogOpen(false);
+    setSelectedUser(null);
+  };
+
+  const handleDeleteClick = (user: User) => {
+    setSelectedUser(user);
+    setDeleteDialogOpen(true);
   };
 
   const exportUsersCSV = () => {
@@ -338,15 +440,16 @@ export default function AdminUsersPage() {
                   <div className="flex items-center space-x-3">
                     <img
                       src={user.avatar}
-                      alt={user.name}
+                      alt={sanitizeAttribute(user.name)}
                       className="w-12 h-12 rounded-full object-cover"
+                      loading="lazy"
                     />
                     <div className="flex-1 min-w-0">
                       <h3 className="font-semibold text-gray-900 truncate">
-                        {user.name}
+                        <SafeText>{user.name}</SafeText>
                       </h3>
                       <p className="text-sm text-gray-500 truncate">
-                        {user.designation}
+                        <SafeText>{user.designation}</SafeText>
                       </p>
                     </div>
                   </div>
@@ -357,13 +460,20 @@ export default function AdminUsersPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end">
-                      <DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleViewUser(user)}>
                         <Eye className="h-4 w-4 mr-2" />
                         View Details
                       </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Mail className="h-4 w-4 mr-2" />
-                        Send Email
+                      <DropdownMenuItem onClick={() => handleEditUser(user)}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit User
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={() => handleDeleteClick(user)}
+                        className="text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete User
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -387,15 +497,21 @@ export default function AdminUsersPage() {
                   <div className="space-y-2 text-sm">
                     <div className="flex items-center gap-2 text-gray-600">
                       <Mail className="h-4 w-4" />
-                      <span className="truncate">{user.email}</span>
+                      <span className="truncate">
+                        <SafeText>{user.email}</SafeText>
+                      </span>
                     </div>
                     <div className="flex items-center gap-2 text-gray-600">
                       <Phone className="h-4 w-4" />
-                      <span>{user.phone}</span>
+                      <span>
+                        <SafeText>{user.phone}</SafeText>
+                      </span>
                     </div>
                     <div className="flex items-center gap-2 text-gray-600">
                       <Building2 className="h-4 w-4" />
-                      <span className="truncate">{user.department}</span>
+                      <span className="truncate">
+                        <SafeText>{user.department}</SafeText>
+                      </span>
                     </div>
                     {user.year && (
                       <div className="flex items-center gap-2 text-gray-600">
@@ -449,6 +565,287 @@ export default function AdminUsersPage() {
           </div>
         )}
       </div>
+
+      {/* View User Dialog */}
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>User Details</DialogTitle>
+            <DialogDescription>
+              View detailed information about the user
+            </DialogDescription>
+          </DialogHeader>
+          {selectedUser && (
+            <div className="space-y-4">
+              <div className="flex items-center space-x-4">
+                <img
+                  src={selectedUser.avatar}
+                  alt={sanitizeAttribute(selectedUser.name)}
+                  className="w-20 h-20 rounded-full object-cover"
+                  loading="lazy"
+                />
+                <div>
+                  <h3 className="text-2xl font-bold">
+                    <SafeText>{selectedUser.name}</SafeText>
+                  </h3>
+                  <p className="text-gray-600">
+                    <SafeText>{selectedUser.designation}</SafeText>
+                  </p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">
+                    Email
+                  </Label>
+                  <p className="text-sm">
+                    <SafeText>{selectedUser.email}</SafeText>
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">
+                    Phone
+                  </Label>
+                  <p className="text-sm">
+                    <SafeText>{selectedUser.phone}</SafeText>
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">
+                    Role
+                  </Label>
+                  <Badge className={getRoleColor(selectedUser.role)}>
+                    {selectedUser.role.charAt(0).toUpperCase() +
+                      selectedUser.role.slice(1)}
+                  </Badge>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">
+                    Status
+                  </Label>
+                  <Badge className={getStatusColor(selectedUser.status)}>
+                    {selectedUser.status.charAt(0).toUpperCase() +
+                      selectedUser.status.slice(1)}
+                  </Badge>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">
+                    Department
+                  </Label>
+                  <p className="text-sm">
+                    <SafeText>{selectedUser.department}</SafeText>
+                  </p>
+                </div>
+                {selectedUser.year && (
+                  <div>
+                    <Label className="text-sm font-medium text-gray-500">
+                      Year
+                    </Label>
+                    <p className="text-sm">{selectedUser.year}</p>
+                  </div>
+                )}
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">
+                    Joined Date
+                  </Label>
+                  <p className="text-sm">{selectedUser.joinedDate}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">
+                    Last Login
+                  </Label>
+                  <p className="text-sm">
+                    {new Date(selectedUser.lastLogin).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+              <div>
+                <Label className="text-sm font-medium text-gray-500">
+                  Specialization
+                </Label>
+                <p className="text-sm">{selectedUser.specialization}</p>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit User Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+            <DialogDescription>Update user information below</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="edit-name">Name *</Label>
+                <Input
+                  id="edit-name"
+                  value={editFormData.name || ""}
+                  onChange={(e) =>
+                    setEditFormData({ ...editFormData, name: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-email">Email *</Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  value={editFormData.email || ""}
+                  onChange={(e) =>
+                    setEditFormData({ ...editFormData, email: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-role">Role *</Label>
+                <Select
+                  value={editFormData.role || ""}
+                  onValueChange={(value) =>
+                    setEditFormData({
+                      ...editFormData,
+                      role: value as "faculty" | "student" | "visitor",
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="faculty">Faculty</SelectItem>
+                    <SelectItem value="student">Student</SelectItem>
+                    <SelectItem value="visitor">Visitor</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="edit-status">Status *</Label>
+                <Select
+                  value={editFormData.status || ""}
+                  onValueChange={(value) =>
+                    setEditFormData({
+                      ...editFormData,
+                      status: value as "active" | "inactive",
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="active">Active</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="edit-department">Department *</Label>
+                <Input
+                  id="edit-department"
+                  value={editFormData.department || ""}
+                  onChange={(e) =>
+                    setEditFormData({
+                      ...editFormData,
+                      department: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-designation">Designation *</Label>
+                <Input
+                  id="edit-designation"
+                  value={editFormData.designation || ""}
+                  onChange={(e) =>
+                    setEditFormData({
+                      ...editFormData,
+                      designation: e.target.value,
+                    })
+                  }
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-phone">Phone *</Label>
+                <Input
+                  id="edit-phone"
+                  value={editFormData.phone || ""}
+                  onChange={(e) =>
+                    setEditFormData({ ...editFormData, phone: e.target.value })
+                  }
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-year">Year</Label>
+                <Input
+                  id="edit-year"
+                  value={editFormData.year || ""}
+                  onChange={(e) =>
+                    setEditFormData({ ...editFormData, year: e.target.value })
+                  }
+                  placeholder="Optional"
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="edit-specialization">Specialization *</Label>
+              <Textarea
+                id="edit-specialization"
+                value={editFormData.specialization || ""}
+                onChange={(e) =>
+                  setEditFormData({
+                    ...editFormData,
+                    specialization: e.target.value,
+                  })
+                }
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEditDialogOpen(false);
+                setEditFormData({});
+                setSelectedUser(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleSaveEdit}>Save Changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete User Alert Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the
+              user "{selectedUser?.name}" and all associated data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteUser}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

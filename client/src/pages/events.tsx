@@ -17,31 +17,39 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import {
-  Calendar,
-  Clock,
-  MapPin,
-  User,
-  Activity,
-  ChevronDown,
-} from "lucide-react";
+import { Calendar, Clock, MapPin, Activity, ChevronDown } from "lucide-react";
 import { useState, useMemo, useEffect } from "react";
+import { useLocation } from "wouter";
 import { EventCategory, EventStatus, EventSortBy } from "@/types/event";
 import { calculateEventStatus } from "@/lib/event-status";
 
 export default function Events() {
   const { events } = useEvents();
+  const [location] = useLocation();
   const [filter, setFilter] = useState<EventCategory>("all");
   const [statusFilter, setStatusFilter] = useState<EventStatus>("all");
   const [sortBy, setSortBy] = useState<EventSortBy>("date");
   const [searchQuery, setSearchQuery] = useState("");
+  const [monthFilter, setMonthFilter] = useState<string>("all");
 
   const [currentPage, setCurrentPage] = useState(1);
   const eventsPerPage = 9;
 
+  // Handle query parameter for initial category filter
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const categoryParam = urlParams.get("category");
+    if (
+      categoryParam &&
+      ["academic", "cultural", "sports", "technical"].includes(categoryParam)
+    ) {
+      setFilter(categoryParam as EventCategory);
+    }
+  }, [location]);
+
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, filter, statusFilter, sortBy]);
+  }, [searchQuery, filter, statusFilter, sortBy, monthFilter]);
 
   // Add status to events and apply filtering/sorting
   const processedEvents = useMemo(() => {
@@ -81,6 +89,15 @@ export default function Events() {
       );
     }
 
+    // Apply month filter
+    if (monthFilter !== "all") {
+      const selectedMonth = parseInt(monthFilter);
+      filteredEvents = filteredEvents.filter((event) => {
+        const eventMonth = new Date(event.dateStart).getMonth() + 1; // getMonth() returns 0-11
+        return eventMonth === selectedMonth;
+      });
+    }
+
     // Apply sorting
     const sortedEvents = [...filteredEvents];
     switch (sortBy) {
@@ -105,15 +122,6 @@ export default function Events() {
           return (
             new Date(b.dateStart).getTime() - new Date(a.dateStart).getTime()
           );
-        });
-        break;
-      case "name":
-        sortedEvents.sort((a, b) => {
-          // First by creation order, then by name
-          if (a.creationOrder !== b.creationOrder) {
-            return a.creationOrder - b.creationOrder;
-          }
-          return a.name.localeCompare(b.name);
         });
         break;
       case "category":
@@ -152,7 +160,7 @@ export default function Events() {
     }
 
     return sortedEvents;
-  }, [events, filter, statusFilter, sortBy, searchQuery]);
+  }, [events, filter, statusFilter, sortBy, searchQuery, monthFilter]);
 
   // Get upcoming events for carousel
   const upcomingEvents = useMemo(() => {
@@ -237,7 +245,6 @@ export default function Events() {
 
   const sortOptions = [
     { value: "date", label: "Sort by date", icon: Calendar },
-    { value: "name", label: "Sort by name", icon: User },
     { value: "status", label: "Sort by status", icon: Activity },
     // { value: "time", label: "Sort by time", icon: Clock },
   ];
@@ -248,6 +255,22 @@ export default function Events() {
     { value: "upcoming", label: "Upcoming" },
     { value: "ongoing", label: "Ongoing" },
     { value: "completed", label: "Completed" },
+  ];
+
+  const monthOptions = [
+    { value: "all", label: "All Months" },
+    { value: "1", label: "January" },
+    { value: "2", label: "February" },
+    { value: "3", label: "March" },
+    { value: "4", label: "April" },
+    { value: "5", label: "May" },
+    { value: "6", label: "June" },
+    { value: "7", label: "July" },
+    { value: "8", label: "August" },
+    { value: "9", label: "September" },
+    { value: "10", label: "October" },
+    { value: "11", label: "November" },
+    { value: "12", label: "December" },
   ];
 
   return (
@@ -274,6 +297,24 @@ export default function Events() {
               currentSort={sortBy}
               onSortChange={setSortBy}
             />
+
+            <div className="flex gap-2 items-center flex-wrap">
+              <span className="text-sm font-medium text-muted-foreground">
+                Select Month:
+              </span>
+              <Select value={monthFilter} onValueChange={setMonthFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Select month" />
+                </SelectTrigger>
+                <SelectContent>
+                  {monthOptions.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
             <div className="flex gap-2 items-center flex-wrap">
               <span className="text-sm font-medium text-muted-foreground">
@@ -390,6 +431,13 @@ export default function Events() {
                           ? "Sports"
                           : "Technical"}
                       </span>
+                    </span>
+                  )}
+                  {monthFilter !== "all" && (
+                    <span className="text-muted-foreground">
+                      {" "}
+                      in{" "}
+                      {monthOptions.find((m) => m.value === monthFilter)?.label}
                     </span>
                   )}
                 </h2>

@@ -22,6 +22,7 @@ import { useUser } from "@/contexts/user-context";
 import { User, LogIn, LogOut, Eye, EyeOff } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useValidation } from "@/hooks/use-validation";
+import { SafeText } from "@/components/common/safe-text";
 import {
   validateUsername,
   validatePassword,
@@ -199,7 +200,9 @@ export function LoginDialog({ children }: LoginDialogProps) {
       <div className="flex items-center space-x-2">
         <div className="flex items-center space-x-2 text-sm">
           <User className="h-4 w-4" />
-          <span className="font-medium">{user.name}</span>
+          <span className="font-medium">
+            <SafeText>{user.name}</SafeText>
+          </span>
           <span className="text-muted-foreground">
             ({getRoleLabel(user.role)})
           </span>

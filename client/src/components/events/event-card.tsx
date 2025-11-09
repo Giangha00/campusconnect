@@ -21,6 +21,7 @@ import { useUser } from "@/contexts/user-context";
 import { useRegistration } from "@/contexts/registration-context";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
+import { SafeText, sanitizeAttribute } from "@/components/common/safe-text";
 
 interface EventCardProps {
   event: Event;
@@ -101,7 +102,7 @@ export function EventCard({ event, variant = "default" }: EventCardProps) {
         <div className="aspect-video relative overflow-hidden bg-muted flex items-center justify-center">
           <img
             src={event.image}
-            alt={event.name}
+            alt={sanitizeAttribute(event.name)}
             className="w-full h-full object-contain transition-transform duration-300 hover:scale-105"
             loading="lazy"
             onError={(e) => {
@@ -111,11 +112,11 @@ export function EventCard({ event, variant = "default" }: EventCardProps) {
             }}
           />
           <div className="absolute top-4 left-4 flex gap-2 flex-wrap">
-            {variant === "highlight" && (
+            {/* {variant === "highlight" && (
               <Badge className="bg-primary text-primary-foreground">
                 Featured
               </Badge>
-            )}
+            )} */}
             <Badge
               variant="outline"
               className={`${getStatusColor(currentStatus)} border`}
@@ -160,8 +161,8 @@ export function EventCard({ event, variant = "default" }: EventCardProps) {
               className="text-sm text-muted-foreground flex gap-1 justify-between w-full"
               data-testid={`text-event-date-${event.id}`}
             >
-              <p className="font-bold">Start: {event.dateStart}</p>
-              <p className="font-bold">End: {event.dateEnd}</p>
+              <p className="font-bold">Start: {formatDate(event.dateStart)}</p>
+              <p className="font-bold">End: {formatDate(event.dateEnd)}</p>
             </span>
           </div>
 
@@ -169,14 +170,14 @@ export function EventCard({ event, variant = "default" }: EventCardProps) {
             className="text-xl font-bold text-card-foreground mb-3"
             data-testid={`text-event-title-${event.id}`}
           >
-            {event.name}
+            <SafeText>{event.name}</SafeText>
           </h3>
 
           <p
             className="text-muted-foreground mb-4 line-clamp-2 flex-grow"
             data-testid={`text-event-description-${event.id}`}
           >
-            {event.description}
+            <SafeText>{event.description}</SafeText>
           </p>
 
           <div className="space-y-2 text-sm text-muted-foreground mt-auto">

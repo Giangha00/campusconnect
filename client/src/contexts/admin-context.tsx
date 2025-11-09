@@ -13,7 +13,7 @@ interface AdminUser {
   password: string;
   name: string;
   email: string;
-  role: "admin";
+  role: "admin" | "faculty";
 }
 
 interface AdminContextType {
@@ -58,7 +58,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
         password: adminUser.password,
         name: adminUser.name,
         email: adminUser.email,
-        role: "admin",
+        role: adminUser.role as "admin" | "faculty",
       };
 
       setAdmin(loggedInAdmin);
