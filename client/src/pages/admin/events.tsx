@@ -147,9 +147,9 @@ export default function AdminEventsPage() {
       return matchesQuery && matchesDate && matchesStatus;
     });
 
-    // Sort by dateStart from nearest to farthest (ascending order)
+    // Sort by dateStart from farthest to nearest (descending order)
     return filtered.sort((a, b) => {
-      return new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime();
+      return new Date(b.dateStart).getTime() - new Date(a.dateStart).getTime();
     });
   }, [allEventsWithStatus, query, startDate, endDate, statusFilter]);
 

@@ -3,7 +3,7 @@ import { Event } from "@/types/event";
 export type EventStatus = "incoming" | "upcoming" | "ongoing" | "completed";
 
 /**
- * Parse time string (e.g., "10:00 AM - 6:00 PM") and return start and end times in 24h format
+ * Parse time string (e.g., "10:00 AM - 6:00 PM" or "08:00 AM") and return start and end times in 24h format
  */
 function parseTimeString(timeString: string): { startHour: number; startMinute: number; endHour: number; endMinute: number } | null {
   if (!timeString) return null;
@@ -12,29 +12,53 @@ function parseTimeString(timeString: string): { startHour: number; startMinute: 
   const timePattern = /(\d{1,2}):(\d{2})\s*(AM|PM)\s*-\s*(\d{1,2}):(\d{2})\s*(AM|PM)/i;
   const match = timeString.match(timePattern);
 
-  if (!match) return null;
+  if (match) {
+    // Full time range format
+    let startHour = parseInt(match[1], 10);
+    const startMinute = parseInt(match[2], 10);
+    const startPeriod = match[3].toUpperCase();
+    let endHour = parseInt(match[4], 10);
+    const endMinute = parseInt(match[5], 10);
+    const endPeriod = match[6].toUpperCase();
 
-  let startHour = parseInt(match[1], 10);
-  const startMinute = parseInt(match[2], 10);
-  const startPeriod = match[3].toUpperCase();
-  let endHour = parseInt(match[4], 10);
-  const endMinute = parseInt(match[5], 10);
-  const endPeriod = match[6].toUpperCase();
+    // Convert to 24-hour format
+    if (startPeriod === "PM" && startHour !== 12) {
+      startHour += 12;
+    } else if (startPeriod === "AM" && startHour === 12) {
+      startHour = 0;
+    }
 
-  // Convert to 24-hour format
-  if (startPeriod === "PM" && startHour !== 12) {
-    startHour += 12;
-  } else if (startPeriod === "AM" && startHour === 12) {
-    startHour = 0;
+    if (endPeriod === "PM" && endHour !== 12) {
+      endHour += 12;
+    } else if (endPeriod === "AM" && endHour === 12) {
+      endHour = 0;
+    }
+
+    return { startHour, startMinute, endHour, endMinute };
   }
 
-  if (endPeriod === "PM" && endHour !== 12) {
-    endHour += 12;
-  } else if (endPeriod === "AM" && endHour === 12) {
-    endHour = 0;
+  // Try to match single time format (e.g., "08:00 AM")
+  const singleTimePattern = /(\d{1,2}):(\d{2})\s*(AM|PM)/i;
+  const singleMatch = timeString.match(singleTimePattern);
+
+  if (singleMatch) {
+    // Only start time provided, use it for start and set end to 23:59
+    let startHour = parseInt(singleMatch[1], 10);
+    const startMinute = parseInt(singleMatch[2], 10);
+    const startPeriod = singleMatch[3].toUpperCase();
+
+    // Convert to 24-hour format
+    if (startPeriod === "PM" && startHour !== 12) {
+      startHour += 12;
+    } else if (startPeriod === "AM" && startHour === 12) {
+      startHour = 0;
+    }
+
+    // Use start time for start, and 23:59 for end (end of day)
+    return { startHour, startMinute, endHour: 23, endMinute: 59 };
   }
 
-  return { startHour, startMinute, endHour, endMinute };
+  return null;
 }
 
 /**

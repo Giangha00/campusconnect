@@ -11,10 +11,10 @@ import {
 import { safeUrl } from "@/components/common/safe-text";
 
 export function Footer() {
-  const address = "13 College Street, Education City, EC 14953";
+  const address = "13 Trinh Van Bo, Xuan Phuong, Nam Tu Liem, Hanoi, Vietnam";
   const mapsQuery = encodeURIComponent(address);
   const mapsUrlRaw = `https://www.google.com/maps/search/?api=1&query=${mapsQuery}&hl=en`;
-  const mapsEmbedRaw = `https://www.google.com/maps?q=${mapsQuery}&hl=en&output=embed`;
+  const mapsEmbedRaw = `https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d1331.8859212928248!2d105.74562903738041!3d21.037764385158315!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3134552afb2bc2b9%3A0xf94b886472c56b9e!2zRlBUIEFwdGVjaCAtIEjhu4cgdGjhu5FuZyDEkcOgbyB04bqhbyBM4bqtcCB0csOsbmggdmnDqm4gUXXhu5FjIHThur8!5e0!3m2!1svi!2s!4v1762774839810!5m2!1svi!2s`;
   const mapsUrl = safeUrl(mapsUrlRaw, undefined, true) || mapsUrlRaw;
   const mapsEmbed = safeUrl(mapsEmbedRaw, undefined, true) || mapsEmbedRaw;
 

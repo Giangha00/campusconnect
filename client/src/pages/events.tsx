@@ -19,7 +19,7 @@ import {
   ChevronDown,
   X,
 } from "lucide-react";
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { EventCategory, EventStatus, EventSortBy } from "@/types/event";
 import { calculateEventStatus } from "@/lib/event-status";
@@ -30,13 +30,14 @@ export default function Events() {
   const [location] = useLocation();
   const [filter, setFilter] = useState<EventCategory>("all");
   const [statusFilter, setStatusFilter] = useState<EventStatus>("all");
-  const [sortBy, setSortBy] = useState<EventSortBy>("status");
+  const [sortBy, setSortBy] = useState<EventSortBy>("date");
   const [searchQuery, setSearchQuery] = useState("");
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
 
   const [currentPage, setCurrentPage] = useState(1);
   const eventsPerPage = 9;
+  const prevPageRef = useRef<number>(1);
 
   // Handle query parameter for initial category filter
   useEffect(() => {
@@ -54,13 +55,28 @@ export default function Events() {
     setCurrentPage(1);
   }, [searchQuery, filter, statusFilter, sortBy, fromDate, toDate]);
 
+  // Scroll to top of events list when page changes
+  useEffect(() => {
+    // Only scroll if page actually changed (not on initial mount)
+    if (prevPageRef.current !== currentPage) {
+      const eventsSection = document.getElementById("events-list-section");
+      if (eventsSection) {
+        eventsSection.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else {
+        // Fallback: scroll to top of page
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+      prevPageRef.current = currentPage;
+    }
+  }, [currentPage]);
+
   // Add status to events and apply filtering/sorting
   const processedEvents = useMemo(() => {
-    // Add status to each event and preserve creation order (newer events have lower index)
-    const eventsWithStatus = events.map((event, index) => ({
+    // Add status to each event
+    // Events from context are already sorted by dateStart
+    const eventsWithStatus = events.map((event) => ({
       ...event,
       status: calculateEventStatus(event as any),
-      creationOrder: index, // Lower index = more recently created
     }));
 
     let filteredEvents = eventsWithStatus;
@@ -126,20 +142,21 @@ export default function Events() {
     const sortedEvents = [...filteredEvents];
     switch (sortBy) {
       case "date":
-        // Sort by dateStart from nearest to farthest (ascending order)
+        // Sort by dateStart from farthest to nearest (descending order)
         sortedEvents.sort((a, b) => {
           return (
-            new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime()
+            new Date(b.dateStart).getTime() - new Date(a.dateStart).getTime()
           );
         });
         break;
       case "category":
         sortedEvents.sort((a, b) => {
-          // First by creation order, then by category
-          if (a.creationOrder !== b.creationOrder) {
-            return a.creationOrder - b.creationOrder;
+          // First by category, then by dateStart (descending)
+          const categoryCompare = a.category.localeCompare(b.category);
+          if (categoryCompare !== 0) {
+            return categoryCompare;
           }
-          return a.category.localeCompare(b.category);
+          return new Date(b.dateStart).getTime() - new Date(a.dateStart).getTime();
         });
         break;
       case "status":
@@ -150,20 +167,22 @@ export default function Events() {
           completed: 3,
         };
         sortedEvents.sort((a, b) => {
-          // First by creation order, then by status
-          if (a.creationOrder !== b.creationOrder) {
-            return a.creationOrder - b.creationOrder;
+          // First by status, then by dateStart (descending)
+          const statusCompare = statusOrder[a.status] - statusOrder[b.status];
+          if (statusCompare !== 0) {
+            return statusCompare;
           }
-          return statusOrder[a.status] - statusOrder[b.status];
+          return new Date(b.dateStart).getTime() - new Date(a.dateStart).getTime();
         });
         break;
       case "time":
         sortedEvents.sort((a, b) => {
-          // First by creation order, then by time
-          if (a.creationOrder !== b.creationOrder) {
-            return a.creationOrder - b.creationOrder;
+          // First by time, then by dateStart (descending)
+          const timeCompare = a.time.localeCompare(b.time);
+          if (timeCompare !== 0) {
+            return timeCompare;
           }
-          return a.time.localeCompare(b.time);
+          return new Date(b.dateStart).getTime() - new Date(a.dateStart).getTime();
         });
         break;
     }
@@ -407,7 +426,7 @@ export default function Events() {
       </section>
 
       {/* Events Grid */}
-      <section className="py-16 bg-muted">
+      <section id="events-list-section" className="py-16 bg-muted">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {processedEvents.length === 0 ? (
             <div className="text-center py-12">
