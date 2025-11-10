@@ -29,7 +29,11 @@ import { useRegistration } from "@/contexts/registration-context";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { LoginDialog } from "@/components/auth/login-dialog";
-import { SafeText, sanitizeAttribute } from "@/components/common/safe-text";
+import {
+  SafeText,
+  sanitizeAttribute,
+  safeUrl,
+} from "@/components/common/safe-text";
 
 const categoryColors = {
   academic: "bg-primary text-primary-foreground",
@@ -129,7 +133,10 @@ export default function EventDetail() {
         <div className="lg:col-span-2 space-y-6">
           <div className="aspect-video relative overflow-hidden rounded-lg">
             <img
-              src={event.image}
+              src={
+                safeUrl(event.image, undefined, false) ||
+                "/images/schools/School_1.jpg"
+              }
               alt={sanitizeAttribute(event.name)}
               className="w-full h-full object-cover"
               loading="lazy"

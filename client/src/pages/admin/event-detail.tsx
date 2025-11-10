@@ -53,13 +53,24 @@ import { useFeedback } from "@/contexts/feedback-context";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { AdminNavbar } from "@/components/admin/admin-navbar";
-import { SafeText, sanitizeAttribute } from "@/components/common/safe-text";
+import {
+  SafeText,
+  sanitizeAttribute,
+  safeUrl,
+} from "@/components/common/safe-text";
 
 const categoryColors = {
   academic: "bg-primary text-primary-foreground",
   cultural: "bg-secondary text-secondary-foreground",
   sports: "bg-destructive text-destructive-foreground",
   technical: "bg-accent text-accent-foreground",
+};
+
+// Helper function to get tomorrow's date in YYYY-MM-DD format
+const getTomorrowDate = (): string => {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return tomorrow.toISOString().split("T")[0];
 };
 
 export default function AdminEventDetail() {
@@ -104,12 +115,15 @@ export default function AdminEventDetail() {
     const editParam = urlParams.get("edit");
 
     if (editParam === "true" && event && editedEvent && !isEditing) {
-      // Check if event is completed - don't allow editing
+      // Check if event is completed or ongoing - don't allow editing
       const status = calculateEventStatus(event as any);
-      if (status === "completed") {
+      if (status === "completed" || status === "ongoing") {
         toast({
-          title: "Cannot Edit Completed Event",
-          description: "Completed events cannot be edited.",
+          title: "Cannot Edit Event",
+          description:
+            status === "completed"
+              ? "Completed events cannot be edited."
+              : "Ongoing events cannot be edited.",
           variant: "destructive",
         });
         // Remove the edit parameter from the URL
@@ -211,10 +225,13 @@ export default function AdminEventDetail() {
   };
 
   const handleEditEvent = () => {
-    if (currentStatus === "completed") {
+    if (currentStatus === "completed" || currentStatus === "ongoing") {
       toast({
-        title: "Cannot Edit Completed Event",
-        description: "Completed events cannot be edited.",
+        title: "Cannot Edit Event",
+        description:
+          currentStatus === "completed"
+            ? "Completed events cannot be edited."
+            : "Ongoing events cannot be edited.",
         variant: "destructive",
       });
       return;
@@ -225,9 +242,12 @@ export default function AdminEventDetail() {
   const handleSaveEvent = () => {
     if (!editedEvent || !event) return;
 
-    // Validate dates - must be greater than or equal to current date
+    // Validate dates - must be greater than today (from tomorrow onwards)
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Set to start of day for comparison
+
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1); // Tomorrow
 
     const dateStart = editedEvent.dateStart
       ? new Date(editedEvent.dateStart)
@@ -236,11 +256,11 @@ export default function AdminEventDetail() {
 
     if (dateStart) {
       dateStart.setHours(0, 0, 0, 0);
-      if (dateStart < today) {
+      if (dateStart <= today) {
         toast({
           title: "Invalid Date",
           description:
-            "Event start date must be greater than or equal to today's date.",
+            "Event start date must be from tomorrow onwards. Today and past dates are not allowed.",
           variant: "destructive",
         });
         return;
@@ -249,11 +269,11 @@ export default function AdminEventDetail() {
 
     if (dateEnd) {
       dateEnd.setHours(0, 0, 0, 0);
-      if (dateEnd < today) {
+      if (dateEnd <= today) {
         toast({
           title: "Invalid Date",
           description:
-            "Event end date must be greater than or equal to today's date.",
+            "Event end date must be from tomorrow onwards. Today and past dates are not allowed.",
           variant: "destructive",
         });
         return;
@@ -455,7 +475,7 @@ export default function AdminEventDetail() {
                                   handleInputChange("dateStart", e.target.value)
                                 }
                                 className="flex-1"
-                                min={new Date().toISOString().split("T")[0]}
+                                min={getTomorrowDate()}
                               />
                               <Input
                                 type="date"
@@ -465,8 +485,7 @@ export default function AdminEventDetail() {
                                 }
                                 className="flex-1"
                                 min={
-                                  editedEvent?.dateStart ||
-                                  new Date().toISOString().split("T")[0]
+                                  editedEvent?.dateStart || getTomorrowDate()
                                 }
                               />
                             </div>
@@ -762,7 +781,10 @@ export default function AdminEventDetail() {
               <Card className="shadow-lg overflow-hidden">
                 <div className="aspect-video bg-gray-200">
                   <img
-                    src={event.image}
+                    src={
+                      safeUrl(event.image, undefined, false) ||
+                      "/images/schools/School_1.jpg"
+                    }
                     alt={sanitizeAttribute(event.name)}
                     className="w-full h-full object-cover"
                     loading="lazy"
@@ -796,10 +818,15 @@ export default function AdminEventDetail() {
                           onClick={handleEditEvent}
                           className="w-full"
                           variant="outline"
-                          disabled={currentStatus === "completed"}
+                          disabled={
+                            currentStatus === "completed" ||
+                            currentStatus === "ongoing"
+                          }
                           title={
                             currentStatus === "completed"
                               ? "Cannot edit completed event"
+                              : currentStatus === "ongoing"
+                              ? "Cannot edit ongoing event"
                               : "Edit Event"
                           }
                         >

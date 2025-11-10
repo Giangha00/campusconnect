@@ -1043,5 +1043,43 @@
     "checkedIn": 0,
     "registrationStart": "2025-12-15",
     "registrationEnd": "2026-02-10"
+  },
+  {
+    "id": 56,
+    "name": "Data Science Bootcamp 2025",
+    "dateStart": "2025-01-14",
+    "dateEnd": "2025-01-16",
+    "time": "09:00 AM - 5:00 PM",
+    "venue": "Computer Lab Building, Room 301",
+    "department": "Computer Science",
+    "category": "technical",
+    "description": "An intensive 3-day bootcamp covering data science fundamentals, machine learning algorithms, data visualization, and statistical analysis. Participants will work with real-world datasets, learn Python and R programming, and build predictive models. The bootcamp includes hands-on projects, expert lectures, and networking opportunities with industry professionals.",
+    "organizer": "CS Department",
+    "image": "https://cdn.iplocation.net/assets/images/blog/featured/ai-ml-real-world-applications.png",
+    "registrationRequired": true,
+    "capacity": 120,
+    "attendees": 115,
+    "checkedIn": 98,
+    "registrationStart": "2024-12-15",
+    "registrationEnd": "2025-01-10"
+  },
+  {
+    "id": 57,
+    "name": "International Cultural Festival",
+    "dateStart": "2025-01-15",
+    "dateEnd": "2025-01-17",
+    "time": "11:00 AM - 8:00 PM",
+    "venue": "Main Campus Plaza & Student Center",
+    "department": "International Affairs",
+    "category": "cultural",
+    "description": "A vibrant 3-day celebration of global cultures featuring food stalls from 20+ countries, traditional dance performances, music concerts, art exhibitions, and cultural workshops. Experience diverse traditions, taste authentic cuisines, and participate in interactive activities. The festival includes a fashion show, language exchange sessions, and cultural games. Join us for this multicultural extravaganza that brings together students from around the world.",
+    "organizer": "International Affairs Office",
+    "image": "https://www.ticket2u.com.my/ticket2u/site/news/assets/img/2025/exhibition-my.png",
+    "registrationRequired": false,
+    "capacity": "No limit",
+    "attendees": 850,
+    "checkedIn": 720,
+    "registrationStart": "2024-12-20",
+    "registrationEnd": "2025-01-12"
   }
 ]

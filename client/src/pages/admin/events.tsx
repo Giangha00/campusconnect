@@ -129,7 +129,7 @@ export default function AdminEventsPage() {
     let list = allEventsWithStatus;
     const q = query.toLowerCase().trim();
 
-    return list.filter((e) => {
+    const filtered = list.filter((e) => {
       const matchesQuery =
         !q ||
         e.name.toLowerCase().includes(q) ||
@@ -145,6 +145,11 @@ export default function AdminEventsPage() {
       const matchesStatus = statusFilter === "all" || e.status === statusFilter;
 
       return matchesQuery && matchesDate && matchesStatus;
+    });
+
+    // Sort by dateStart from nearest to farthest (ascending order)
+    return filtered.sort((a, b) => {
+      return new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime();
     });
   }, [allEventsWithStatus, query, startDate, endDate, statusFilter]);
 
@@ -297,10 +302,13 @@ export default function AdminEventsPage() {
 
   const handleEditEvent = (eventId: number) => {
     const event = allEventsWithStatus.find((e) => e.id === eventId);
-    if (event?.status === "completed") {
+    if (event?.status === "completed" || event?.status === "ongoing") {
       toast({
-        title: "Cannot Edit Completed Event",
-        description: "Completed events cannot be edited.",
+        title: "Cannot Edit Event",
+        description:
+          event?.status === "completed"
+            ? "Completed events cannot be edited."
+            : "Ongoing events cannot be edited.",
         variant: "destructive",
       });
       return;
@@ -967,12 +975,18 @@ export default function AdminEventsPage() {
                         title={
                           event.status === "completed"
                             ? "Cannot edit completed event"
+                            : event.status === "ongoing"
+                            ? "Cannot edit ongoing event"
                             : "Edit event"
                         }
                         onClick={() => handleEditEvent(event.id)}
-                        disabled={event.status === "completed"}
+                        disabled={
+                          event.status === "completed" ||
+                          event.status === "ongoing"
+                        }
                         className={`h-8 w-8 ${
-                          event.status === "completed"
+                          event.status === "completed" ||
+                          event.status === "ongoing"
                             ? "opacity-50 cursor-not-allowed"
                             : "hover:bg-blue-50 hover:border-blue-200"
                         }`}

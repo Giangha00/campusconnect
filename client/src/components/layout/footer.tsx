@@ -1,14 +1,25 @@
-import { Link } from 'wouter';
-import { Facebook, Twitter, Instagram, Linkedin, MapPin, Phone, Mail } from 'lucide-react';
+import { Link } from "wouter";
+import {
+  Facebook,
+  Twitter,
+  Instagram,
+  Linkedin,
+  MapPin,
+  Phone,
+  Mail,
+} from "lucide-react";
+import { safeUrl } from "@/components/common/safe-text";
 
 export function Footer() {
-  const address = '13 College Street, Education City, EC 14953';
+  const address = "13 College Street, Education City, EC 14953";
   const mapsQuery = encodeURIComponent(address);
-  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${mapsQuery}&hl=en`;
-  const mapsEmbed = `https://www.google.com/maps?q=${mapsQuery}&hl=en&output=embed`;
+  const mapsUrlRaw = `https://www.google.com/maps/search/?api=1&query=${mapsQuery}&hl=en`;
+  const mapsEmbedRaw = `https://www.google.com/maps?q=${mapsQuery}&hl=en&output=embed`;
+  const mapsUrl = safeUrl(mapsUrlRaw, undefined, true) || mapsUrlRaw;
+  const mapsEmbed = safeUrl(mapsEmbedRaw, undefined, true) || mapsEmbedRaw;
 
   const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   return (
@@ -19,38 +30,71 @@ export function Footer() {
           <div>
             <h3 className="text-2xl font-bold mb-4">CampusConnect</h3>
             <p className="text-primary-foreground/80 mb-4">
-              Your gateway to campus events and activities. Stay connected, stay informed.
+              Your gateway to campus events and activities. Stay connected, stay
+              informed.
             </p>
             <div className="flex space-x-4">
               <a
-                href="https://facebook.com/campusconnect"
+                href={
+                  safeUrl(
+                    "https://facebook.com/campusconnect",
+                    undefined,
+                    true
+                  ) || "#"
+                }
                 className="text-primary-foreground/80 hover:text-primary-foreground transition-colors"
                 data-testid="link-social-facebook"
                 aria-label="Facebook"
+                target="_blank"
+                rel="noopener noreferrer"
               >
                 <Facebook className="h-5 w-5" />
               </a>
               <a
-                href="https://twitter.com/campusconnect"
+                href={
+                  safeUrl(
+                    "https://twitter.com/campusconnect",
+                    undefined,
+                    true
+                  ) || "#"
+                }
                 className="text-primary-foreground/80 hover:text-primary-foreground transition-colors"
                 data-testid="link-social-twitter"
                 aria-label="Twitter"
+                target="_blank"
+                rel="noopener noreferrer"
               >
                 <Twitter className="h-5 w-5" />
               </a>
               <a
-                href="https://instagram.com/campusconnect"
+                href={
+                  safeUrl(
+                    "https://instagram.com/campusconnect",
+                    undefined,
+                    true
+                  ) || "#"
+                }
                 className="text-primary-foreground/80 hover:text-primary-foreground transition-colors"
                 data-testid="link-social-instagram"
                 aria-label="Instagram"
+                target="_blank"
+                rel="noopener noreferrer"
               >
                 <Instagram className="h-5 w-5" />
               </a>
               <a
-                href="https://linkedin.com/company/campusconnect"
+                href={
+                  safeUrl(
+                    "https://linkedin.com/company/campusconnect",
+                    undefined,
+                    true
+                  ) || "#"
+                }
                 className="text-primary-foreground/80 hover:text-primary-foreground transition-colors"
                 data-testid="link-social-linkedin"
                 aria-label="LinkedIn"
+                target="_blank"
+                rel="noopener noreferrer"
               >
                 <Linkedin className="h-5 w-5" />
               </a>
@@ -97,28 +141,44 @@ export function Footer() {
             <h4 className="text-lg font-semibold mb-4">Event Categories</h4>
             <ul className="space-y-2">
               <li>
-                <Link href="/events?category=academic" data-testid="link-footer-category-academic" onClick={scrollToTop}>
+                <Link
+                  href="/events?category=academic"
+                  data-testid="link-footer-category-academic"
+                  onClick={scrollToTop}
+                >
                   <span className="text-primary-foreground/80 hover:text-primary-foreground hover:underline underline-offset-4 transition-colors">
                     Academic Events
                   </span>
                 </Link>
               </li>
               <li>
-                <Link href="/events?category=cultural" data-testid="link-footer-category-cultural" onClick={scrollToTop}>
+                <Link
+                  href="/events?category=cultural"
+                  data-testid="link-footer-category-cultural"
+                  onClick={scrollToTop}
+                >
                   <span className="text-primary-foreground/80 hover:text-primary-foreground hover:underline underline-offset-4 transition-colors">
                     Cultural Events
                   </span>
                 </Link>
               </li>
               <li>
-                <Link href="/events?category=sports" data-testid="link-footer-category-sports" onClick={scrollToTop}>
+                <Link
+                  href="/events?category=sports"
+                  data-testid="link-footer-category-sports"
+                  onClick={scrollToTop}
+                >
                   <span className="text-primary-foreground/80 hover:text-primary-foreground hover:underline underline-offset-4 transition-colors">
                     Sports Events
                   </span>
                 </Link>
               </li>
               <li>
-                <Link href="/events?category=technical" data-testid="link-footer-category-technical" onClick={scrollToTop}>
+                <Link
+                  href="/events?category=technical"
+                  data-testid="link-footer-category-technical"
+                  onClick={scrollToTop}
+                >
                   <span className="text-primary-foreground/80 hover:text-primary-foreground hover:underline underline-offset-4 transition-colors">
                     Technical Events
                   </span>
@@ -133,7 +193,9 @@ export function Footer() {
             <ul className="space-y-3 text-primary-foreground/80">
               <li className="flex items-start space-x-2">
                 <MapPin className="h-4 w-4 mt-1 flex-shrink-0" />
-                <span>13 College Street, Education City, EC 14953</span>
+                <span>
+                  13 Trinh Van Bo, Xuan Phuong, Nam Tu Liem, Hanoi, Vietnam
+                </span>
               </li>
               <li className="flex items-center space-x-2">
                 <Phone className="h-4 w-4 flex-shrink-0" />
@@ -141,7 +203,7 @@ export function Footer() {
               </li>
               <li className="flex items-center space-x-2">
                 <Mail className="h-4 w-4 flex-shrink-0" />
-                <span>info@campusconnect.edu</span>
+                <span>aptech.fpt@fe.edu.vn</span>
               </li>
             </ul>
             <div className="mt-4">
@@ -175,7 +237,7 @@ export function Footer() {
         </div>
 
         <hr className="border-primary-foreground/20 my-8" />
-        
+
         <div className="text-center text-primary-foreground/80">
           <p>&copy; 2025 CampusConnect College. All rights reserved.</p>
         </div>
