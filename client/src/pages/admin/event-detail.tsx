@@ -45,6 +45,9 @@ import {
   X,
   MessageSquare,
   Star,
+  Hash,
+  Image as ImageIcon,
+  UsersRound,
 } from "lucide-react";
 import { useAdmin } from "@/contexts/admin-context";
 import { useEvents } from "@/contexts/events-context";
@@ -86,9 +89,77 @@ export default function AdminEventDetail() {
   const [isEditing, setIsEditing] = useState(false);
   const [editedEvent, setEditedEvent] = useState<any>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [startTime, setStartTime] = useState({
+    hour: "10",
+    minute: "00",
+    period: "AM",
+  });
+  const [endTime, setEndTime] = useState({
+    hour: "6",
+    minute: "00",
+    period: "PM",
+  });
 
   const eventId = params?.id ? parseInt(params.id) : null;
   const event = events.find((e: any) => e.id === eventId);
+
+  // Helper function to parse time string and extract start/end times
+  const parseTimeToState = (timeString: string | null | undefined) => {
+    if (!timeString) {
+      return {
+        start: { hour: "10", minute: "00", period: "AM" },
+        end: { hour: "6", minute: "00", period: "PM" },
+      };
+    }
+
+    // Match full time range format: "10:00 AM - 6:00 PM"
+    const timeRangePattern =
+      /(\d{1,2}):(\d{2})\s*(AM|PM)\s*-\s*(\d{1,2}):(\d{2})\s*(AM|PM)/i;
+    const rangeMatch = timeString.match(timeRangePattern);
+
+    if (rangeMatch) {
+      return {
+        start: {
+          hour: rangeMatch[1],
+          minute: rangeMatch[2],
+          period: rangeMatch[3].toUpperCase(),
+        },
+        end: {
+          hour: rangeMatch[4],
+          minute: rangeMatch[5],
+          period: rangeMatch[6].toUpperCase(),
+        },
+      };
+    }
+
+    // Match single time format: "08:00 AM"
+    const singleTimePattern = /(\d{1,2}):(\d{2})\s*(AM|PM)/i;
+    const singleMatch = timeString.match(singleTimePattern);
+
+    if (singleMatch) {
+      return {
+        start: {
+          hour: singleMatch[1],
+          minute: singleMatch[2],
+          period: singleMatch[3].toUpperCase(),
+        },
+        end: { hour: "11", minute: "59", period: "PM" },
+      };
+    }
+
+    // Default values if parsing fails
+    return {
+      start: { hour: "10", minute: "00", period: "AM" },
+      end: { hour: "6", minute: "00", period: "PM" },
+    };
+  };
+
+  // Helper function to format time state to string
+  const formatTimeToString = (start: any, end: any): string => {
+    const startStr = `${start.hour}:${start.minute} ${start.period}`;
+    const endStr = `${end.hour}:${end.minute} ${end.period}`;
+    return `${startStr} - ${endStr}`;
+  };
 
   // Debug logging
   useEffect(() => {
@@ -106,6 +177,9 @@ export default function AdminEventDetail() {
   useEffect(() => {
     if (event) {
       setEditedEvent({ ...event });
+      const parsed = parseTimeToState(event.time);
+      setStartTime(parsed.start);
+      setEndTime(parsed.end);
     }
   }, [event]);
 
@@ -140,6 +214,17 @@ export default function AdminEventDetail() {
       window.history.replaceState({}, "", newUrl);
     }
   }, [event, editedEvent, isEditing, toast]);
+
+  // Update time string when startTime or endTime changes
+  useEffect(() => {
+    if (isEditing && editedEvent) {
+      const timeString = formatTimeToString(startTime, endTime);
+      setEditedEvent((prev: any) => ({
+        ...prev,
+        time: timeString,
+      }));
+    }
+  }, [startTime, endTime, isEditing]);
 
   // Calculate current status based on dates
   const currentStatus = event ? calculateEventStatus(event as any) : null;
@@ -242,21 +327,70 @@ export default function AdminEventDetail() {
   const handleSaveEvent = () => {
     if (!editedEvent || !event) return;
 
+    // Helper function to check if string is empty or only whitespace
+    const isEmpty = (str: string | null | undefined): boolean => {
+      return !str || str.trim().length === 0;
+    };
+
+    // Validate required fields
+    if (isEmpty(editedEvent.name)) {
+      toast({
+        title: "Validation Error",
+        description: "Event name is required and cannot be empty.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!editedEvent.dateStart) {
+      toast({
+        title: "Validation Error",
+        description: "Event start date is required.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!editedEvent.dateEnd) {
+      toast({
+        title: "Validation Error",
+        description: "Event end date is required.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Validate dates - must be greater than today (from tomorrow onwards)
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Set to start of day for comparison
+    // Get today's date in local timezone (YYYY-MM-DD format for accurate comparison)
+    const now = new Date();
+    const todayYear = now.getFullYear();
+    const todayMonth = now.getMonth();
+    const todayDate = now.getDate();
+    const today = new Date(todayYear, todayMonth, todayDate, 0, 0, 0, 0);
 
+    // Parse date strings to Date objects in local timezone
+    let dateStart: Date | null = null;
+    let dateEnd: Date | null = null;
+
+    if (editedEvent.dateStart) {
+      // Parse YYYY-MM-DD format to local date
+      const [year, month, day] = editedEvent.dateStart.split("-").map(Number);
+      dateStart = new Date(year, month - 1, day, 0, 0, 0, 0);
+    }
+
+    if (editedEvent.dateEnd) {
+      // Parse YYYY-MM-DD format to local date
+      const [year, month, day] = editedEvent.dateEnd.split("-").map(Number);
+      dateEnd = new Date(year, month - 1, day, 0, 0, 0, 0);
+    }
+
+    // Calculate tomorrow's date
     const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1); // Tomorrow
-
-    const dateStart = editedEvent.dateStart
-      ? new Date(editedEvent.dateStart)
-      : null;
-    const dateEnd = editedEvent.dateEnd ? new Date(editedEvent.dateEnd) : null;
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
     if (dateStart) {
-      dateStart.setHours(0, 0, 0, 0);
-      if (dateStart <= today) {
+      // Event start date must be from tomorrow onwards (strictly after today)
+      if (dateStart.getTime() <= today.getTime()) {
         toast({
           title: "Invalid Date",
           description:
@@ -268,8 +402,8 @@ export default function AdminEventDetail() {
     }
 
     if (dateEnd) {
-      dateEnd.setHours(0, 0, 0, 0);
-      if (dateEnd <= today) {
+      // Event end date must be from tomorrow onwards (strictly after today)
+      if (dateEnd.getTime() <= today.getTime()) {
         toast({
           title: "Invalid Date",
           description:
@@ -289,6 +423,226 @@ export default function AdminEventDetail() {
         variant: "destructive",
       });
       return;
+    }
+
+    // Validate text fields (not empty or only whitespace)
+    if (isEmpty(editedEvent.venue)) {
+      toast({
+        title: "Validation Error",
+        description: "Venue is required and cannot be empty.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (isEmpty(editedEvent.department)) {
+      toast({
+        title: "Validation Error",
+        description: "Department is required and cannot be empty.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (isEmpty(editedEvent.organizer)) {
+      toast({
+        title: "Validation Error",
+        description: "Organizer is required and cannot be empty.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate category
+    if (
+      !editedEvent.category ||
+      !["academic", "cultural", "sports", "technical"].includes(
+        editedEvent.category
+      )
+    ) {
+      toast({
+        title: "Validation Error",
+        description: "Please select a valid category.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate capacity if provided
+    if (
+      editedEvent.capacity !== undefined &&
+      editedEvent.capacity !== null &&
+      editedEvent.capacity !== ""
+    ) {
+      const capacity =
+        typeof editedEvent.capacity === "string"
+          ? parseInt(editedEvent.capacity)
+          : editedEvent.capacity;
+
+      if (isNaN(capacity) || capacity < 1) {
+        toast({
+          title: "Validation Error",
+          description: "Capacity must be a positive number greater than 0.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Validate that attendees don't exceed capacity
+      const currentAttendees = editedEvent.attendees || event.attendees || 0;
+      if (currentAttendees > capacity) {
+        toast({
+          title: "Validation Error",
+          description: `Current attendees (${currentAttendees}) cannot exceed capacity (${capacity}). Please increase capacity or reduce attendees.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
+    // Validate registration dates if registration is required
+    if (editedEvent.registrationRequired) {
+      if (editedEvent.registrationStart && editedEvent.registrationEnd) {
+        // Parse registration dates in local timezone
+        let regStart: Date | null = null;
+        let regEnd: Date | null = null;
+
+        if (editedEvent.registrationStart) {
+          const [year, month, day] = editedEvent.registrationStart
+            .split("-")
+            .map(Number);
+          regStart = new Date(year, month - 1, day, 0, 0, 0, 0);
+        }
+
+        if (editedEvent.registrationEnd) {
+          const [year, month, day] = editedEvent.registrationEnd
+            .split("-")
+            .map(Number);
+          regEnd = new Date(year, month - 1, day, 0, 0, 0, 0);
+        }
+
+        // Registration end must be after registration start
+        if (regStart && regEnd && regEnd.getTime() < regStart.getTime()) {
+          toast({
+            title: "Invalid Registration Date Range",
+            description:
+              "Registration end date must be after registration start date.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+    }
+
+    // Validate time format and values (optional but should be valid if provided)
+    if (editedEvent.time && editedEvent.time.trim()) {
+      const timeStr = editedEvent.time.trim();
+
+      // Match full time range format: "10:00 AM - 6:00 PM"
+      const timeRangePattern =
+        /(\d{1,2}):(\d{2})\s*(AM|PM)\s*-\s*(\d{1,2}):(\d{2})\s*(AM|PM)/i;
+      const rangeMatch = timeStr.match(timeRangePattern);
+
+      // Match single time format: "08:00 AM"
+      const singleTimePattern = /(\d{1,2}):(\d{2})\s*(AM|PM)/i;
+      const singleMatch = timeStr.match(singleTimePattern);
+
+      if (rangeMatch) {
+        // Validate time range format
+        const startHour = parseInt(rangeMatch[1], 10);
+        const startMinute = parseInt(rangeMatch[2], 10);
+        const startPeriod = rangeMatch[3].toUpperCase();
+        const endHour = parseInt(rangeMatch[4], 10);
+        const endMinute = parseInt(rangeMatch[5], 10);
+        const endPeriod = rangeMatch[6].toUpperCase();
+
+        // Validate hour range (1-12)
+        if (startHour < 1 || startHour > 12 || endHour < 1 || endHour > 12) {
+          toast({
+            title: "Invalid Time",
+            description: "Hour must be between 1 and 12.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Validate minute range (0-59)
+        if (
+          startMinute < 0 ||
+          startMinute > 59 ||
+          endMinute < 0 ||
+          endMinute > 59
+        ) {
+          toast({
+            title: "Invalid Time",
+            description: "Minute must be between 0 and 59.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Convert to 24-hour format for comparison
+        let startHour24 = startHour;
+        if (startPeriod === "PM" && startHour !== 12) {
+          startHour24 += 12;
+        } else if (startPeriod === "AM" && startHour === 12) {
+          startHour24 = 0;
+        }
+
+        let endHour24 = endHour;
+        if (endPeriod === "PM" && endHour !== 12) {
+          endHour24 += 12;
+        } else if (endPeriod === "AM" && endHour === 12) {
+          endHour24 = 0;
+        }
+
+        // Calculate total minutes for comparison
+        const startTotalMinutes = startHour24 * 60 + startMinute;
+        const endTotalMinutes = endHour24 * 60 + endMinute;
+
+        // Validate that end time is after start time
+        if (endTotalMinutes <= startTotalMinutes) {
+          toast({
+            title: "Invalid Time Range",
+            description: "End time must be after start time.",
+            variant: "destructive",
+          });
+          return;
+        }
+      } else if (singleMatch) {
+        // Validate single time format
+        const hour = parseInt(singleMatch[1], 10);
+        const minute = parseInt(singleMatch[2], 10);
+
+        // Validate hour range (1-12)
+        if (hour < 1 || hour > 12) {
+          toast({
+            title: "Invalid Time",
+            description: "Hour must be between 1 and 12.",
+            variant: "destructive",
+          });
+          return;
+        }
+
+        // Validate minute range (0-59)
+        if (minute < 0 || minute > 59) {
+          toast({
+            title: "Invalid Time",
+            description: "Minute must be between 0 and 59.",
+            variant: "destructive",
+          });
+          return;
+        }
+      } else {
+        // Invalid format
+        toast({
+          title: "Invalid Time Format",
+          description:
+            "Time format should be like '10:00 AM - 6:00 PM' or '10:00 AM'.",
+          variant: "destructive",
+        });
+        return;
+      }
     }
 
     try {
@@ -321,6 +675,25 @@ export default function AdminEventDetail() {
       ...prev,
       [field]: value,
     }));
+
+    // Update time string when start/end time changes
+    if (field === "time") {
+      const parsed = parseTimeToState(value);
+      setStartTime(parsed.start);
+      setEndTime(parsed.end);
+    }
+  };
+
+  const handleTimeChange = (
+    type: "start" | "end",
+    field: "hour" | "minute" | "period",
+    value: string
+  ) => {
+    if (type === "start") {
+      setStartTime((prev) => ({ ...prev, [field]: value }));
+    } else {
+      setEndTime((prev) => ({ ...prev, [field]: value }));
+    }
   };
 
   const handleDeleteEvent = () => {
@@ -474,6 +847,34 @@ export default function AdminEventDetail() {
                                 onChange={(e) =>
                                   handleInputChange("dateStart", e.target.value)
                                 }
+                                onKeyDown={(e) => {
+                                  // Prevent typing in date input, but allow navigation keys
+                                  if (
+                                    e.key !== "Tab" &&
+                                    e.key !== "Enter" &&
+                                    e.key !== "Escape" &&
+                                    !e.key.startsWith("Arrow") &&
+                                    !e.key.startsWith("Page") &&
+                                    e.key !== "Home" &&
+                                    e.key !== "End"
+                                  ) {
+                                    e.preventDefault();
+                                  }
+                                }}
+                                onPaste={(e) => {
+                                  // Prevent pasting into date input
+                                  e.preventDefault();
+                                }}
+                                onInput={(e) => {
+                                  // Prevent direct text input
+                                  const target = e.target as HTMLInputElement;
+                                  if (
+                                    target.value &&
+                                    !target.value.match(/^\d{4}-\d{2}-\d{2}$/)
+                                  ) {
+                                    target.value = editedEvent?.dateStart || "";
+                                  }
+                                }}
                                 className="flex-1"
                                 min={getTomorrowDate()}
                               />
@@ -483,6 +884,34 @@ export default function AdminEventDetail() {
                                 onChange={(e) =>
                                   handleInputChange("dateEnd", e.target.value)
                                 }
+                                onKeyDown={(e) => {
+                                  // Prevent typing in date input, but allow navigation keys
+                                  if (
+                                    e.key !== "Tab" &&
+                                    e.key !== "Enter" &&
+                                    e.key !== "Escape" &&
+                                    !e.key.startsWith("Arrow") &&
+                                    !e.key.startsWith("Page") &&
+                                    e.key !== "Home" &&
+                                    e.key !== "End"
+                                  ) {
+                                    e.preventDefault();
+                                  }
+                                }}
+                                onPaste={(e) => {
+                                  // Prevent pasting into date input
+                                  e.preventDefault();
+                                }}
+                                onInput={(e) => {
+                                  // Prevent direct text input
+                                  const target = e.target as HTMLInputElement;
+                                  if (
+                                    target.value &&
+                                    !target.value.match(/^\d{4}-\d{2}-\d{2}$/)
+                                  ) {
+                                    target.value = editedEvent?.dateEnd || "";
+                                  }
+                                }}
                                 className="flex-1"
                                 min={
                                   editedEvent?.dateStart || getTomorrowDate()
@@ -498,18 +927,134 @@ export default function AdminEventDetail() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-3">
-                        <Clock className="h-5 w-5 text-blue-600" />
+                      <div className="flex items-start gap-3">
+                        <Clock className="h-5 w-5 text-blue-600 mt-6" />
                         <div className="flex-1">
-                          <p className="text-sm text-gray-500">Time</p>
+                          <p className="text-sm text-gray-500 mb-2">Time</p>
                           {isEditing ? (
-                            <Input
-                              value={editedEvent?.time || ""}
-                              onChange={(e) =>
-                                handleInputChange("time", e.target.value)
-                              }
-                              placeholder="e.g., 10:00 AM - 6:00 PM"
-                            />
+                            <div className="flex flex-wrap gap-2 items-center">
+                              {/* Start Time */}
+                              <div className="flex gap-1 items-center">
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  max="12"
+                                  value={startTime.hour}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (
+                                      val === "" ||
+                                      (parseInt(val) >= 1 &&
+                                        parseInt(val) <= 12)
+                                    ) {
+                                      handleTimeChange("start", "hour", val);
+                                    }
+                                  }}
+                                  className="w-16 text-center px-2 text-base"
+                                  placeholder="HH"
+                                  style={{ minWidth: "64px" }}
+                                />
+                                <span className="text-gray-500">:</span>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  max="59"
+                                  value={startTime.minute}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (
+                                      val === "" ||
+                                      (parseInt(val) >= 0 &&
+                                        parseInt(val) <= 59)
+                                    ) {
+                                      handleTimeChange(
+                                        "start",
+                                        "minute",
+                                        val.padStart(2, "0")
+                                      );
+                                    }
+                                  }}
+                                  className="w-16 text-center px-2 text-base"
+                                  placeholder="MM"
+                                  style={{ minWidth: "64px" }}
+                                />
+                                <Select
+                                  value={startTime.period}
+                                  onValueChange={(value) =>
+                                    handleTimeChange("start", "period", value)
+                                  }
+                                >
+                                  <SelectTrigger className="w-[70px]">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="AM">AM</SelectItem>
+                                    <SelectItem value="PM">PM</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              <span className="text-gray-500">-</span>
+                              {/* End Time */}
+                              <div className="flex gap-1 items-center">
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  max="12"
+                                  value={endTime.hour}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (
+                                      val === "" ||
+                                      (parseInt(val) >= 1 &&
+                                        parseInt(val) <= 12)
+                                    ) {
+                                      handleTimeChange("end", "hour", val);
+                                    }
+                                  }}
+                                  className="w-16 text-center px-2 text-base"
+                                  placeholder="HH"
+                                  style={{ minWidth: "64px" }}
+                                />
+                                <span className="text-gray-500">:</span>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  max="59"
+                                  value={endTime.minute}
+                                  onChange={(e) => {
+                                    const val = e.target.value;
+                                    if (
+                                      val === "" ||
+                                      (parseInt(val) >= 0 &&
+                                        parseInt(val) <= 59)
+                                    ) {
+                                      handleTimeChange(
+                                        "end",
+                                        "minute",
+                                        val.padStart(2, "0")
+                                      );
+                                    }
+                                  }}
+                                  className="w-16 text-center px-2 text-base"
+                                  placeholder="MM"
+                                  style={{ minWidth: "64px" }}
+                                />
+                                <Select
+                                  value={endTime.period}
+                                  onValueChange={(value) =>
+                                    handleTimeChange("end", "period", value)
+                                  }
+                                >
+                                  <SelectTrigger className="w-[70px]">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="AM">AM</SelectItem>
+                                    <SelectItem value="PM">PM</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            </div>
                           ) : (
                             <p className="font-medium">{displayEvent?.time}</p>
                           )}
@@ -580,44 +1125,272 @@ export default function AdminEventDetail() {
                     </div>
                   </div>
 
+                  {/* Registration Dates - Show if registration dates exist */}
+                  {(displayEvent?.registrationStart ||
+                    displayEvent?.registrationEnd) && (
+                    <div className="mt-6">
+                      <h3 className="text-sm font-semibold text-gray-700 mb-3">
+                        Registration Period
+                      </h3>
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div className="flex items-center gap-3">
+                          <Calendar className="h-5 w-5 text-blue-600" />
+                          <div className="flex-1">
+                            <p className="text-sm text-gray-500">
+                              Registration Start Date
+                            </p>
+                            {isEditing ? (
+                              <Input
+                                type="date"
+                                value={editedEvent?.registrationStart || ""}
+                                onChange={(e) =>
+                                  handleInputChange(
+                                    "registrationStart",
+                                    e.target.value
+                                  )
+                                }
+                                onKeyDown={(e) => {
+                                  if (
+                                    e.key !== "Tab" &&
+                                    e.key !== "Enter" &&
+                                    e.key !== "Escape" &&
+                                    !e.key.startsWith("Arrow") &&
+                                    !e.key.startsWith("Page") &&
+                                    e.key !== "Home" &&
+                                    e.key !== "End"
+                                  ) {
+                                    e.preventDefault();
+                                  }
+                                }}
+                                onPaste={(e) => {
+                                  e.preventDefault();
+                                }}
+                                onInput={(e) => {
+                                  const target = e.target as HTMLInputElement;
+                                  if (
+                                    target.value &&
+                                    !target.value.match(/^\d{4}-\d{2}-\d{2}$/)
+                                  ) {
+                                    target.value =
+                                      editedEvent?.registrationStart || "";
+                                  }
+                                }}
+                                className="mt-1"
+                              />
+                            ) : (
+                              <p className="font-medium">
+                                {displayEvent.registrationStart
+                                  ? formatDate(displayEvent.registrationStart)
+                                  : "Not set"}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Calendar className="h-5 w-5 text-blue-600" />
+                          <div className="flex-1">
+                            <p className="text-sm text-gray-500">
+                              Registration End Date
+                            </p>
+                            {isEditing ? (
+                              <Input
+                                type="date"
+                                value={editedEvent?.registrationEnd || ""}
+                                onChange={(e) =>
+                                  handleInputChange(
+                                    "registrationEnd",
+                                    e.target.value
+                                  )
+                                }
+                                onKeyDown={(e) => {
+                                  if (
+                                    e.key !== "Tab" &&
+                                    e.key !== "Enter" &&
+                                    e.key !== "Escape" &&
+                                    !e.key.startsWith("Arrow") &&
+                                    !e.key.startsWith("Page") &&
+                                    e.key !== "Home" &&
+                                    e.key !== "End"
+                                  ) {
+                                    e.preventDefault();
+                                  }
+                                }}
+                                onPaste={(e) => {
+                                  e.preventDefault();
+                                }}
+                                onInput={(e) => {
+                                  const target = e.target as HTMLInputElement;
+                                  if (
+                                    target.value &&
+                                    !target.value.match(/^\d{4}-\d{2}-\d{2}$/)
+                                  ) {
+                                    target.value =
+                                      editedEvent?.registrationEnd || "";
+                                  }
+                                }}
+                                className="mt-1"
+                                min={
+                                  editedEvent?.registrationStart ||
+                                  getTomorrowDate()
+                                }
+                              />
+                            ) : (
+                              <p className="font-medium">
+                                {displayEvent.registrationEnd
+                                  ? formatDate(displayEvent.registrationEnd)
+                                  : "Not set"}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Additional Event Information */}
+                  <div className="mt-6 border-t pt-6">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                      Additional Information
+                    </h3>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      {/* Event ID */}
+                      <div className="flex items-center gap-3">
+                        <Hash className="h-5 w-5 text-blue-600" />
+                        <div className="flex-1">
+                          <p className="text-sm text-gray-500">Event ID</p>
+                          <p className="font-medium text-gray-900">
+                            #{displayEvent?.id}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Capacity */}
+                      <div className="flex items-center gap-3">
+                        <UsersRound className="h-5 w-5 text-blue-600" />
+                        <div className="flex-1">
+                          <p className="text-sm text-gray-500">Capacity</p>
+                          {isEditing ? (
+                            <Input
+                              type="number"
+                              value={editedEvent?.capacity || ""}
+                              onChange={(e) =>
+                                handleInputChange(
+                                  "capacity",
+                                  e.target.value === ""
+                                    ? ""
+                                    : parseInt(e.target.value)
+                                )
+                              }
+                              placeholder="Event capacity"
+                              className="mt-1"
+                            />
+                          ) : (
+                            <p className="font-medium text-gray-900">
+                              {displayEvent?.capacity &&
+                              typeof displayEvent.capacity === "number"
+                                ? `${displayEvent.capacity} people`
+                                : displayEvent?.capacity || "No limit"}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Attendees */}
+                      {displayEvent?.attendees !== undefined && (
+                        <div className="flex items-center gap-3">
+                          <Users className="h-5 w-5 text-blue-600" />
+                          <div className="flex-1">
+                            <p className="text-sm text-gray-500">Attendees</p>
+                            <p className="font-medium text-gray-900">
+                              {displayEvent.attendees}
+                              {displayEvent?.capacity &&
+                              typeof displayEvent.capacity === "number"
+                                ? ` / ${displayEvent.capacity}`
+                                : ""}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Checked In */}
+                      {displayEvent?.checkedIn !== undefined && (
+                        <div className="flex items-center gap-3">
+                          <UserCheck className="h-5 w-5 text-blue-600" />
+                          <div className="flex-1">
+                            <p className="text-sm text-gray-500">Checked In</p>
+                            <p className="font-medium text-gray-900">
+                              {displayEvent.checkedIn}
+                              {displayEvent?.capacity &&
+                              typeof displayEvent.capacity === "number"
+                                ? ` / ${displayEvent.capacity}`
+                                : ""}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Image URL */}
+                      {displayEvent?.image && (
+                        <div className="flex items-start gap-3 md:col-span-2">
+                          <ImageIcon className="h-5 w-5 text-blue-600 mt-1" />
+                          <div className="flex-1">
+                            <p className="text-sm text-gray-500 mb-1">
+                              Image URL
+                            </p>
+                            {isEditing ? (
+                              <Input
+                                value={editedEvent?.image || ""}
+                                onChange={(e) =>
+                                  handleInputChange("image", e.target.value)
+                                }
+                                placeholder="Event image URL"
+                                className="mt-1"
+                              />
+                            ) : (
+                              <div className="mt-1">
+                                <p className="font-medium text-gray-900 break-all text-sm">
+                                  {displayEvent.image}
+                                </p>
+                                <a
+                                  href={safeUrl(
+                                    displayEvent.image,
+                                    undefined,
+                                    false
+                                  )}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:underline text-sm mt-1 inline-block"
+                                >
+                                  Open image in new tab
+                                </a>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   {isEditing && (
                     <div className="mt-6">
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <div>
-                          <Label htmlFor="category">Category</Label>
-                          <Select
-                            value={editedEvent?.category || ""}
-                            onValueChange={(value) =>
-                              handleInputChange("category", value)
-                            }
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select category" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="academic">Academic</SelectItem>
-                              <SelectItem value="cultural">Cultural</SelectItem>
-                              <SelectItem value="sports">Sports</SelectItem>
-                              <SelectItem value="technical">
-                                Technical
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                        <div>
-                          <Label htmlFor="capacity">Capacity</Label>
-                          <Input
-                            type="number"
-                            value={editedEvent?.capacity || ""}
-                            onChange={(e) =>
-                              handleInputChange(
-                                "capacity",
-                                parseInt(e.target.value)
-                              )
-                            }
-                            placeholder="Event capacity"
-                          />
-                        </div>
+                      <div>
+                        <Label htmlFor="category">Category</Label>
+                        <Select
+                          value={editedEvent?.category || ""}
+                          onValueChange={(value) =>
+                            handleInputChange("category", value)
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="academic">Academic</SelectItem>
+                            <SelectItem value="cultural">Cultural</SelectItem>
+                            <SelectItem value="sports">Sports</SelectItem>
+                            <SelectItem value="technical">Technical</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                     </div>
                   )}

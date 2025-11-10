@@ -107,30 +107,7 @@ export function calculateEventStatus(event: Event): EventStatus {
   const dateEnd = new Date(event.dateEnd);
   dateEnd.setHours(23, 59, 59, 999);
 
-  // If event doesn't require registration, use dateStart for incoming status
-  if (!event.registrationRequired) {
-    if (today < dateStart) {
-      return "incoming";
-    }
-  } else {
-    // If event requires registration, use registrationStart for incoming status
-    if (event.registrationStart && event.registrationEnd) {
-      const registrationStart = new Date(event.registrationStart);
-      const registrationEnd = new Date(event.registrationEnd);
-      registrationStart.setHours(0, 0, 0, 0);
-      registrationEnd.setHours(23, 59, 59, 999);
-
-      if (today < registrationStart) {
-        return "incoming";
-      }
-
-      if (today >= registrationStart && today <= registrationEnd && today < dateStart) {
-        return "upcoming";
-      }
-    }
-  }
-
-  // Check if event is completed (using actual datetime with time)
+  // First, check if event is completed (using actual datetime with time)
   if (now > eventEndDateTime) {
     return "completed";
   }
@@ -141,13 +118,57 @@ export function calculateEventStatus(event: Event): EventStatus {
   }
 
   // Check if event is upcoming (hasn't started yet but date is today or in the future)
+  // This should be checked before incoming status
+  // If today is on or after event start date but hasn't started yet, it's upcoming
+  // This takes priority over registration status
   if (today >= dateStart && now < eventStartDateTime) {
     return "upcoming";
   }
 
-  // If event date is in the future
-  if (today < dateStart) {
+  // If event doesn't require registration
+  if (!event.registrationRequired) {
+    // If today is before event start date, it's incoming
+    if (today < dateStart) {
+      return "incoming";
+    }
+    // If today is on or after event start date but hasn't started yet (checked above), it's upcoming
     return "upcoming";
+  } else {
+    // If event requires registration
+    if (event.registrationStart && event.registrationEnd) {
+      const registrationStart = new Date(event.registrationStart);
+      const registrationEnd = new Date(event.registrationEnd);
+      registrationStart.setHours(0, 0, 0, 0);
+      registrationEnd.setHours(23, 59, 59, 999);
+
+      // IMPORTANT: If today is on or after event start date, it's always upcoming
+      // (already checked above, but keep for clarity)
+      if (today >= dateStart) {
+        return "upcoming";
+      }
+
+      // If today is before registration start, it's incoming
+      if (today < registrationStart) {
+        return "incoming";
+      }
+
+      // If today is during registration period but before event start date, it's upcoming
+      if (today >= registrationStart && today <= registrationEnd && today < dateStart) {
+        return "upcoming";
+      }
+
+      // If registration period has ended but event hasn't started yet
+      // and today is before event start date, it's upcoming
+      if (today > registrationEnd && today < dateStart) {
+        return "upcoming";
+      }
+    } else {
+      // If registration is required but no registration dates, fallback to dateStart
+      if (today < dateStart) {
+        return "incoming";
+      }
+      return "upcoming";
+    }
   }
 
   // Default fallback

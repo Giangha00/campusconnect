@@ -140,13 +140,31 @@ export default function Events() {
 
     // Apply sorting
     const sortedEvents = [...filteredEvents];
+    
+    // Default sort by status: ongoing -> upcoming -> incoming -> completed
+    // Then by dateStart from nearest to farthest
+    const defaultStatusOrder: Record<string, number> = {
+      ongoing: 1,
+      upcoming: 2,
+      incoming: 3,
+      completed: 4,
+    };
+    
     switch (sortBy) {
       case "date":
-        // Sort by dateStart from farthest to nearest (descending order)
+        // Sort by status first: ongoing -> upcoming -> incoming -> completed
+        // Then by dateStart from nearest to farthest
         sortedEvents.sort((a, b) => {
-          return (
-            new Date(b.dateStart).getTime() - new Date(a.dateStart).getTime()
-          );
+          const statusA = defaultStatusOrder[a.status] || 999;
+          const statusB = defaultStatusOrder[b.status] || 999;
+          
+          // First sort by status
+          if (statusA !== statusB) {
+            return statusA - statusB;
+          }
+          
+          // If same status, sort by dateStart from nearest to farthest
+          return new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime();
         });
         break;
       case "category":
@@ -161,18 +179,21 @@ export default function Events() {
         break;
       case "status":
         const statusOrder = {
-          incoming: 0,
-          upcoming: 1,
-          ongoing: 2,
-          completed: 3,
+          ongoing: 1,
+          upcoming: 2,
+          incoming: 3,
+          completed: 4,
         };
         sortedEvents.sort((a, b) => {
-          // First by status, then by dateStart (descending)
-          const statusCompare = statusOrder[a.status] - statusOrder[b.status];
+          // First by status: ongoing -> upcoming -> incoming -> completed
+          const statusA = statusOrder[a.status] || 999;
+          const statusB = statusOrder[b.status] || 999;
+          const statusCompare = statusA - statusB;
           if (statusCompare !== 0) {
             return statusCompare;
           }
-          return new Date(b.dateStart).getTime() - new Date(a.dateStart).getTime();
+          // Then by dateStart from nearest to farthest
+          return new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime();
         });
         break;
       case "time":

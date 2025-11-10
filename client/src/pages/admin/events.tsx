@@ -147,9 +147,26 @@ export default function AdminEventsPage() {
       return matchesQuery && matchesDate && matchesStatus;
     });
 
-    // Sort by dateStart from farthest to nearest (descending order)
+    // Sort by status: ongoing -> upcoming -> incoming -> completed
+    // Then by dateStart from nearest to farthest within same status
+    const statusOrder: Record<string, number> = {
+      ongoing: 1,
+      upcoming: 2,
+      incoming: 3,
+      completed: 4,
+    };
+
     return filtered.sort((a, b) => {
-      return new Date(b.dateStart).getTime() - new Date(a.dateStart).getTime();
+      const statusA = statusOrder[a.status] || 999;
+      const statusB = statusOrder[b.status] || 999;
+
+      // First sort by status
+      if (statusA !== statusB) {
+        return statusA - statusB;
+      }
+
+      // If same status, sort by dateStart from nearest to farthest
+      return new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime();
     });
   }, [allEventsWithStatus, query, startDate, endDate, statusFilter]);
 
