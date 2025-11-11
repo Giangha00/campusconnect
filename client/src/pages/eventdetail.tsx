@@ -8,6 +8,7 @@ import {
   calculateEventStatus,
   getStatusColor,
   getStatusLabel,
+  canRegisterForEvent,
 } from "@/lib/event-status";
 import {
   Clock,
@@ -56,6 +57,7 @@ export default function EventDetail() {
 
   // Calculate current status based on dates
   const currentStatus = event ? calculateEventStatus(event as any) : null;
+  const canRegister = event ? canRegisterForEvent(event as any) : false;
 
   if (!event) {
     return (
@@ -94,6 +96,15 @@ export default function EventDetail() {
       toast({
         title: "Login Required",
         description: "Please login to register for the event",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!canRegister && !isRegistered) {
+      toast({
+        title: "Registration Closed",
+        description: "Registration is only available 5-30 days before the event",
         variant: "destructive",
       });
       return;
@@ -304,10 +315,18 @@ export default function EventDetail() {
                       size="lg"
                       onClick={handleRegistrationToggle}
                       variant={isRegistered ? "outline" : "default"}
+                      disabled={!canRegister && !isRegistered}
+                      title={
+                        !canRegister && !isRegistered
+                          ? "Registration is only available 5-30 days before the event"
+                          : ""
+                      }
                     >
                       <UserCheck className="h-4 w-4 mr-2" />
                       {isRegistered
                         ? "Registered"
+                        : !canRegister
+                        ? "Registration Closed"
                         : event.registrationRequired
                         ? "Register for Event"
                         : "Join Event"}
@@ -336,7 +355,7 @@ export default function EventDetail() {
                 )}
 
                 {/* Register for Event button for non-logged in users on upcoming events */}
-                {!user && currentStatus === "upcoming" && (
+                {!user && currentStatus === "upcoming" && canRegister && (
                   <Button
                     onClick={handleRegisterForNonLoggedInUser}
                     className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"

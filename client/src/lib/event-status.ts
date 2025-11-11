@@ -110,24 +110,52 @@ export function calculateEventStatus(event: Event): EventStatus {
   }
 
   // 3. If current time is before event start date/time → upcoming
-  // Use "incoming" for events that are far in the future (more than 7 days away)
-  // and "upcoming" for events that are closer (within 7 days or today but not started)
+  // Use "incoming" for events that are far in the future (30+ days away)
+  // and "upcoming" for events that are closer (within 30 days)
   if (now < eventStartDateTime) {
     const daysUntilStart = Math.ceil(
       (eventStartDateTime.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
     );
     
-    // If event starts more than 7 days from now, it's "incoming"
-    if (daysUntilStart > 7) {
+    // If event starts more than 30 days from now, it's "incoming"
+    if (daysUntilStart >= 30) {
       return "incoming";
     }
     
-    // Otherwise, it's "upcoming"
+    // Otherwise, it's "upcoming" (within 30 days)
     return "upcoming";
   }
 
   // Default fallback (should not reach here, but just in case)
   return "upcoming";
+}
+
+/**
+ * Check if registration is allowed for an event based on days until event start
+ * Registration is allowed if: 30 > daysUntilStart >= 5
+ * Registration is NOT allowed if: daysUntilStart < 5
+ */
+export function canRegisterForEvent(event: Event): boolean {
+  const now = new Date();
+  
+  // Create datetime object for event start
+  const eventStartDateTime = event.time
+    ? createDateTime(event.dateStart, event.time, false)
+    : new Date(event.dateStart + "T00:00:00");
+
+  // If event has already started or ended, registration is not allowed
+  if (now >= eventStartDateTime) {
+    return false;
+  }
+
+  // Calculate days until event start
+  const daysUntilStart = Math.ceil(
+    (eventStartDateTime.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+  );
+
+  // Registration is allowed if: 30 > daysUntilStart >= 5
+  // Registration is NOT allowed if: daysUntilStart < 5
+  return daysUntilStart >= 5 && daysUntilStart < 30;
 }
 
 export function getStatusColor(status: EventStatus): string {
