@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -468,12 +469,25 @@ export default function AdminEventDetail() {
       return;
     }
 
-    // Validate capacity if provided
-    if (
-      editedEvent.capacity !== undefined &&
-      editedEvent.capacity !== null &&
-      editedEvent.capacity !== ""
-    ) {
+    // Validate capacity
+    // If capacity is "No limit", skip validation
+    if (editedEvent.capacity === "No limit") {
+      // No validation needed for "No limit"
+    } else {
+      // If not "No limit", capacity must be provided and valid
+      if (
+        editedEvent.capacity === undefined ||
+        editedEvent.capacity === null ||
+        editedEvent.capacity === ""
+      ) {
+        toast({
+          title: "Validation Error",
+          description: "Please enter a capacity number or select 'No limit'.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       const capacity =
         typeof editedEvent.capacity === "string"
           ? parseInt(editedEvent.capacity)
@@ -1270,20 +1284,50 @@ export default function AdminEventDetail() {
                         <div className="flex-1">
                           <p className="text-sm text-gray-500">Capacity</p>
                           {isEditing ? (
-                            <Input
-                              type="number"
-                              value={editedEvent?.capacity || ""}
-                              onChange={(e) =>
-                                handleInputChange(
-                                  "capacity",
-                                  e.target.value === ""
+                            <div className="mt-1 space-y-2">
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  id="no-limit"
+                                  checked={editedEvent?.capacity === "No limit"}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      handleInputChange("capacity", "No limit");
+                                    } else {
+                                      handleInputChange("capacity", "");
+                                    }
+                                  }}
+                                />
+                                <Label
+                                  htmlFor="no-limit"
+                                  className="text-sm font-normal cursor-pointer"
+                                >
+                                  No limit
+                                </Label>
+                              </div>
+                              <Input
+                                type="number"
+                                value={
+                                  editedEvent?.capacity === "No limit"
                                     ? ""
-                                    : parseInt(e.target.value)
-                                )
-                              }
-                              placeholder="Event capacity"
-                              className="mt-1"
-                            />
+                                    : editedEvent?.capacity || ""
+                                }
+                                onChange={(e) =>
+                                  handleInputChange(
+                                    "capacity",
+                                    e.target.value === ""
+                                      ? ""
+                                      : parseInt(e.target.value)
+                                  )
+                                }
+                                placeholder="Event capacity"
+                                disabled={editedEvent?.capacity === "No limit"}
+                                className={
+                                  editedEvent?.capacity === "No limit"
+                                    ? "opacity-50 cursor-not-allowed"
+                                    : ""
+                                }
+                              />
+                            </div>
                           ) : (
                             <p className="font-medium text-gray-900">
                               {displayEvent?.capacity &&
@@ -1413,10 +1457,14 @@ export default function AdminEventDetail() {
                           <span>Registrations</span>
                         </div>
                         <span className="text-sm font-bold text-gray-900">
-                          {count}
-                          {event.capacity && typeof event.capacity === "number"
-                            ? `/${event.capacity}`
-                            : ""}
+                          {event.capacity === "No limit"
+                            ? "No limit"
+                            : `${count}${
+                                event.capacity &&
+                                typeof event.capacity === "number"
+                                  ? `/${event.capacity}`
+                                  : ""
+                              }`}
                         </span>
                       </div>
                       {event.capacity && typeof event.capacity === "number" && (
@@ -1444,10 +1492,7 @@ export default function AdminEventDetail() {
                           <span>Check-ins</span>
                         </div>
                         <span className="text-sm font-bold text-gray-900">
-                          {checkInCount}
-                          {event.capacity && typeof event.capacity === "number"
-                            ? `/${event.capacity}`
-                            : ""}
+                          {checkInCount || 0}
                         </span>
                       </div>
                       {event.capacity && typeof event.capacity === "number" && (

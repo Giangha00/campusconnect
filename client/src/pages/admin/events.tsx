@@ -65,6 +65,13 @@ import {
 } from "lucide-react";
 import { AdminNavbar } from "@/components/admin/admin-navbar";
 
+// Helper function to get tomorrow's date in YYYY-MM-DD format
+const getTomorrowDate = (): string => {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return tomorrow.toISOString().split("T")[0];
+};
+
 export default function AdminEventsPage() {
   const { admin } = useAdmin();
   const { events: eventsData, deleteEvent, createEvent } = useEvents();
@@ -534,7 +541,13 @@ export default function AdminEventsPage() {
                         handleInputChange("dateStart", e.target.value)
                       }
                       className="col-span-3"
-                      min={new Date().toISOString().split("T")[0]}
+                      min={getTomorrowDate()}
+                      onKeyDown={(e) => {
+                        // Prevent typing in date input
+                        if (e.key !== "Tab" && e.key !== "Enter" && e.key !== "Escape") {
+                          e.preventDefault();
+                        }
+                      }}
                     />
                   </div>
 
@@ -552,8 +565,14 @@ export default function AdminEventsPage() {
                       className="col-span-3"
                       min={
                         newEvent.dateStart ||
-                        new Date().toISOString().split("T")[0]
+                        getTomorrowDate()
                       }
+                      onKeyDown={(e) => {
+                        // Prevent typing in date input
+                        if (e.key !== "Tab" && e.key !== "Enter" && e.key !== "Escape") {
+                          e.preventDefault();
+                        }
+                      }}
                     />
                   </div>
 
@@ -686,7 +705,13 @@ export default function AdminEventsPage() {
                         handleInputChange("registrationStart", e.target.value)
                       }
                       className="col-span-3"
-                      min={new Date().toISOString().split("T")[0]}
+                      min={getTomorrowDate()}
+                      onKeyDown={(e) => {
+                        // Prevent typing in date input
+                        if (e.key !== "Tab" && e.key !== "Enter" && e.key !== "Escape") {
+                          e.preventDefault();
+                        }
+                      }}
                     />
                   </div>
 
@@ -704,8 +729,14 @@ export default function AdminEventsPage() {
                       className="col-span-3"
                       min={
                         newEvent.registrationStart ||
-                        new Date().toISOString().split("T")[0]
+                        getTomorrowDate()
                       }
+                      onKeyDown={(e) => {
+                        // Prevent typing in date input
+                        if (e.key !== "Tab" && e.key !== "Enter" && e.key !== "Escape") {
+                          e.preventDefault();
+                        }
+                      }}
                     />
                   </div>
                 </div>
@@ -1060,10 +1091,13 @@ export default function AdminEventsPage() {
                           <span>Registrations</span>
                         </div>
                         <span className="text-sm font-bold text-gray-900">
-                          {count}
-                          {event.capacity && typeof event.capacity === "number"
-                            ? `/${event.capacity}`
-                            : ""}
+                          {event.capacity === "No limit" ||
+                          (typeof event.capacity === "string" &&
+                            event.capacity.toLowerCase() === "no limit")
+                            ? "No limit"
+                            : `${count}${event.capacity && typeof event.capacity === "number"
+                                ? `/${event.capacity}`
+                                : ""}`}
                         </span>
                       </div>
                       {event.capacity && typeof event.capacity === "number" && (
@@ -1091,10 +1125,7 @@ export default function AdminEventsPage() {
                           <span>Check-ins</span>
                         </div>
                         <span className="text-sm font-bold text-gray-900">
-                          {checkInCount}
-                          {event.capacity && typeof event.capacity === "number"
-                            ? `/${event.capacity}`
-                            : ""}
+                          {checkInCount || 0}
                         </span>
                       </div>
                       {event.capacity && typeof event.capacity === "number" && (
