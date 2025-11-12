@@ -43,8 +43,22 @@ export function EventsProvider({ children }: { children: ReactNode }) {
   const [events, setEvents] = useState<Event[]>(eventsDataRaw);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Helper function to sort events by dateStart (descending - farthest to nearest)
+  const sortEventsByDate = (eventsList: Event[]): Event[] => {
+    return [...eventsList].sort((a, b) => {
+      const dateA = new Date(a.dateStart).getTime();
+      const dateB = new Date(b.dateStart).getTime();
+      // If same dateStart, sort by dateEnd (descending)
+      if (dateA === dateB) {
+        return new Date(b.dateEnd).getTime() - new Date(a.dateEnd).getTime();
+      }
+      return dateB - dateA; // Descending order (farthest to nearest)
+    });
+  };
+
   // Initialize events data - prioritize localStorage if available, otherwise use JSON file
   // If JSON file has more events (newer data), merge them
+  // Always sort events by dateStart after loading
   useEffect(() => {
     const savedEvents = localStorage.getItem("campusconnect-events");
     if (savedEvents) {
@@ -59,23 +73,31 @@ export function EventsProvider({ children }: { children: ReactNode }) {
           );
           // Merge saved events with new events from JSON
           const mergedEvents = [...parsedEvents, ...newEventsFromJson];
-          setEvents(mergedEvents);
-          // Update localStorage with merged data
-          localStorage.setItem("campusconnect-events", JSON.stringify(mergedEvents));
+          // Sort by dateStart
+          const sortedEvents = sortEventsByDate(mergedEvents);
+          setEvents(sortedEvents);
+          // Update localStorage with sorted merged data
+          localStorage.setItem("campusconnect-events", JSON.stringify(sortedEvents));
         } else {
-          // Use saved events if JSON doesn't have more
-          setEvents(parsedEvents);
+          // Use saved events if JSON doesn't have more, but sort them
+          const sortedEvents = sortEventsByDate(parsedEvents);
+          setEvents(sortedEvents);
+          // Update localStorage with sorted data
+          localStorage.setItem("campusconnect-events", JSON.stringify(sortedEvents));
         }
       } catch (error) {
         console.error("Error parsing saved events:", error);
         // Fallback to JSON file if localStorage is corrupted
-        setEvents(eventsDataRaw);
-        localStorage.setItem("campusconnect-events", JSON.stringify(eventsDataRaw));
+        const sortedEvents = sortEventsByDate(eventsDataRaw);
+        setEvents(sortedEvents);
+        localStorage.setItem("campusconnect-events", JSON.stringify(sortedEvents));
       }
     } else {
       // No saved events, use JSON file and save to localStorage
-      setEvents(eventsDataRaw);
-      localStorage.setItem("campusconnect-events", JSON.stringify(eventsDataRaw));
+      // JSON file is already sorted, but ensure it's sorted
+      const sortedEvents = sortEventsByDate(eventsDataRaw);
+      setEvents(sortedEvents);
+      localStorage.setItem("campusconnect-events", JSON.stringify(sortedEvents));
     }
     setIsLoading(false);
   }, []);
@@ -86,10 +108,13 @@ export function EventsProvider({ children }: { children: ReactNode }) {
         event.id === eventId ? { ...event, ...updatedEvent } : event
       );
 
-      // Update localStorage
-      localStorage.setItem("campusconnect-events", JSON.stringify(updatedEvents));
+      // Sort by dateStart after update
+      const sortedEvents = sortEventsByDate(updatedEvents);
 
-      return updatedEvents;
+      // Update localStorage
+      localStorage.setItem("campusconnect-events", JSON.stringify(sortedEvents));
+
+      return sortedEvents;
     });
   };
 
@@ -120,10 +145,13 @@ export function EventsProvider({ children }: { children: ReactNode }) {
 
       const updatedEvents = [eventWithDefaults, ...prevEvents];
 
-      // Update localStorage
-      localStorage.setItem("campusconnect-events", JSON.stringify(updatedEvents));
+      // Sort by dateStart after create
+      const sortedEvents = sortEventsByDate(updatedEvents);
 
-      return updatedEvents;
+      // Update localStorage
+      localStorage.setItem("campusconnect-events", JSON.stringify(sortedEvents));
+
+      return sortedEvents;
     });
   };
 

@@ -11,6 +11,7 @@ import {
   generateTicketNumber,
 } from "@/lib/email-service";
 import { useToast } from "@/hooks/use-toast";
+import { canRegisterForEvent } from "@/lib/event-status";
 import eventsData from "@/data/events.json";
 
 interface Registration {
@@ -85,6 +86,17 @@ export function RegistrationProvider({ children }: RegistrationProviderProps) {
     );
 
     if (existingRegistration) return;
+
+    // Check if registration is allowed based on event dates
+    const event = eventsData.find((e) => e.id === eventId);
+    if (event && !canRegisterForEvent(event as any)) {
+      toast({
+        title: "Registration Closed",
+        description: "Registration is only available 5-30 days before the event",
+        variant: "destructive",
+      });
+      return;
+    }
 
     // Generate ticket number
     const ticket = generateTicketNumber();

@@ -44,12 +44,13 @@ export function Header() {
             </Link>
           </div>
 
+          {/* Desktop Navbar - Full menu for large screens */}
           <div
             className={`hidden ${
               user && user.role !== "visitor"
-                ? "xl:flex xl:items-center xl:space-x-4"
-                : "lg:flex lg:items-center lg:space-x-4"
-            } lg:flex-1 lg:justify-end`}
+                ? "xl:flex xl:items-center xl:space-x-4 xl:flex-1 xl:justify-end"
+                : "lg:flex lg:items-center lg:space-x-4 lg:flex-1 lg:justify-end"
+            }`}
           >
             <div className="flex items-baseline space-x-4">
               {userNavigation.map((item) => (
@@ -74,23 +75,22 @@ export function Header() {
             <LoginDialog />
           </div>
 
+          {/* Tablet Navbar - Compact menu for medium screens */}
           <div
-            className={`hidden md:flex ${"lg:hidden"} md:items-center md:space-x-2`}
+            className={`hidden md:flex ${
+              user && user.role !== "visitor" ? "xl:hidden" : "lg:hidden"
+            } items-center space-x-2 flex-1 justify-end`}
           >
-            <div className="flex items-baseline space-x-1 lg:space-x-2">
+            <div className="flex items-baseline space-x-1">
               {userNavigation.slice(0, 4).map((item) => (
                 <Link
                   key={item.name}
                   href={item.href}
-                  data-testid={`link-nav-${item.name.toLowerCase()}`}
+                  data-testid={`link-nav-tablet-${item.name.toLowerCase()}`}
                 >
                   <Button
                     variant="ghost"
-                    className={`px-2 py-2 rounded-md ${
-                      user && user.role !== "visitor"
-                        ? "text-xs"
-                        : "text-xs lg:text-sm"
-                    } font-medium transition-colors ${
+                    className={`px-2 py-2 rounded-md text-xs font-medium transition-colors ${
                       location === item.href
                         ? "text-primary bg-accent"
                         : "text-foreground hover:text-primary hover:bg-accent"

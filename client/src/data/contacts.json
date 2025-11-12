@@ -1,10 +1,10 @@
 {
   "college": {
     "name": "CampusConnect College",
-    "address": "13 College Street, Education City, EC 14953",
+    "address": "13 Trinh Van Bo, Xuan Phuong, Nam Tu Liem, Hanoi, Vietnam",
     "phone": "+1 (555) 154-7896",
-    "email": "info@campusconnect.edu",
-    "website": "https://campusconnect.edu",
+    "email": "aptech.fpt@fe.edu.vn",
+    "website": "https://aptech.fpt.edu.vn",
     "established": "1975",
     "affiliation": "State University Board"
   },
@@ -104,9 +104,9 @@
     "holidays": "Closed on Sundays and Public Holidays"
   },
   "social_media": {
-    "facebook": "https://facebook.com/campusconnect",
-    "twitter": "https://twitter.com/campusconnect",
-    "instagram": "https://instagram.com/campusconnect",
-    "linkedin": "https://linkedin.com/company/campusconnect"
+    "facebook": "https://www.facebook.com/aptech.fpt/?locale=vi_VN",
+    "twitter": "https://x.com/fpt_aptech",
+    "instagram": "https://www.instagram.com/aptech.fpt/",
+    "linkedin": "https://www.linkedin.com/company/fpt-aptech-1?originalSubdomain=vn"
   }
 }

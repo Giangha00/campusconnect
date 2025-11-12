@@ -21,7 +21,11 @@ import { useUser } from "@/contexts/user-context";
 import { useRegistration } from "@/contexts/registration-context";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
-import { SafeText, sanitizeAttribute } from "@/components/common/safe-text";
+import {
+  SafeText,
+  sanitizeAttribute,
+  safeUrl,
+} from "@/components/common/safe-text";
 
 interface EventCardProps {
   event: Event;
@@ -101,7 +105,10 @@ export function EventCard({ event, variant = "default" }: EventCardProps) {
       >
         <div className="aspect-video relative overflow-hidden bg-muted flex items-center justify-center">
           <img
-            src={event.image}
+            src={
+              safeUrl(event.image, undefined, false) ||
+              "/images/schools/School_1.jpg"
+            }
             alt={sanitizeAttribute(event.name)}
             className="w-full h-full object-contain transition-transform duration-300 hover:scale-105"
             loading="lazy"
@@ -158,11 +165,15 @@ export function EventCard({ event, variant = "default" }: EventCardProps) {
               </Badge>
             </div>
             <span
-              className="text-sm text-muted-foreground flex gap-1 justify-between w-full"
+              className="text-xs text-muted-foreground flex gap-2 items-center justify-between w-full flex-wrap"
               data-testid={`text-event-date-${event.id}`}
             >
-              <p className="font-bold">Start: {formatDate(event.dateStart)}</p>
-              <p className="font-bold">End: {formatDate(event.dateEnd)}</p>
+              <span className="whitespace-nowrap">
+                Start: {formatDate(event.dateStart)}
+              </span>
+              <span className="whitespace-nowrap">
+                End: {formatDate(event.dateEnd)}
+              </span>
             </span>
           </div>
 

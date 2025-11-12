@@ -15,6 +15,7 @@ import {
   Calendar,
 } from "lucide-react";
 import contactData from "@/data/contacts.json";
+import { safeUrl } from "@/components/common/safe-text";
 
 export default function Contact() {
   const { college, coordinators, office_hours, social_media } = contactData;
@@ -142,34 +143,42 @@ export default function Contact() {
                 </h3>
                 <div className="flex space-x-4">
                   <a
-                    href={social_media.facebook}
+                    href={safeUrl(social_media.facebook, undefined, true) || "#"}
                     className="group bg-gradient-to-br from-blue-500 to-blue-600 text-white p-4 rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-300 hover:scale-110 hover:shadow-lg"
                     data-testid="link-social-facebook"
                     aria-label="Facebook"
+                    target="_blank"
+                    rel="noopener noreferrer"
                   >
                     <Facebook className="h-6 w-6 group-hover:scale-110 transition-transform duration-300" />
                   </a>
                   <a
-                    href={social_media.twitter}
+                    href={safeUrl(social_media.twitter, undefined, true) || "#"}
                     className="group bg-gradient-to-br from-sky-400 to-sky-500 text-white p-4 rounded-xl hover:from-sky-500 hover:to-sky-600 transition-all duration-300 hover:scale-110 hover:shadow-lg"
                     data-testid="link-social-twitter"
                     aria-label="Twitter"
+                    target="_blank"
+                    rel="noopener noreferrer"
                   >
                     <Twitter className="h-6 w-6 group-hover:scale-110 transition-transform duration-300" />
                   </a>
                   <a
-                    href={social_media.instagram}
+                    href={safeUrl(social_media.instagram, undefined, true) || "#"}
                     className="group bg-gradient-to-br from-pink-500 to-purple-600 text-white p-4 rounded-xl hover:from-pink-600 hover:to-purple-700 transition-all duration-300 hover:scale-110 hover:shadow-lg"
                     data-testid="link-social-instagram"
                     aria-label="Instagram"
+                    target="_blank"
+                    rel="noopener noreferrer"
                   >
                     <Instagram className="h-6 w-6 group-hover:scale-110 transition-transform duration-300" />
                   </a>
                   <a
-                    href={social_media.linkedin}
+                    href={safeUrl(social_media.linkedin, undefined, true) || "#"}
                     className="group bg-gradient-to-br from-blue-600 to-blue-700 text-white p-4 rounded-xl hover:from-blue-700 hover:to-blue-800 transition-all duration-300 hover:scale-110 hover:shadow-lg"
                     data-testid="link-social-linkedin"
                     aria-label="LinkedIn"
+                    target="_blank"
+                    rel="noopener noreferrer"
                   >
                     <Linkedin className="h-6 w-6 group-hover:scale-110 transition-transform duration-300" />
                   </a>
@@ -181,9 +190,10 @@ export default function Contact() {
             <div className="group">
               <div className="relative">
                 <img
-                  src="https://images.unsplash.com/photo-1541339907198-e08756dedf3f?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=600"
+                  src={safeUrl("https://images.unsplash.com/photo-1541339907198-e08756dedf3f?ixlib=rb-4.0.3&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=800&h=600", undefined, false) || "/images/schools/School_1.jpg"}
                   alt="Campus aerial view"
                   className="rounded-2xl shadow-xl w-full h-auto transition-transform duration-500 group-hover:scale-[1.02]"
+                  loading="lazy"
                 />
               </div>
               <div className="mt-4 bg-white/90 backdrop-blur-sm rounded-xl p-4 shadow-lg opacity-0 translate-y-2 transition-all duration-300 group-hover:opacity-100 group-hover:translate-y-0">
@@ -225,7 +235,7 @@ export default function Contact() {
                   <div className="relative mx-auto mb-6">
                     <Avatar className="w-24 h-24 border-4 border-white shadow-lg">
                       <AvatarImage 
-                        src={faculty.avatar} 
+                        src={safeUrl(faculty.avatar, undefined, false) || ""} 
                         alt={faculty.name}
                         className="object-cover"
                       />
@@ -320,7 +330,7 @@ export default function Contact() {
                   <div className="relative mx-auto mb-6">
                     <Avatar className="w-24 h-24 border-4 border-white shadow-lg">
                       <AvatarImage 
-                        src={student.avatar} 
+                        src={safeUrl(student.avatar, undefined, false) || ""} 
                         alt={student.name}
                         className="object-cover"
                       />

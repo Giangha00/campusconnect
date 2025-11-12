@@ -3,7 +3,7 @@ import { Event } from "@/types/event";
 export type EventStatus = "incoming" | "upcoming" | "ongoing" | "completed";
 
 /**
- * Parse time string (e.g., "10:00 AM - 6:00 PM") and return start and end times in 24h format
+ * Parse time string (e.g., "10:00 AM - 6:00 PM" or "08:00 AM") and return start and end times in 24h format
  */
 function parseTimeString(timeString: string): { startHour: number; startMinute: number; endHour: number; endMinute: number } | null {
   if (!timeString) return null;
@@ -12,29 +12,53 @@ function parseTimeString(timeString: string): { startHour: number; startMinute: 
   const timePattern = /(\d{1,2}):(\d{2})\s*(AM|PM)\s*-\s*(\d{1,2}):(\d{2})\s*(AM|PM)/i;
   const match = timeString.match(timePattern);
 
-  if (!match) return null;
+  if (match) {
+    // Full time range format
+    let startHour = parseInt(match[1], 10);
+    const startMinute = parseInt(match[2], 10);
+    const startPeriod = match[3].toUpperCase();
+    let endHour = parseInt(match[4], 10);
+    const endMinute = parseInt(match[5], 10);
+    const endPeriod = match[6].toUpperCase();
 
-  let startHour = parseInt(match[1], 10);
-  const startMinute = parseInt(match[2], 10);
-  const startPeriod = match[3].toUpperCase();
-  let endHour = parseInt(match[4], 10);
-  const endMinute = parseInt(match[5], 10);
-  const endPeriod = match[6].toUpperCase();
+    // Convert to 24-hour format
+    if (startPeriod === "PM" && startHour !== 12) {
+      startHour += 12;
+    } else if (startPeriod === "AM" && startHour === 12) {
+      startHour = 0;
+    }
 
-  // Convert to 24-hour format
-  if (startPeriod === "PM" && startHour !== 12) {
-    startHour += 12;
-  } else if (startPeriod === "AM" && startHour === 12) {
-    startHour = 0;
+    if (endPeriod === "PM" && endHour !== 12) {
+      endHour += 12;
+    } else if (endPeriod === "AM" && endHour === 12) {
+      endHour = 0;
+    }
+
+    return { startHour, startMinute, endHour, endMinute };
   }
 
-  if (endPeriod === "PM" && endHour !== 12) {
-    endHour += 12;
-  } else if (endPeriod === "AM" && endHour === 12) {
-    endHour = 0;
+  // Try to match single time format (e.g., "08:00 AM")
+  const singleTimePattern = /(\d{1,2}):(\d{2})\s*(AM|PM)/i;
+  const singleMatch = timeString.match(singleTimePattern);
+
+  if (singleMatch) {
+    // Only start time provided, use it for start and set end to 23:59
+    let startHour = parseInt(singleMatch[1], 10);
+    const startMinute = parseInt(singleMatch[2], 10);
+    const startPeriod = singleMatch[3].toUpperCase();
+
+    // Convert to 24-hour format
+    if (startPeriod === "PM" && startHour !== 12) {
+      startHour += 12;
+    } else if (startPeriod === "AM" && startHour === 12) {
+      startHour = 0;
+    }
+
+    // Use start time for start, and 23:59 for end (end of day)
+    return { startHour, startMinute, endHour: 23, endMinute: 59 };
   }
 
-  return { startHour, startMinute, endHour, endMinute };
+  return null;
 }
 
 /**
@@ -74,60 +98,64 @@ export function calculateEventStatus(event: Event): EventStatus {
     ? createDateTime(event.dateEnd, event.time, true)
     : new Date(event.dateEnd + "T23:59:59");
 
-  // For date-only comparisons (for incoming/upcoming status)
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  const dateStart = new Date(event.dateStart);
-  dateStart.setHours(0, 0, 0, 0);
-  const dateEnd = new Date(event.dateEnd);
-  dateEnd.setHours(23, 59, 59, 999);
-
-  // If event doesn't require registration, use dateStart for incoming status
-  if (!event.registrationRequired) {
-    if (today < dateStart) {
-      return "incoming";
-    }
-  } else {
-    // If event requires registration, use registrationStart for incoming status
-    if (event.registrationStart && event.registrationEnd) {
-      const registrationStart = new Date(event.registrationStart);
-      const registrationEnd = new Date(event.registrationEnd);
-      registrationStart.setHours(0, 0, 0, 0);
-      registrationEnd.setHours(23, 59, 59, 999);
-
-      if (today < registrationStart) {
-        return "incoming";
-      }
-
-      if (today >= registrationStart && today <= registrationEnd && today < dateStart) {
-        return "upcoming";
-      }
-    }
-  }
-
-  // Check if event is completed (using actual datetime with time)
+  // Status is determined solely based on event start and end dates compared to current date/time
+  // 1. If current time is after event end date/time → completed
   if (now > eventEndDateTime) {
     return "completed";
   }
 
-  // Check if event is ongoing (using actual datetime with time)
+  // 2. If current time is between event start and end date/time → ongoing
   if (now >= eventStartDateTime && now <= eventEndDateTime) {
     return "ongoing";
   }
 
-  // Check if event is upcoming (hasn't started yet but date is today or in the future)
-  if (today >= dateStart && now < eventStartDateTime) {
+  // 3. If current time is before event start date/time → upcoming
+  // Use "incoming" for events that are far in the future (30+ days away)
+  // and "upcoming" for events that are closer (within 30 days)
+  if (now < eventStartDateTime) {
+    const daysUntilStart = Math.ceil(
+      (eventStartDateTime.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    
+    // If event starts more than 30 days from now, it's "incoming"
+    if (daysUntilStart >= 30) {
+      return "incoming";
+    }
+    
+    // Otherwise, it's "upcoming" (within 30 days)
     return "upcoming";
   }
 
-  // If event date is in the future
-  if (today < dateStart) {
-    return "upcoming";
-  }
-
-  // Default fallback
+  // Default fallback (should not reach here, but just in case)
   return "upcoming";
+}
+
+/**
+ * Check if registration is allowed for an event based on days until event start
+ * Registration is allowed if: 30 > daysUntilStart >= 5
+ * Registration is NOT allowed if: daysUntilStart < 5
+ */
+export function canRegisterForEvent(event: Event): boolean {
+  const now = new Date();
+  
+  // Create datetime object for event start
+  const eventStartDateTime = event.time
+    ? createDateTime(event.dateStart, event.time, false)
+    : new Date(event.dateStart + "T00:00:00");
+
+  // If event has already started or ended, registration is not allowed
+  if (now >= eventStartDateTime) {
+    return false;
+  }
+
+  // Calculate days until event start
+  const daysUntilStart = Math.ceil(
+    (eventStartDateTime.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+  );
+
+  // Registration is allowed if: 30 > daysUntilStart >= 5
+  // Registration is NOT allowed if: daysUntilStart < 5
+  return daysUntilStart >= 5 && daysUntilStart < 30;
 }
 
 export function getStatusColor(status: EventStatus): string {

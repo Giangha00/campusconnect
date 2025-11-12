@@ -1,4 +1,4 @@
-import { escapeHtml } from "@/lib/xss-protection";
+import { escapeHtml, sanitizeUrl } from "@/lib/xss-protection";
 
 interface SafeTextProps {
   children: string | null | undefined;
@@ -32,4 +32,20 @@ export function SafeText({
  */
 export function sanitizeAttribute(value: string | null | undefined): string {
   return escapeHtml(value);
+}
+
+/**
+ * SafeUrl component for sanitizing URLs to prevent XSSI attacks
+ * Use this for href, src, iframe src, etc.
+ * @param url - URL to sanitize
+ * @param allowedDomains - Optional array of allowed domains
+ * @param strict - If true, only allow whitelisted domains. If false, allow any domain (for images)
+ * @returns Sanitized URL or empty string if invalid
+ */
+export function safeUrl(
+  url: string | null | undefined,
+  allowedDomains?: string[],
+  strict: boolean = true
+): string {
+  return sanitizeUrl(url, allowedDomains, strict);
 }

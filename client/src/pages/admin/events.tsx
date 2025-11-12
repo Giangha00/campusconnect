@@ -65,6 +65,13 @@ import {
 } from "lucide-react";
 import { AdminNavbar } from "@/components/admin/admin-navbar";
 
+// Helper function to get tomorrow's date in YYYY-MM-DD format
+const getTomorrowDate = (): string => {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return tomorrow.toISOString().split("T")[0];
+};
+
 export default function AdminEventsPage() {
   const { admin } = useAdmin();
   const { events: eventsData, deleteEvent, createEvent } = useEvents();
@@ -129,7 +136,7 @@ export default function AdminEventsPage() {
     let list = allEventsWithStatus;
     const q = query.toLowerCase().trim();
 
-    return list.filter((e) => {
+    const filtered = list.filter((e) => {
       const matchesQuery =
         !q ||
         e.name.toLowerCase().includes(q) ||
@@ -145,6 +152,28 @@ export default function AdminEventsPage() {
       const matchesStatus = statusFilter === "all" || e.status === statusFilter;
 
       return matchesQuery && matchesDate && matchesStatus;
+    });
+
+    // Sort by status: ongoing -> upcoming -> incoming -> completed
+    // Then by dateStart from nearest to farthest within same status
+    const statusOrder: Record<string, number> = {
+      ongoing: 1,
+      upcoming: 2,
+      incoming: 3,
+      completed: 4,
+    };
+
+    return filtered.sort((a, b) => {
+      const statusA = statusOrder[a.status] || 999;
+      const statusB = statusOrder[b.status] || 999;
+
+      // First sort by status
+      if (statusA !== statusB) {
+        return statusA - statusB;
+      }
+
+      // If same status, sort by dateStart from nearest to farthest
+      return new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime();
     });
   }, [allEventsWithStatus, query, startDate, endDate, statusFilter]);
 
@@ -297,10 +326,13 @@ export default function AdminEventsPage() {
 
   const handleEditEvent = (eventId: number) => {
     const event = allEventsWithStatus.find((e) => e.id === eventId);
-    if (event?.status === "completed") {
+    if (event?.status === "completed" || event?.status === "ongoing") {
       toast({
-        title: "Cannot Edit Completed Event",
-        description: "Completed events cannot be edited.",
+        title: "Cannot Edit Event",
+        description:
+          event?.status === "completed"
+            ? "Completed events cannot be edited."
+            : "Ongoing events cannot be edited.",
         variant: "destructive",
       });
       return;
@@ -509,7 +541,13 @@ export default function AdminEventsPage() {
                         handleInputChange("dateStart", e.target.value)
                       }
                       className="col-span-3"
-                      min={new Date().toISOString().split("T")[0]}
+                      min={getTomorrowDate()}
+                      onKeyDown={(e) => {
+                        // Prevent typing in date input
+                        if (e.key !== "Tab" && e.key !== "Enter" && e.key !== "Escape") {
+                          e.preventDefault();
+                        }
+                      }}
                     />
                   </div>
 
@@ -527,8 +565,14 @@ export default function AdminEventsPage() {
                       className="col-span-3"
                       min={
                         newEvent.dateStart ||
-                        new Date().toISOString().split("T")[0]
+                        getTomorrowDate()
                       }
+                      onKeyDown={(e) => {
+                        // Prevent typing in date input
+                        if (e.key !== "Tab" && e.key !== "Enter" && e.key !== "Escape") {
+                          e.preventDefault();
+                        }
+                      }}
                     />
                   </div>
 
@@ -661,7 +705,13 @@ export default function AdminEventsPage() {
                         handleInputChange("registrationStart", e.target.value)
                       }
                       className="col-span-3"
-                      min={new Date().toISOString().split("T")[0]}
+                      min={getTomorrowDate()}
+                      onKeyDown={(e) => {
+                        // Prevent typing in date input
+                        if (e.key !== "Tab" && e.key !== "Enter" && e.key !== "Escape") {
+                          e.preventDefault();
+                        }
+                      }}
                     />
                   </div>
 
@@ -679,8 +729,14 @@ export default function AdminEventsPage() {
                       className="col-span-3"
                       min={
                         newEvent.registrationStart ||
-                        new Date().toISOString().split("T")[0]
+                        getTomorrowDate()
                       }
+                      onKeyDown={(e) => {
+                        // Prevent typing in date input
+                        if (e.key !== "Tab" && e.key !== "Enter" && e.key !== "Escape") {
+                          e.preventDefault();
+                        }
+                      }}
                     />
                   </div>
                 </div>
@@ -967,12 +1023,18 @@ export default function AdminEventsPage() {
                         title={
                           event.status === "completed"
                             ? "Cannot edit completed event"
+                            : event.status === "ongoing"
+                            ? "Cannot edit ongoing event"
                             : "Edit event"
                         }
                         onClick={() => handleEditEvent(event.id)}
-                        disabled={event.status === "completed"}
+                        disabled={
+                          event.status === "completed" ||
+                          event.status === "ongoing"
+                        }
                         className={`h-8 w-8 ${
-                          event.status === "completed"
+                          event.status === "completed" ||
+                          event.status === "ongoing"
                             ? "opacity-50 cursor-not-allowed"
                             : "hover:bg-blue-50 hover:border-blue-200"
                         }`}
@@ -1029,10 +1091,13 @@ export default function AdminEventsPage() {
                           <span>Registrations</span>
                         </div>
                         <span className="text-sm font-bold text-gray-900">
-                          {count}
-                          {event.capacity && typeof event.capacity === "number"
-                            ? `/${event.capacity}`
-                            : ""}
+                          {event.capacity === "No limit" ||
+                          (typeof event.capacity === "string" &&
+                            event.capacity.toLowerCase() === "no limit")
+                            ? "No limit"
+                            : `${count}${event.capacity && typeof event.capacity === "number"
+                                ? `/${event.capacity}`
+                                : ""}`}
                         </span>
                       </div>
                       {event.capacity && typeof event.capacity === "number" && (
@@ -1060,10 +1125,7 @@ export default function AdminEventsPage() {
                           <span>Check-ins</span>
                         </div>
                         <span className="text-sm font-bold text-gray-900">
-                          {checkInCount}
-                          {event.capacity && typeof event.capacity === "number"
-                            ? `/${event.capacity}`
-                            : ""}
+                          {checkInCount || 0}
                         </span>
                       </div>
                       {event.capacity && typeof event.capacity === "number" && (

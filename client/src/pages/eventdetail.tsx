@@ -8,6 +8,7 @@ import {
   calculateEventStatus,
   getStatusColor,
   getStatusLabel,
+  canRegisterForEvent,
 } from "@/lib/event-status";
 import {
   Clock,
@@ -29,7 +30,11 @@ import { useRegistration } from "@/contexts/registration-context";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { LoginDialog } from "@/components/auth/login-dialog";
-import { SafeText, sanitizeAttribute } from "@/components/common/safe-text";
+import {
+  SafeText,
+  sanitizeAttribute,
+  safeUrl,
+} from "@/components/common/safe-text";
 
 const categoryColors = {
   academic: "bg-primary text-primary-foreground",
@@ -52,6 +57,7 @@ export default function EventDetail() {
 
   // Calculate current status based on dates
   const currentStatus = event ? calculateEventStatus(event as any) : null;
+  const canRegister = event ? canRegisterForEvent(event as any) : false;
 
   if (!event) {
     return (
@@ -95,6 +101,15 @@ export default function EventDetail() {
       return;
     }
 
+    if (!canRegister && !isRegistered) {
+      toast({
+        title: "Registration Closed",
+        description: "Registration is only available 5-30 days before the event",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (isRegistered) {
       unregisterFromEvent(event.id);
       toast({
@@ -129,7 +144,10 @@ export default function EventDetail() {
         <div className="lg:col-span-2 space-y-6">
           <div className="aspect-video relative overflow-hidden rounded-lg">
             <img
-              src={event.image}
+              src={
+                safeUrl(event.image, undefined, false) ||
+                "/images/schools/School_1.jpg"
+              }
               alt={sanitizeAttribute(event.name)}
               className="w-full h-full object-cover"
               loading="lazy"
@@ -297,10 +315,18 @@ export default function EventDetail() {
                       size="lg"
                       onClick={handleRegistrationToggle}
                       variant={isRegistered ? "outline" : "default"}
+                      disabled={!canRegister && !isRegistered}
+                      title={
+                        !canRegister && !isRegistered
+                          ? "Registration is only available 5-30 days before the event"
+                          : ""
+                      }
                     >
                       <UserCheck className="h-4 w-4 mr-2" />
                       {isRegistered
                         ? "Registered"
+                        : !canRegister
+                        ? "Registration Closed"
                         : event.registrationRequired
                         ? "Register for Event"
                         : "Join Event"}
@@ -329,7 +355,7 @@ export default function EventDetail() {
                 )}
 
                 {/* Register for Event button for non-logged in users on upcoming events */}
-                {!user && currentStatus === "upcoming" && (
+                {!user && currentStatus === "upcoming" && canRegister && (
                   <Button
                     onClick={handleRegisterForNonLoggedInUser}
                     className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"

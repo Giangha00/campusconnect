@@ -4,24 +4,26 @@ import { EventCarousel } from "@/components/events/event-carousel";
 import { SearchBar } from "@/components/search/search-bar";
 import { useEvents } from "@/contexts/events-context";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock, MapPin, Activity, ChevronDown } from "lucide-react";
-import { useState, useMemo, useEffect } from "react";
+import { Input } from "@/components/ui/input";
+import {
+  Calendar as CalendarIcon,
+  Clock,
+  MapPin,
+  Activity,
+  ChevronDown,
+  X,
+} from "lucide-react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { EventCategory, EventStatus, EventSortBy } from "@/types/event";
 import { calculateEventStatus } from "@/lib/event-status";
+import { formatDate } from "@/lib/date-utils";
 
 export default function Events() {
   const { events } = useEvents();
@@ -30,10 +32,12 @@ export default function Events() {
   const [statusFilter, setStatusFilter] = useState<EventStatus>("all");
   const [sortBy, setSortBy] = useState<EventSortBy>("date");
   const [searchQuery, setSearchQuery] = useState("");
-  const [monthFilter, setMonthFilter] = useState<string>("all");
+  const [fromDate, setFromDate] = useState<string>("");
+  const [toDate, setToDate] = useState<string>("");
 
   const [currentPage, setCurrentPage] = useState(1);
   const eventsPerPage = 9;
+  const prevPageRef = useRef<number>(1);
 
   // Handle query parameter for initial category filter
   useEffect(() => {
@@ -49,15 +53,30 @@ export default function Events() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, filter, statusFilter, sortBy, monthFilter]);
+  }, [searchQuery, filter, statusFilter, sortBy, fromDate, toDate]);
+
+  // Scroll to top of events list when page changes
+  useEffect(() => {
+    // Only scroll if page actually changed (not on initial mount)
+    if (prevPageRef.current !== currentPage) {
+      const eventsSection = document.getElementById("events-list-section");
+      if (eventsSection) {
+        eventsSection.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else {
+        // Fallback: scroll to top of page
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+      prevPageRef.current = currentPage;
+    }
+  }, [currentPage]);
 
   // Add status to events and apply filtering/sorting
   const processedEvents = useMemo(() => {
-    // Add status to each event and preserve creation order (newer events have lower index)
-    const eventsWithStatus = events.map((event, index) => ({
+    // Add status to each event
+    // Events from context are already sorted by dateStart
+    const eventsWithStatus = events.map((event) => ({
       ...event,
       status: calculateEventStatus(event as any),
-      creationOrder: index, // Lower index = more recently created
     }));
 
     let filteredEvents = eventsWithStatus;
@@ -89,78 +108,108 @@ export default function Events() {
       );
     }
 
-    // Apply month filter
-    if (monthFilter !== "all") {
-      const selectedMonth = parseInt(monthFilter);
+    // Apply date range filter
+    if (fromDate || toDate) {
       filteredEvents = filteredEvents.filter((event) => {
-        const eventMonth = new Date(event.dateStart).getMonth() + 1; // getMonth() returns 0-11
-        return eventMonth === selectedMonth;
+        const eventStart = new Date(event.dateStart);
+        const eventEnd = new Date(event.dateEnd);
+
+        // If only "from" date is selected, show events that start on or after that date
+        if (fromDate && !toDate) {
+          const fromDateObj = new Date(fromDate);
+          return eventStart >= fromDateObj;
+        }
+
+        // If only "to" date is selected, show events that end on or before that date
+        if (!fromDate && toDate) {
+          const toDateObj = new Date(toDate);
+          return eventEnd <= toDateObj;
+        }
+
+        // If both dates are selected, show events that overlap with the date range
+        if (fromDate && toDate) {
+          const fromDateObj = new Date(fromDate);
+          const toDateObj = new Date(toDate);
+          // Event overlaps if: eventStart <= rangeTo AND eventEnd >= rangeFrom
+          return eventStart <= toDateObj && eventEnd >= fromDateObj;
+        }
+
+        return true;
       });
     }
 
     // Apply sorting
     const sortedEvents = [...filteredEvents];
+    
+    // Default sort by status: ongoing -> upcoming -> incoming -> completed
+    // Then by dateStart from nearest to farthest
+    const defaultStatusOrder: Record<string, number> = {
+      ongoing: 1,
+      upcoming: 2,
+      incoming: 3,
+      completed: 4,
+    };
+    
     switch (sortBy) {
       case "date":
-        // Sort by creation order first (newer events first), then by status priority, then by date
-        const statusPriority = {
-          ongoing: 0,
-          upcoming: 1,
-          incoming: 2,
-          completed: 3,
-        };
+        // Sort by status first: ongoing -> upcoming -> incoming -> completed
+        // Then by dateStart from nearest to farthest
         sortedEvents.sort((a, b) => {
-          // First, sort by creation order (newer events first)
-          if (a.creationOrder !== b.creationOrder) {
-            return a.creationOrder - b.creationOrder;
+          const statusA = defaultStatusOrder[a.status] || 999;
+          const statusB = defaultStatusOrder[b.status] || 999;
+          
+          // First sort by status
+          if (statusA !== statusB) {
+            return statusA - statusB;
           }
-          // Then by status priority
-          if (statusPriority[a.status] !== statusPriority[b.status]) {
-            return statusPriority[a.status] - statusPriority[b.status];
-          }
-          // Finally by date (newest first within each status group)
-          return (
-            new Date(b.dateStart).getTime() - new Date(a.dateStart).getTime()
-          );
+          
+          // If same status, sort by dateStart from nearest to farthest
+          return new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime();
         });
         break;
       case "category":
         sortedEvents.sort((a, b) => {
-          // First by creation order, then by category
-          if (a.creationOrder !== b.creationOrder) {
-            return a.creationOrder - b.creationOrder;
+          // First by category, then by dateStart (descending)
+          const categoryCompare = a.category.localeCompare(b.category);
+          if (categoryCompare !== 0) {
+            return categoryCompare;
           }
-          return a.category.localeCompare(b.category);
+          return new Date(b.dateStart).getTime() - new Date(a.dateStart).getTime();
         });
         break;
       case "status":
         const statusOrder = {
-          incoming: 0,
-          upcoming: 1,
-          ongoing: 2,
-          completed: 3,
+          ongoing: 1,
+          upcoming: 2,
+          incoming: 3,
+          completed: 4,
         };
         sortedEvents.sort((a, b) => {
-          // First by creation order, then by status
-          if (a.creationOrder !== b.creationOrder) {
-            return a.creationOrder - b.creationOrder;
+          // First by status: ongoing -> upcoming -> incoming -> completed
+          const statusA = statusOrder[a.status] || 999;
+          const statusB = statusOrder[b.status] || 999;
+          const statusCompare = statusA - statusB;
+          if (statusCompare !== 0) {
+            return statusCompare;
           }
-          return statusOrder[a.status] - statusOrder[b.status];
+          // Then by dateStart from nearest to farthest
+          return new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime();
         });
         break;
       case "time":
         sortedEvents.sort((a, b) => {
-          // First by creation order, then by time
-          if (a.creationOrder !== b.creationOrder) {
-            return a.creationOrder - b.creationOrder;
+          // First by time, then by dateStart (descending)
+          const timeCompare = a.time.localeCompare(b.time);
+          if (timeCompare !== 0) {
+            return timeCompare;
           }
-          return a.time.localeCompare(b.time);
+          return new Date(b.dateStart).getTime() - new Date(a.dateStart).getTime();
         });
         break;
     }
 
     return sortedEvents;
-  }, [events, filter, statusFilter, sortBy, searchQuery, monthFilter]);
+  }, [events, filter, statusFilter, sortBy, searchQuery, fromDate, toDate]);
 
   // Get upcoming events for carousel
   const upcomingEvents = useMemo(() => {
@@ -244,7 +293,6 @@ export default function Events() {
   }, [totalPages, currentPage]);
 
   const sortOptions = [
-    { value: "date", label: "Sort by date", icon: Calendar },
     { value: "status", label: "Sort by status", icon: Activity },
     // { value: "time", label: "Sort by time", icon: Clock },
   ];
@@ -255,22 +303,6 @@ export default function Events() {
     { value: "upcoming", label: "Upcoming" },
     { value: "ongoing", label: "Ongoing" },
     { value: "completed", label: "Completed" },
-  ];
-
-  const monthOptions = [
-    { value: "all", label: "All Months" },
-    { value: "1", label: "January" },
-    { value: "2", label: "February" },
-    { value: "3", label: "March" },
-    { value: "4", label: "April" },
-    { value: "5", label: "May" },
-    { value: "6", label: "June" },
-    { value: "7", label: "July" },
-    { value: "8", label: "August" },
-    { value: "9", label: "September" },
-    { value: "10", label: "October" },
-    { value: "11", label: "November" },
-    { value: "12", label: "December" },
   ];
 
   return (
@@ -298,94 +330,124 @@ export default function Events() {
               onSortChange={setSortBy}
             />
 
-            <div className="flex gap-2 items-center flex-wrap">
-              <span className="text-sm font-medium text-muted-foreground">
-                Select Month:
-              </span>
-              <Select value={monthFilter} onValueChange={setMonthFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Select month" />
-                </SelectTrigger>
-                <SelectContent>
-                  {monthOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            <div className="flex gap-2 items-center flex-wrap justify-center">
+              <div className="flex gap-2 items-center">
+                <span className="text-sm font-medium text-muted-foreground">
+                  Select Date:
+                </span>
+                <div className="flex gap-2 items-center">
+                  <div className="flex items-center gap-1">
+                    <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="date"
+                      value={fromDate}
+                      onChange={(e) => setFromDate(e.target.value)}
+                      placeholder="From"
+                      className="w-[150px]"
+                      data-testid="input-date-from"
+                    />
+                  </div>
+                  <span className="text-sm text-muted-foreground">to</span>
+                  <div className="flex items-center gap-1">
+                    <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                    <Input
+                      type="date"
+                      value={toDate}
+                      onChange={(e) => setToDate(e.target.value)}
+                      placeholder="To"
+                      className="w-[150px]"
+                      min={fromDate || undefined}
+                      data-testid="input-date-to"
+                    />
+                  </div>
+                  {(fromDate || toDate) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setFromDate("");
+                        setToDate("");
+                      }}
+                      className="h-8 w-8 p-0"
+                      data-testid="button-clear-date"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
 
-            <div className="flex gap-2 items-center flex-wrap">
-              <span className="text-sm font-medium text-muted-foreground">
-                Advanced Sort:
-              </span>
-              {sortOptions.map((option) => {
-                const IconComponent = option.icon;
+              <div className="flex gap-2 items-center flex-wrap">
+                <span className="text-sm font-medium text-muted-foreground">
+                  Advanced Sort:
+                </span>
+                {sortOptions.map((option) => {
+                  const IconComponent = option.icon;
 
-                if (option.value === "status") {
-                  return (
-                    <DropdownMenu key={option.value}>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant={
-                            statusFilter !== "all" ? "default" : "outline"
-                          }
-                          size="sm"
-                          className="gap-2"
-                          data-testid={`button-filter-by-status`}
-                        >
-                          <IconComponent className="h-4 w-4" />
-                          {statusFilter !== "all"
-                            ? statusOptions.find(
-                                (s) => s.value === statusFilter
-                              )?.label
-                            : "Filter by Status"}
-                          <ChevronDown className="h-3 w-3" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        {statusOptions.map((statusOption) => (
-                          <DropdownMenuItem
-                            key={statusOption.value}
-                            onClick={() =>
-                              setStatusFilter(statusOption.value as any)
+                  if (option.value === "status") {
+                    return (
+                      <DropdownMenu key={option.value}>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant={
+                              statusFilter !== "all" ? "default" : "outline"
                             }
-                            className={
-                              statusFilter === statusOption.value
-                                ? "bg-accent"
-                                : ""
-                            }
+                            size="sm"
+                            className="gap-2"
+                            data-testid={`button-filter-by-status`}
                           >
-                            {statusOption.label}
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  );
-                }
+                            <IconComponent className="h-4 w-4" />
+                            {statusFilter !== "all"
+                              ? statusOptions.find(
+                                  (s) => s.value === statusFilter
+                                )?.label
+                              : "Filter by Status"}
+                            <ChevronDown className="h-3 w-3" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          {statusOptions.map((statusOption) => (
+                            <DropdownMenuItem
+                              key={statusOption.value}
+                              onClick={() =>
+                                setStatusFilter(statusOption.value as any)
+                              }
+                              className={
+                                statusFilter === statusOption.value
+                                  ? "bg-accent"
+                                  : ""
+                              }
+                            >
+                              {statusOption.label}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    );
+                  }
 
-                return (
-                  <Button
-                    key={option.value}
-                    variant={sortBy === option.value ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSortBy(option.value as any)}
-                    className="gap-2"
-                    data-testid={`button-sort-${option.value}`}
-                  >
-                    <IconComponent className="h-4 w-4" />
-                    {option.label}
-                  </Button>
-                );
-              })}
+                  return (
+                    <Button
+                      key={option.value}
+                      variant={sortBy === option.value ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSortBy(option.value as any)}
+                      className="gap-2"
+                      data-testid={`button-sort-${option.value}`}
+                    >
+                      <IconComponent className="h-4 w-4" />
+                      {option.label}
+                    </Button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
       </section>
 
       {/* Events Grid */}
-      <section className="py-16 bg-muted">
+      <section id="events-list-section" className="py-16 bg-muted">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {processedEvents.length === 0 ? (
             <div className="text-center py-12">
@@ -433,11 +495,22 @@ export default function Events() {
                       </span>
                     </span>
                   )}
-                  {monthFilter !== "all" && (
+                  {fromDate && toDate && (
                     <span className="text-muted-foreground">
                       {" "}
-                      in{" "}
-                      {monthOptions.find((m) => m.value === monthFilter)?.label}
+                      from {formatDate(fromDate)} to {formatDate(toDate)}
+                    </span>
+                  )}
+                  {fromDate && !toDate && (
+                    <span className="text-muted-foreground">
+                      {" "}
+                      from {formatDate(fromDate)}
+                    </span>
+                  )}
+                  {!fromDate && toDate && (
+                    <span className="text-muted-foreground">
+                      {" "}
+                      until {formatDate(toDate)}
                     </span>
                   )}
                 </h2>
