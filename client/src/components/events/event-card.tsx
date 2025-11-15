@@ -7,6 +7,7 @@ import {
   calculateEventStatus,
   getStatusColor,
   getStatusLabel,
+  canRegisterForEvent,
 } from "@/lib/event-status";
 import {
   Clock,
@@ -54,6 +55,9 @@ export function EventCard({ event, variant = "default" }: EventCardProps) {
 
   // Calculate current status based on dates
   const currentStatus = calculateEventStatus(event);
+  
+  // Check registration status for upcoming events
+  const isRegistrationOpen = currentStatus === "upcoming" && canRegisterForEvent(event);
 
   const handleBookmarkToggle = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -163,6 +167,18 @@ export function EventCard({ event, variant = "default" }: EventCardProps) {
               >
                 {getStatusLabel(currentStatus)}
               </Badge>
+              {currentStatus === "upcoming" && (
+                <Badge
+                  variant="outline"
+                  className={
+                    isRegistrationOpen
+                      ? "bg-green-100 text-green-800 border-green-200"
+                      : "bg-gray-100 text-gray-800 border-gray-200"
+                  }
+                >
+                  {isRegistrationOpen ? "Registration Opening" : "Registration Closed"}
+                </Badge>
+              )}
             </div>
             <span
               className="text-xs text-muted-foreground flex gap-2 items-center justify-between w-full flex-wrap"

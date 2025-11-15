@@ -64,6 +64,7 @@ import {
   Edit,
   Trash2,
   Plus,
+  Download,
 } from "lucide-react";
 import { AdminNavbar } from "@/components/admin/admin-navbar";
 
@@ -296,21 +297,31 @@ export default function AdminEventsPage() {
 
   const exportCSV = (eventId: number) => {
     const regs = getRegistrationsByEvent(eventId);
+    const event = allEventsWithStatus.find((e) => e.id === eventId);
+    const eventName = event?.name || `Event-${eventId}`;
+    
+    // Sanitize event name for filename
+    const sanitizedEventName = eventName.replace(/[^a-z0-9]/gi, "_").toLowerCase();
+    
     const headers = [
-      "eventId",
-      "userId",
-      "name",
-      "role",
-      "department",
-      "registeredAt",
+      "Name",
+      "Email",
+      "Role",
+      "Department",
+      "Ticket Number",
+      "Registered At",
+      "Checked In",
+      "Checked In At",
     ];
     const rows = regs.map((r) => [
-      r.eventId,
-      r.userId,
       r.name,
+      r.email || "",
       r.role,
       r.department || "",
-      r.registeredAt,
+      r.ticket || "",
+      new Date(r.registeredAt).toLocaleString(),
+      r.checkedIn ? "Yes" : "No",
+      r.checkedInAt ? new Date(r.checkedInAt).toLocaleString() : "",
     ]);
     const csv = [
       headers.join(","),
@@ -322,9 +333,14 @@ export default function AdminEventsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `registrations-event-${eventId}.csv`;
+    a.download = `registrations-${sanitizedEventName}-${eventId}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Export Successful",
+      description: `Registration list for "${eventName}" has been exported.`,
+    });
   };
 
   const handleEditEvent = (eventId: number) => {
@@ -1433,6 +1449,19 @@ export default function AdminEventsPage() {
                           <Users className="h-4 w-4" />
                           Registrants ({registrations.length})
                         </h4>
+                        {registrations.length > 0 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => exportCSV(event.id)}
+                            className="flex items-center gap-2 hover:bg-green-50 hover:border-green-200 hover:text-green-700"
+                            title="Export registrations to CSV"
+                            data-testid={`button-export-csv-${event.id}`}
+                          >
+                            <Download className="h-4 w-4" />
+                            Export CSV
+                          </Button>
+                        )}
                       </div>
 
                       {registrations.length === 0 ? (

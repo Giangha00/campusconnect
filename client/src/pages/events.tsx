@@ -18,11 +18,12 @@ import {
   Activity,
   ChevronDown,
   X,
+  UserPlus,
 } from "lucide-react";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { EventCategory, EventStatus, EventSortBy } from "@/types/event";
-import { calculateEventStatus } from "@/lib/event-status";
+import { calculateEventStatus, canRegisterForEvent } from "@/lib/event-status";
 import { formatDate } from "@/lib/date-utils";
 
 export default function Events() {
@@ -34,6 +35,7 @@ export default function Events() {
   const [searchQuery, setSearchQuery] = useState("");
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
+  const [registrationFilter, setRegistrationFilter] = useState<"all" | "open">("all");
 
   const [currentPage, setCurrentPage] = useState(1);
   const eventsPerPage = 9;
@@ -53,7 +55,7 @@ export default function Events() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, filter, statusFilter, sortBy, fromDate, toDate]);
+  }, [searchQuery, filter, statusFilter, sortBy, fromDate, toDate, registrationFilter]);
 
   // Scroll to top of events list when page changes
   useEffect(() => {
@@ -138,6 +140,14 @@ export default function Events() {
       });
     }
 
+    // Apply registration filter
+    if (registrationFilter === "open") {
+      filteredEvents = filteredEvents.filter((event) => {
+        const status = calculateEventStatus(event as any);
+        return status === "upcoming" && canRegisterForEvent(event as any);
+      });
+    }
+
     // Apply sorting
     const sortedEvents = [...filteredEvents];
     
@@ -209,7 +219,7 @@ export default function Events() {
     }
 
     return sortedEvents;
-  }, [events, filter, statusFilter, sortBy, searchQuery, fromDate, toDate]);
+  }, [events, filter, statusFilter, sortBy, searchQuery, fromDate, toDate, registrationFilter]);
 
   // Get upcoming events for carousel
   const upcomingEvents = useMemo(() => {
@@ -294,6 +304,7 @@ export default function Events() {
 
   const sortOptions = [
     { value: "status", label: "Sort by status", icon: Activity },
+    { value: "registration", label: "Registration Open", icon: UserPlus },
     // { value: "time", label: "Sort by time", icon: Clock },
   ];
 
@@ -423,6 +434,28 @@ export default function Events() {
                           ))}
                         </DropdownMenuContent>
                       </DropdownMenu>
+                    );
+                  }
+
+                  if (option.value === "registration") {
+                    return (
+                      <Button
+                        key={option.value}
+                        variant={
+                          registrationFilter === "open" ? "default" : "outline"
+                        }
+                        size="sm"
+                        onClick={() =>
+                          setRegistrationFilter(
+                            registrationFilter === "open" ? "all" : "open"
+                          )
+                        }
+                        className="gap-2"
+                        data-testid={`button-filter-registration`}
+                      >
+                        <IconComponent className="h-4 w-4" />
+                        {option.label}
+                      </Button>
                     );
                   }
 
