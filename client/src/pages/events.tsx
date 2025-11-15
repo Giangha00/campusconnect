@@ -35,27 +35,98 @@ export default function Events() {
   const [searchQuery, setSearchQuery] = useState("");
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
-  const [registrationFilter, setRegistrationFilter] = useState<"all" | "open">("all");
+  const [registrationFilter, setRegistrationFilter] = useState<"all" | "open">(
+    "all"
+  );
 
   const [currentPage, setCurrentPage] = useState(1);
   const eventsPerPage = 9;
   const prevPageRef = useRef<number>(1);
+  const [queryString, setQueryString] = useState<string>(
+    window.location.search
+  );
 
-  // Handle query parameter for initial category filter
+  // Track query string changes - this handles same-page navigation
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
+    const updateQueryString = () => {
+      const currentQuery = window.location.search;
+      setQueryString(currentQuery);
+    };
+
+    // Check immediately on mount and when location changes
+    updateQueryString();
+
+    // Listen to popstate for browser navigation (back/forward)
+    window.addEventListener("popstate", updateQueryString);
+
+    // Intercept history.pushState and history.replaceState to detect programmatic navigation
+    const originalPushState = history.pushState;
+    const originalReplaceState = history.replaceState;
+
+    history.pushState = function (...args) {
+      originalPushState.apply(history, args);
+      // Use setTimeout to ensure URL is updated
+      setTimeout(updateQueryString, 0);
+    };
+
+    history.replaceState = function (...args) {
+      originalReplaceState.apply(history, args);
+      setTimeout(updateQueryString, 0);
+    };
+
+    // Also check periodically for URL changes (fallback for edge cases)
+    const intervalId = setInterval(updateQueryString, 200);
+
+    return () => {
+      window.removeEventListener("popstate", updateQueryString);
+      clearInterval(intervalId);
+      history.pushState = originalPushState;
+      history.replaceState = originalReplaceState;
+    };
+  }, [location]);
+
+  // Handle query parameter for category filter
+  useEffect(() => {
+    const urlParams = new URLSearchParams(queryString);
     const categoryParam = urlParams.get("category");
+
     if (
       categoryParam &&
       ["academic", "cultural", "sports", "technical"].includes(categoryParam)
     ) {
       setFilter(categoryParam as EventCategory);
+      // Scroll to events list section when filter is applied from query parameter
+      setTimeout(() => {
+        const eventsSection = document.getElementById("events-list-section");
+        if (eventsSection) {
+          eventsSection.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        }
+      }, 100);
+    } else if (!categoryParam) {
+      // Only reset if we're coming from a category link (query string was present before)
+      // This prevents resetting when user manually changes filter
+      const hadCategoryBefore = queryString.includes("category=");
+      if (hadCategoryBefore) {
+        // User removed category from URL, reset filter
+        setFilter("all");
+      }
     }
-  }, [location]);
+  }, [queryString]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, filter, statusFilter, sortBy, fromDate, toDate, registrationFilter]);
+  }, [
+    searchQuery,
+    filter,
+    statusFilter,
+    sortBy,
+    fromDate,
+    toDate,
+    registrationFilter,
+  ]);
 
   // Scroll to top of events list when page changes
   useEffect(() => {
@@ -150,7 +221,7 @@ export default function Events() {
 
     // Apply sorting
     const sortedEvents = [...filteredEvents];
-    
+
     // Default sort by status: ongoing -> upcoming -> incoming -> completed
     // Then by dateStart from nearest to farthest
     const defaultStatusOrder: Record<string, number> = {
@@ -159,7 +230,7 @@ export default function Events() {
       incoming: 3,
       completed: 4,
     };
-    
+
     switch (sortBy) {
       case "date":
         // Sort by status first: ongoing -> upcoming -> incoming -> completed
@@ -167,14 +238,16 @@ export default function Events() {
         sortedEvents.sort((a, b) => {
           const statusA = defaultStatusOrder[a.status] || 999;
           const statusB = defaultStatusOrder[b.status] || 999;
-          
+
           // First sort by status
           if (statusA !== statusB) {
             return statusA - statusB;
           }
-          
+
           // If same status, sort by dateStart from nearest to farthest
-          return new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime();
+          return (
+            new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime()
+          );
         });
         break;
       case "category":
@@ -184,7 +257,9 @@ export default function Events() {
           if (categoryCompare !== 0) {
             return categoryCompare;
           }
-          return new Date(b.dateStart).getTime() - new Date(a.dateStart).getTime();
+          return (
+            new Date(b.dateStart).getTime() - new Date(a.dateStart).getTime()
+          );
         });
         break;
       case "status":
@@ -203,7 +278,9 @@ export default function Events() {
             return statusCompare;
           }
           // Then by dateStart from nearest to farthest
-          return new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime();
+          return (
+            new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime()
+          );
         });
         break;
       case "time":
@@ -213,13 +290,24 @@ export default function Events() {
           if (timeCompare !== 0) {
             return timeCompare;
           }
-          return new Date(b.dateStart).getTime() - new Date(a.dateStart).getTime();
+          return (
+            new Date(b.dateStart).getTime() - new Date(a.dateStart).getTime()
+          );
         });
         break;
     }
 
     return sortedEvents;
-  }, [events, filter, statusFilter, sortBy, searchQuery, fromDate, toDate, registrationFilter]);
+  }, [
+    events,
+    filter,
+    statusFilter,
+    sortBy,
+    searchQuery,
+    fromDate,
+    toDate,
+    registrationFilter,
+  ]);
 
   // Get upcoming events for carousel
   const upcomingEvents = useMemo(() => {
@@ -380,8 +468,7 @@ export default function Events() {
                         setToDate("");
                       }}
                       className="h-8 w-8 p-0"
-                      data-testid="button-clear-date"
-                    >
+                      data-testid="button-clear-date">
                       <X className="h-4 w-4" />
                     </Button>
                   )}
@@ -405,8 +492,7 @@ export default function Events() {
                             }
                             size="sm"
                             className="gap-2"
-                            data-testid={`button-filter-by-status`}
-                          >
+                            data-testid={`button-filter-by-status`}>
                             <IconComponent className="h-4 w-4" />
                             {statusFilter !== "all"
                               ? statusOptions.find(
@@ -427,8 +513,7 @@ export default function Events() {
                                 statusFilter === statusOption.value
                                   ? "bg-accent"
                                   : ""
-                              }
-                            >
+                              }>
                               {statusOption.label}
                             </DropdownMenuItem>
                           ))}
@@ -451,8 +536,7 @@ export default function Events() {
                           )
                         }
                         className="gap-2"
-                        data-testid={`button-filter-registration`}
-                      >
+                        data-testid={`button-filter-registration`}>
                         <IconComponent className="h-4 w-4" />
                         {option.label}
                       </Button>
@@ -466,8 +550,7 @@ export default function Events() {
                       size="sm"
                       onClick={() => setSortBy(option.value as any)}
                       className="gap-2"
-                      data-testid={`button-sort-${option.value}`}
-                    >
+                      data-testid={`button-sort-${option.value}`}>
                       <IconComponent className="h-4 w-4" />
                       {option.label}
                     </Button>
@@ -486,14 +569,12 @@ export default function Events() {
             <div className="text-center py-12">
               <h3
                 className="text-2xl font-semibold text-foreground mb-4"
-                data-testid="text-no-events-title"
-              >
+                data-testid="text-no-events-title">
                 No Events Found
               </h3>
               <p
                 className="text-muted-foreground"
-                data-testid="text-no-events-description"
-              >
+                data-testid="text-no-events-description">
                 {searchQuery
                   ? `No events match the keyword "${searchQuery}". Try searching with a different keyword.`
                   : "No events match the current filter criteria. Try selecting a different category."}
@@ -504,8 +585,7 @@ export default function Events() {
               <div className="mb-8">
                 <h2
                   className="text-2xl font-semibold text-foreground"
-                  data-testid="text-events-count"
-                >
+                  data-testid="text-events-count">
                   Showing {processedEvents.length} events
                   {searchQuery && (
                     <span className="text-muted-foreground">
@@ -562,8 +642,7 @@ export default function Events() {
             <div className="flex justify-center items-center mt-12 space-x-2">
               <Button
                 onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-              >
+                disabled={currentPage === 1}>
                 Previous
               </Button>
               {paginationItems.map((page, index) => {
@@ -580,8 +659,7 @@ export default function Events() {
                     onClick={() => setCurrentPage(page)}
                     variant={currentPage === page ? "default" : "outline"}
                     size="icon"
-                    className="h-10 w-10"
-                  >
+                    className="h-10 w-10">
                     {page}
                   </Button>
                 );
@@ -590,8 +668,7 @@ export default function Events() {
                 onClick={() =>
                   setCurrentPage((prev) => Math.min(prev + 1, totalPages))
                 }
-                disabled={currentPage === totalPages}
-              >
+                disabled={currentPage === totalPages}>
                 Next
               </Button>
             </div>
@@ -604,21 +681,18 @@ export default function Events() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2
             className="text-3xl font-bold mb-4"
-            data-testid="text-events-cta-title"
-          >
+            data-testid="text-events-cta-title">
             Don't Miss Out on Campus Events
           </h2>
           <p
             className="text-xl text-primary-foreground/90 mb-6"
-            data-testid="text-events-cta-description"
-          >
+            data-testid="text-events-cta-description">
             Connect with the campus community and make the most of your
             university experience.
           </p>
           <p
             className="text-primary-foreground/80"
-            data-testid="text-events-cta-note"
-          >
+            data-testid="text-events-cta-note">
             For event registration and more information, please contact the
             respective organizers or visit the student affairs office.
           </p>
