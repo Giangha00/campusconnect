@@ -342,7 +342,7 @@ export default function MyEvents() {
         <div
           className="hero-background"
           style={{
-            backgroundImage: "url('/images/schools/School_2.jpg')",
+            backgroundImage: "url('/images/schools/School_6.jpg')",
           }}
         />
         <div className="absolute inset-0 hero-gradient" />
