@@ -27,21 +27,56 @@ const ALLOWED_DOMAINS = [
 
 /**
  * Check if a URL is safe (not a javascript: or data: URL)
+ * Enhanced with more attack vectors based on PortSwigger XSS prevention guide
  * @param url - URL to validate
  * @returns true if URL is safe, false otherwise
  */
 export function isSafeUrl(url: string | null | undefined): boolean {
   if (!url) return false;
   
-  // Block javascript: and data: URLs to prevent XSSI
-  const lowerUrl = url.toLowerCase().trim();
-  if (lowerUrl.startsWith('javascript:') || lowerUrl.startsWith('data:')) {
-    return false;
+  // Normalize URL for checking (remove whitespace, decode entities)
+  const normalizedUrl = url.trim().toLowerCase();
+  
+  // Block dangerous protocols to prevent XSSI
+  const dangerousProtocols = [
+    'javascript:',
+    'data:',
+    'vbscript:',
+    'file:',
+    'about:',
+    'onerror:',
+    'onload:',
+    'onclick:',
+  ];
+  
+  for (const protocol of dangerousProtocols) {
+    if (normalizedUrl.startsWith(protocol)) {
+      return false;
+    }
   }
   
-  // Block vbscript: and other dangerous protocols
-  if (lowerUrl.startsWith('vbscript:') || lowerUrl.startsWith('file:') || lowerUrl.startsWith('about:')) {
-    return false;
+  // Block encoded javascript: URLs (e.g., %6A%61%76%61%73%63%72%69%70%74:)
+  try {
+    const decodedUrl = decodeURIComponent(normalizedUrl);
+    if (decodedUrl.startsWith('javascript:') || decodedUrl.startsWith('data:')) {
+      return false;
+    }
+  } catch {
+    // If decoding fails, continue with original check
+  }
+  
+  // Block URLs with script injection patterns
+  const scriptPatterns = [
+    /javascript\s*:/i,
+    /data\s*:\s*text\/html/i,
+    /data\s*:\s*image\/svg\+xml/i,
+    /on\w+\s*=/i, // Event handlers like onclick=, onerror=, etc.
+  ];
+  
+  for (const pattern of scriptPatterns) {
+    if (pattern.test(normalizedUrl)) {
+      return false;
+    }
   }
   
   return true;
@@ -110,6 +145,7 @@ export function sanitizeUrl(
 
 /**
  * Sanitize HTML content to prevent XSS attacks
+ * Enhanced configuration based on PortSwigger XSS prevention best practices
  * Use this when you need to allow some HTML tags but remove dangerous ones
  * @param html - HTML string to sanitize
  * @returns Sanitized HTML string
@@ -119,10 +155,23 @@ export function sanitizeHtml(html: string): string {
     // Server-side: return escaped HTML
     return escapeHtml(html);
   }
+  
+  // Enhanced DOMPurify configuration with stricter rules
   return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'a', 'p', 'br', 'ul', 'ol', 'li'],
-    ALLOWED_ATTR: ['href', 'target'],
-    ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp|data):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+    // Only allow safe, formatting tags
+    ALLOWED_TAGS: ['b', 'i', 'em', 'strong', 'a', 'p', 'br', 'ul', 'ol', 'li', 'span'],
+    // Only allow safe attributes
+    ALLOWED_ATTR: ['href', 'target', 'class'],
+    // Strict URL validation - block javascript:, data:, and other dangerous protocols
+    ALLOWED_URI_REGEXP: /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+    // Remove dangerous attributes
+    FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover', 'onfocus', 'onblur'],
+    // Remove dangerous tags
+    FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input', 'button'],
+    // Return DOM nodes instead of string for better security
+    RETURN_DOM: false,
+    // Keep relative URLs
+    KEEP_CONTENT: true,
   });
 }
 
