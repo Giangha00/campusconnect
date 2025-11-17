@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Switch, Route, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -13,24 +14,34 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { BackToTop } from "@/components/back-to-top";
-import Home from "@/pages/home";
-import About from "@/pages/about";
-import Events from "@/pages/events";
-import EventDetail from "@/pages/eventdetail";
-import Gallery from "@/pages/gallery";
-import Feedback from "@/pages/feedback";
-import Contact from "@/pages/contact";
-import Bookmarks from "@/pages/bookmarks";
-import MyEvents from "@/pages/my-events";
-import XSSTestPage from "@/pages/xss-test";
-import NotFound from "@/pages/not-found";
 
-import AdminLoginPage from "@/pages/admin/login";
-import AdminDashboard from "@/pages/admin/dashboard";
-import AdminEventsPage from "@/pages/admin/events";
-import AdminEventDetail from "@/pages/admin/event-detail";
-import AdminUsersPage from "@/pages/admin/users";
-import AdminAnalytics from "@/pages/admin/analytics";
+// ✅ Lazy load các pages để giảm initial bundle size
+const Home = lazy(() => import("@/pages/home"));
+const About = lazy(() => import("@/pages/about"));
+const Events = lazy(() => import("@/pages/events"));
+const EventDetail = lazy(() => import("@/pages/eventdetail"));
+const Gallery = lazy(() => import("@/pages/gallery"));
+const Feedback = lazy(() => import("@/pages/feedback"));
+const Contact = lazy(() => import("@/pages/contact"));
+const Bookmarks = lazy(() => import("@/pages/bookmarks"));
+const MyEvents = lazy(() => import("@/pages/my-events"));
+const XSSTestPage = lazy(() => import("@/pages/xss-test"));
+const NotFound = lazy(() => import("@/pages/not-found"));
+
+// Admin pages - lazy load
+const AdminLoginPage = lazy(() => import("@/pages/admin/login"));
+const AdminDashboard = lazy(() => import("@/pages/admin/dashboard"));
+const AdminEventsPage = lazy(() => import("@/pages/admin/events"));
+const AdminEventDetail = lazy(() => import("@/pages/admin/event-detail"));
+const AdminUsersPage = lazy(() => import("@/pages/admin/users"));
+const AdminAnalytics = lazy(() => import("@/pages/admin/analytics"));
+
+// Loading component
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+  </div>
+);
 
 function Router() {
   const [location] = useLocation();
@@ -43,28 +54,33 @@ function Router() {
       <ScrollToTop />
       {!isAdminLoginPage && <Header />}
       <main className="flex-1">
-        <Switch>
-          <Route path="/" component={Home} />
-          <Route path="/about" component={About} />
-          <Route path="/events" component={Events} />
-          <Route path="/events/:id" component={EventDetail} />
-          <Route path="/gallery" component={Gallery} />
-          <Route path="/feedback" component={Feedback} />
-          <Route path="/contact" component={Contact} />
-          <Route path="/bookmarks" component={Bookmarks} />
-          <Route path="/my-events" component={MyEvents} />
-          <Route path="/xss-test" component={XSSTestPage} />
-          <Route path="/admin" component={AdminLoginPage} />
-          <Route path="/admin/dashboard" component={AdminDashboard} />
-          <Route path="/admin/dashboard/events" component={AdminEventsPage} />
-          <Route
-            path="/admin/dashboard/events/:id"
-            component={AdminEventDetail}
-          />
-          <Route path="/admin/dashboard/users" component={AdminUsersPage} />
-          <Route path="/admin/dashboard/analytics" component={AdminAnalytics} />
-          <Route component={NotFound} />
-        </Switch>
+        <Suspense fallback={<PageLoader />}>
+          <Switch>
+            <Route path="/" component={Home} />
+            <Route path="/about" component={About} />
+            <Route path="/events" component={Events} />
+            <Route path="/events/:id" component={EventDetail} />
+            <Route path="/gallery" component={Gallery} />
+            <Route path="/feedback" component={Feedback} />
+            <Route path="/contact" component={Contact} />
+            <Route path="/bookmarks" component={Bookmarks} />
+            <Route path="/my-events" component={MyEvents} />
+            <Route path="/xss-test" component={XSSTestPage} />
+            <Route path="/admin" component={AdminLoginPage} />
+            <Route path="/admin/dashboard" component={AdminDashboard} />
+            <Route path="/admin/dashboard/events" component={AdminEventsPage} />
+            <Route
+              path="/admin/dashboard/events/:id"
+              component={AdminEventDetail}
+            />
+            <Route path="/admin/dashboard/users" component={AdminUsersPage} />
+            <Route
+              path="/admin/dashboard/analytics"
+              component={AdminAnalytics}
+            />
+            <Route component={NotFound} />
+          </Switch>
+        </Suspense>
       </main>
       {!isAdminLoginPage && <Footer />}
       {!isAdminLoginPage && <BackToTop />}

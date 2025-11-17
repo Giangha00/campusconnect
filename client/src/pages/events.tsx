@@ -25,6 +25,7 @@ import { useLocation } from "wouter";
 import { EventCategory, EventStatus, EventSortBy } from "@/types/event";
 import { calculateEventStatus, canRegisterForEvent } from "@/lib/event-status";
 import { formatDate } from "@/lib/date-utils";
+import { useDebounce } from "@/hooks/use-debounce";
 
 export default function Events() {
   const { events } = useEvents();
@@ -33,6 +34,9 @@ export default function Events() {
   const [statusFilter, setStatusFilter] = useState<EventStatus>("all");
   const [sortBy, setSortBy] = useState<EventSortBy>("date");
   const [searchQuery, setSearchQuery] = useState("");
+
+  // ✅ Debounce search query để giảm số lần filter không cần thiết
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
   const [registrationFilter, setRegistrationFilter] = useState<"all" | "open">(
@@ -154,9 +158,9 @@ export default function Events() {
 
     let filteredEvents = eventsWithStatus;
 
-    // Apply search filter
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim();
+    // Apply search filter với debounced value
+    if (debouncedSearchQuery.trim()) {
+      const query = debouncedSearchQuery.toLowerCase().trim();
       filteredEvents = filteredEvents.filter(
         (event) =>
           event.name.toLowerCase().includes(query) ||
@@ -303,7 +307,7 @@ export default function Events() {
     filter,
     statusFilter,
     sortBy,
-    searchQuery,
+    debouncedSearchQuery, // ✅ Sử dụng debounced value thay vì searchQuery
     fromDate,
     toDate,
     registrationFilter,
@@ -468,7 +472,8 @@ export default function Events() {
                         setToDate("");
                       }}
                       className="h-8 w-8 p-0"
-                      data-testid="button-clear-date">
+                      data-testid="button-clear-date"
+                    >
                       <X className="h-4 w-4" />
                     </Button>
                   )}
@@ -492,7 +497,8 @@ export default function Events() {
                             }
                             size="sm"
                             className="gap-2"
-                            data-testid={`button-filter-by-status`}>
+                            data-testid={`button-filter-by-status`}
+                          >
                             <IconComponent className="h-4 w-4" />
                             {statusFilter !== "all"
                               ? statusOptions.find(
@@ -513,7 +519,8 @@ export default function Events() {
                                 statusFilter === statusOption.value
                                   ? "bg-accent"
                                   : ""
-                              }>
+                              }
+                            >
                               {statusOption.label}
                             </DropdownMenuItem>
                           ))}
@@ -536,7 +543,8 @@ export default function Events() {
                           )
                         }
                         className="gap-2"
-                        data-testid={`button-filter-registration`}>
+                        data-testid={`button-filter-registration`}
+                      >
                         <IconComponent className="h-4 w-4" />
                         {option.label}
                       </Button>
@@ -550,7 +558,8 @@ export default function Events() {
                       size="sm"
                       onClick={() => setSortBy(option.value as any)}
                       className="gap-2"
-                      data-testid={`button-sort-${option.value}`}>
+                      data-testid={`button-sort-${option.value}`}
+                    >
                       <IconComponent className="h-4 w-4" />
                       {option.label}
                     </Button>
@@ -569,12 +578,14 @@ export default function Events() {
             <div className="text-center py-12">
               <h3
                 className="text-2xl font-semibold text-foreground mb-4"
-                data-testid="text-no-events-title">
+                data-testid="text-no-events-title"
+              >
                 No Events Found
               </h3>
               <p
                 className="text-muted-foreground"
-                data-testid="text-no-events-description">
+                data-testid="text-no-events-description"
+              >
                 {searchQuery
                   ? `No events match the keyword "${searchQuery}". Try searching with a different keyword.`
                   : "No events match the current filter criteria. Try selecting a different category."}
@@ -585,7 +596,8 @@ export default function Events() {
               <div className="mb-8">
                 <h2
                   className="text-2xl font-semibold text-foreground"
-                  data-testid="text-events-count">
+                  data-testid="text-events-count"
+                >
                   Showing {processedEvents.length} events
                   {searchQuery && (
                     <span className="text-muted-foreground">
@@ -642,7 +654,8 @@ export default function Events() {
             <div className="flex justify-center items-center mt-12 space-x-2">
               <Button
                 onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}>
+                disabled={currentPage === 1}
+              >
                 Previous
               </Button>
               {paginationItems.map((page, index) => {
@@ -659,7 +672,8 @@ export default function Events() {
                     onClick={() => setCurrentPage(page)}
                     variant={currentPage === page ? "default" : "outline"}
                     size="icon"
-                    className="h-10 w-10">
+                    className="h-10 w-10"
+                  >
                     {page}
                   </Button>
                 );
@@ -668,7 +682,8 @@ export default function Events() {
                 onClick={() =>
                   setCurrentPage((prev) => Math.min(prev + 1, totalPages))
                 }
-                disabled={currentPage === totalPages}>
+                disabled={currentPage === totalPages}
+              >
                 Next
               </Button>
             </div>
@@ -681,18 +696,21 @@ export default function Events() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2
             className="text-3xl font-bold mb-4"
-            data-testid="text-events-cta-title">
+            data-testid="text-events-cta-title"
+          >
             Don't Miss Out on Campus Events
           </h2>
           <p
             className="text-xl text-primary-foreground/90 mb-6"
-            data-testid="text-events-cta-description">
+            data-testid="text-events-cta-description"
+          >
             Connect with the campus community and make the most of your
             university experience.
           </p>
           <p
             className="text-primary-foreground/80"
-            data-testid="text-events-cta-note">
+            data-testid="text-events-cta-note"
+          >
             For event registration and more information, please contact the
             respective organizers or visit the student affairs office.
           </p>

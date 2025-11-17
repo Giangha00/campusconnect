@@ -46,12 +46,20 @@ export const queryClient = new QueryClient({
     queries: {
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
+      // ✅ Cache time: 5 phút - data được coi là fresh trong 5 phút
+      staleTime: 5 * 60 * 1000,
+      // ✅ Cache data trong 30 phút trước khi garbage collect
+      gcTime: 30 * 60 * 1000, // Previously cacheTime
+      // ✅ Retry failed requests 2 lần
+      retry: 2,
+      // ✅ Không refetch khi window focus để tránh unnecessary requests
       refetchOnWindowFocus: false,
-      staleTime: Infinity,
-      retry: false,
+      // ✅ Refetch khi reconnect
+      refetchOnReconnect: true,
     },
     mutations: {
-      retry: false,
+      // ✅ Retry failed mutations 1 lần
+      retry: 1,
     },
   },
 });
