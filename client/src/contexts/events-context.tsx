@@ -24,8 +24,8 @@ interface Event {
   capacity: number | string;
   attendees: number;
   checkedIn: number;
-  registrationStart: string;
-  registrationEnd: string;
+  registrationStart?: string; // ✅ Optional để match với types/event.ts
+  registrationEnd?: string; // ✅ Optional để match với types/event.ts
 }
 
 interface EventsContextType {
