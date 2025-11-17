@@ -288,26 +288,51 @@ export default function AdminEventDetail() {
       : 0;
 
   const exportRegistrationsCSV = () => {
-    const csvContent = [
-      ["Name", "Email", "Role", "Department", "Registered At"].join(","),
-      ...registrations.map((r) =>
-        [
-          r.name,
-          r.email,
-          r.role,
-          r.department || "",
-          new Date(r.registeredAt).toLocaleDateString(),
-        ].join(",")
+    if (!event) return;
+
+    // Sanitize event name for filename
+    const sanitizedEventName = event.name
+      .replace(/[^a-z0-9]/gi, "_")
+      .toLowerCase();
+
+    const headers = [
+      "Name",
+      "Email",
+      "Role",
+      "Department",
+      "Ticket Number",
+      "Registered At",
+      "Checked In",
+      "Checked In At",
+    ];
+    const rows = registrations.map((r) => [
+      r.name,
+      r.email || "",
+      r.role,
+      r.department || "",
+      r.ticket || "",
+      new Date(r.registeredAt).toLocaleString(),
+      r.checkedIn ? "Yes" : "No",
+      r.checkedInAt ? new Date(r.checkedInAt).toLocaleString() : "",
+    ]);
+    const csv = [
+      headers.join(","),
+      ...rows.map((r) =>
+        r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(",")
       ),
     ].join("\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv" });
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `registrations-event-${event.id}.csv`;
+    a.download = `registrations-${sanitizedEventName}-${event.id}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+
+    toast({
+      title: "Export Successful",
+      description: `Registration list for "${event.name}" has been exported.`,
+    });
   };
 
   const handleEditEvent = () => {
@@ -775,23 +800,20 @@ export default function AdminEventDetail() {
                         categoryColors[
                           event.category as keyof typeof categoryColors
                         ]
-                      } text-sm px-3 py-1`}
-                    >
+                      } text-sm px-3 py-1`}>
                       {event.category.charAt(0).toUpperCase() +
                         event.category.slice(1)}
                     </Badge>
                     <Badge
                       className={`${getStatusColor(
                         currentStatus || "completed"
-                      )} text-sm px-3 py-1`}
-                    >
+                      )} text-sm px-3 py-1`}>
                       {getStatusLabel(currentStatus || "completed")}
                     </Badge>
                     {event.registrationRequired && (
                       <Badge
                         variant="outline"
-                        className="border-orange-200 text-orange-700 bg-orange-50"
-                      >
+                        className="border-orange-200 text-orange-700 bg-orange-50">
                         Registration Required
                       </Badge>
                     )}
@@ -801,8 +823,7 @@ export default function AdminEventDetail() {
                   <div className="mb-6">
                     <Label
                       htmlFor="event-name"
-                      className="text-sm font-medium text-gray-700"
-                    >
+                      className="text-sm font-medium text-gray-700">
                       Event Name *
                     </Label>
                     {isEditing ? (
@@ -826,8 +847,7 @@ export default function AdminEventDetail() {
                   <div className="mb-6">
                     <Label
                       htmlFor="event-description"
-                      className="text-sm font-medium text-gray-700"
-                    >
+                      className="text-sm font-medium text-gray-700">
                       Description
                     </Label>
                     {isEditing ? (
@@ -996,8 +1016,7 @@ export default function AdminEventDetail() {
                                   value={startTime.period}
                                   onValueChange={(value) =>
                                     handleTimeChange("start", "period", value)
-                                  }
-                                >
+                                  }>
                                   <SelectTrigger className="w-[70px]">
                                     <SelectValue />
                                   </SelectTrigger>
@@ -1057,8 +1076,7 @@ export default function AdminEventDetail() {
                                   value={endTime.period}
                                   onValueChange={(value) =>
                                     handleTimeChange("end", "period", value)
-                                  }
-                                >
+                                  }>
                                   <SelectTrigger className="w-[70px]">
                                     <SelectValue />
                                   </SelectTrigger>
@@ -1299,8 +1317,7 @@ export default function AdminEventDetail() {
                                 />
                                 <Label
                                   htmlFor="no-limit"
-                                  className="text-sm font-normal cursor-pointer"
-                                >
+                                  className="text-sm font-normal cursor-pointer">
                                   No limit
                                 </Label>
                               </div>
@@ -1403,8 +1420,7 @@ export default function AdminEventDetail() {
                                   )}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-blue-600 hover:underline text-sm mt-1 inline-block"
-                                >
+                                  className="text-blue-600 hover:underline text-sm mt-1 inline-block">
                                   Open image in new tab
                                 </a>
                               </div>
@@ -1423,8 +1439,7 @@ export default function AdminEventDetail() {
                           value={editedEvent?.category || ""}
                           onValueChange={(value) =>
                             handleInputChange("category", value)
-                          }
-                        >
+                          }>
                           <SelectTrigger>
                             <SelectValue placeholder="Select category" />
                           </SelectTrigger>
@@ -1444,9 +1459,23 @@ export default function AdminEventDetail() {
               {/* Registration Stats */}
               <Card className="shadow-lg">
                 <CardContent className="p-6">
-                  <h2 className="text-2xl font-bold mb-6 text-gray-900">
-                    Registration Statistics
-                  </h2>
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-bold text-gray-900">
+                      Registration Statistics
+                    </h2>
+                    {registrations.length > 0 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={exportRegistrationsCSV}
+                        className="flex items-center gap-2 hover:bg-green-50 hover:border-green-200 hover:text-green-700"
+                        title="Export registrations to CSV"
+                        data-testid="button-export-csv-detail">
+                        <Download className="h-4 w-4" />
+                        Export CSV
+                      </Button>
+                    )}
+                  </div>
 
                   <div className="grid md:grid-cols-2 gap-6">
                     {/* Registration Stats */}
@@ -1473,8 +1502,7 @@ export default function AdminEventDetail() {
                             className="bg-gradient-to-r from-green-400 to-green-500 h-2 rounded-full transition-all duration-300"
                             style={{
                               width: `${Math.min(capacityPercentage, 100)}%`,
-                            }}
-                          ></div>
+                            }}></div>
                         </div>
                       )}
                       {event.capacity && typeof event.capacity === "number" && (
@@ -1504,8 +1532,7 @@ export default function AdminEventDetail() {
                                 checkInCapacityPercentage,
                                 100
                               )}%`,
-                            }}
-                          ></div>
+                            }}></div>
                         </div>
                       )}
                       {event.capacity && typeof event.capacity === "number" && (
@@ -1539,8 +1566,7 @@ export default function AdminEventDetail() {
                       {eventFeedbacks.map((feedback) => (
                         <div
                           key={feedback.id}
-                          className="bg-gray-50 rounded-lg p-4 border border-gray-200"
-                        >
+                          className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                           <div className="flex items-start justify-between mb-3">
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
@@ -1624,8 +1650,7 @@ export default function AdminEventDetail() {
                         <Button
                           onClick={handleCancelEdit}
                           className="w-full"
-                          variant="outline"
-                        >
+                          variant="outline">
                           <X className="h-4 w-4 mr-2" />
                           Cancel
                         </Button>
@@ -1646,16 +1671,14 @@ export default function AdminEventDetail() {
                               : currentStatus === "ongoing"
                               ? "Cannot edit ongoing event"
                               : "Edit Event"
-                          }
-                        >
+                          }>
                           <Edit className="h-4 w-4 mr-2" />
                           Edit Event
                         </Button>
                         <Button
                           onClick={handleDeleteEvent}
                           className="w-full"
-                          variant="outline"
-                        >
+                          variant="outline">
                           <Trash2 className="h-4 w-4 mr-2" />
                           Delete Event
                         </Button>
@@ -1689,8 +1712,7 @@ export default function AdminEventDetail() {
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDeleteEvent}
-              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
-            >
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600">
               Delete Event
             </AlertDialogAction>
           </AlertDialogFooter>

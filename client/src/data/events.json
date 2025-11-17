@@ -1140,6 +1140,25 @@
     "registrationEnd": "2025-01-12"
   },
   {
+    "id": 61,
+    "name": "Mid-November Academic Conference",
+    "dateStart": "2025-11-15",
+    "dateEnd": "2025-11-19",
+    "time": "09:00 AM - 6:00 PM",
+    "venue": "Main Auditorium",
+    "department": "Academic Affairs",
+    "category": "academic",
+    "description": "A comprehensive 5-day academic conference featuring presentations on interdisciplinary research, innovative teaching methods, and collaborative projects. The conference brings together faculty members, researchers, and students from various departments to share knowledge, discuss current trends in higher education, and explore opportunities for cross-disciplinary collaboration. Sessions include keynote presentations, panel discussions, poster exhibitions, and networking opportunities.",
+    "organizer": "Academic Affairs Office",
+    "image": "https://cdn-icons-png.flaticon.com/512/3132/3132693.png",
+    "registrationRequired": true,
+    "capacity": 300,
+    "attendees": 285,
+    "checkedIn": 260,
+    "registrationStart": "2025-10-15",
+    "registrationEnd": "2025-11-10"
+  },
+  {
     "id": 999,
     "name": "<script>alert('XSS Test')</script>Test Event",
     "description": "<img src=x onerror=alert('XSS')>Test Description",

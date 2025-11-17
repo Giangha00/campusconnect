@@ -22,8 +22,11 @@ export function Header() {
 
   let userNavigation = [...navigation];
 
-  if (user && user.role !== "visitor") {
-    userNavigation.push({ name: "Bookmarks", href: "/bookmarks" });
+  if (user) {
+    userNavigation.push({ name: "My Events", href: "/my-events" });
+    if (user.role !== "visitor") {
+      userNavigation.push({ name: "Bookmarks", href: "/bookmarks" });
+    }
   }
 
   return (

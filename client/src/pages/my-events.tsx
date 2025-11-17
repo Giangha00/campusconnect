@@ -1,8 +1,9 @@
 import { EventCard } from "@/components/events/event-card";
 import { EventFilters } from "@/components/events/event-filters";
-import { EventCarousel } from "@/components/events/event-carousel";
 import { SearchBar } from "@/components/search/search-bar";
 import { useEvents } from "@/contexts/events-context";
+import { useRegistration } from "@/contexts/registration-context";
+import { useUser } from "@/contexts/user-context";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,21 +14,21 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Calendar as CalendarIcon,
-  Clock,
-  MapPin,
   Activity,
   ChevronDown,
   X,
-  UserPlus,
+  CalendarCheck,
 } from "lucide-react";
 import { useState, useMemo, useEffect, useRef } from "react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { EventCategory, EventStatus, EventSortBy } from "@/types/event";
-import { calculateEventStatus, canRegisterForEvent } from "@/lib/event-status";
+import { calculateEventStatus } from "@/lib/event-status";
 import { formatDate } from "@/lib/date-utils";
 
-export default function Events() {
+export default function MyEvents() {
   const { events } = useEvents();
+  const { isEventRegistered } = useRegistration();
+  const { user } = useUser();
   const [location] = useLocation();
   const [filter, setFilter] = useState<EventCategory>("all");
   const [statusFilter, setStatusFilter] = useState<EventStatus>("all");
@@ -35,98 +36,26 @@ export default function Events() {
   const [searchQuery, setSearchQuery] = useState("");
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
-  const [registrationFilter, setRegistrationFilter] = useState<"all" | "open">(
-    "all"
-  );
 
   const [currentPage, setCurrentPage] = useState(1);
   const eventsPerPage = 9;
   const prevPageRef = useRef<number>(1);
-  const [queryString, setQueryString] = useState<string>(
-    window.location.search
-  );
 
-  // Track query string changes - this handles same-page navigation
+  // Handle query parameter for initial category filter
   useEffect(() => {
-    const updateQueryString = () => {
-      const currentQuery = window.location.search;
-      setQueryString(currentQuery);
-    };
-
-    // Check immediately on mount and when location changes
-    updateQueryString();
-
-    // Listen to popstate for browser navigation (back/forward)
-    window.addEventListener("popstate", updateQueryString);
-
-    // Intercept history.pushState and history.replaceState to detect programmatic navigation
-    const originalPushState = history.pushState;
-    const originalReplaceState = history.replaceState;
-
-    history.pushState = function (...args) {
-      originalPushState.apply(history, args);
-      // Use setTimeout to ensure URL is updated
-      setTimeout(updateQueryString, 0);
-    };
-
-    history.replaceState = function (...args) {
-      originalReplaceState.apply(history, args);
-      setTimeout(updateQueryString, 0);
-    };
-
-    // Also check periodically for URL changes (fallback for edge cases)
-    const intervalId = setInterval(updateQueryString, 200);
-
-    return () => {
-      window.removeEventListener("popstate", updateQueryString);
-      clearInterval(intervalId);
-      history.pushState = originalPushState;
-      history.replaceState = originalReplaceState;
-    };
-  }, [location]);
-
-  // Handle query parameter for category filter
-  useEffect(() => {
-    const urlParams = new URLSearchParams(queryString);
+    const urlParams = new URLSearchParams(window.location.search);
     const categoryParam = urlParams.get("category");
-
     if (
       categoryParam &&
       ["academic", "cultural", "sports", "technical"].includes(categoryParam)
     ) {
       setFilter(categoryParam as EventCategory);
-      // Scroll to events list section when filter is applied from query parameter
-      setTimeout(() => {
-        const eventsSection = document.getElementById("events-list-section");
-        if (eventsSection) {
-          eventsSection.scrollIntoView({
-            behavior: "smooth",
-            block: "start",
-          });
-        }
-      }, 100);
-    } else if (!categoryParam) {
-      // Only reset if we're coming from a category link (query string was present before)
-      // This prevents resetting when user manually changes filter
-      const hadCategoryBefore = queryString.includes("category=");
-      if (hadCategoryBefore) {
-        // User removed category from URL, reset filter
-        setFilter("all");
-      }
     }
-  }, [queryString]);
+  }, [location]);
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [
-    searchQuery,
-    filter,
-    statusFilter,
-    sortBy,
-    fromDate,
-    toDate,
-    registrationFilter,
-  ]);
+  }, [searchQuery, filter, statusFilter, sortBy, fromDate, toDate]);
 
   // Scroll to top of events list when page changes
   useEffect(() => {
@@ -143,11 +72,16 @@ export default function Events() {
     }
   }, [currentPage]);
 
+  // Filter events to only show registered events
+  const registeredEvents = useMemo(() => {
+    if (!user) return [];
+    return events.filter((event) => isEventRegistered(event.id));
+  }, [events, user, isEventRegistered]);
+
   // Add status to events and apply filtering/sorting
   const processedEvents = useMemo(() => {
     // Add status to each event
-    // Events from context are already sorted by dateStart
-    const eventsWithStatus = events.map((event) => ({
+    const eventsWithStatus = registeredEvents.map((event) => ({
       ...event,
       status: calculateEventStatus(event as any),
     }));
@@ -208,14 +142,6 @@ export default function Events() {
         }
 
         return true;
-      });
-    }
-
-    // Apply registration filter
-    if (registrationFilter === "open") {
-      filteredEvents = filteredEvents.filter((event) => {
-        const status = calculateEventStatus(event as any);
-        return status === "upcoming" && canRegisterForEvent(event as any);
       });
     }
 
@@ -299,30 +225,14 @@ export default function Events() {
 
     return sortedEvents;
   }, [
-    events,
+    registeredEvents,
     filter,
     statusFilter,
     sortBy,
     searchQuery,
     fromDate,
     toDate,
-    registrationFilter,
   ]);
-
-  // Get upcoming events for carousel
-  const upcomingEvents = useMemo(() => {
-    return events
-      .map((event) => ({
-        ...event,
-        status: calculateEventStatus(event as any),
-      }))
-      .filter((event) => event.status === "upcoming")
-      .sort(
-        (a, b) =>
-          new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime()
-      )
-      .slice(0, 3);
-  }, [events]);
 
   // Pagination logic
   const indexOfLastEvent = currentPage * eventsPerPage;
@@ -392,8 +302,6 @@ export default function Events() {
 
   const sortOptions = [
     { value: "status", label: "Sort by status", icon: Activity },
-    { value: "registration", label: "Registration Open", icon: UserPlus },
-    // { value: "time", label: "Sort by time", icon: Clock },
   ];
 
   const statusOptions = [
@@ -404,10 +312,53 @@ export default function Events() {
     { value: "completed", label: "Completed" },
   ];
 
+  // Check if user is logged in
+  if (!user) {
+    return (
+      <div className="pt-16">
+        <section className="py-16 bg-gradient-to-r from-primary/10 to-secondary/10">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h1
+              className="text-5xl font-bold text-foreground mb-6"
+              data-testid="text-my-events-not-logged-in">
+              Login Required
+            </h1>
+            <p className="text-xl text-muted-foreground mb-8">
+              You need to be logged in to view your registered events
+            </p>
+            <Link href="/">
+              <Button>Back to Home</Button>
+            </Link>
+          </div>
+        </section>
+      </div>
+    );
+  }
+
   return (
     <div className="pt-16">
-      {/* Event Carousel */}
-      <EventCarousel events={upcomingEvents as any} />
+      {/* Hero Section */}
+      <section className="hero-section h-[50vh] min-h-[250px]">
+        <div
+          className="hero-background"
+          style={{
+            backgroundImage: "url('/images/schools/School_6.jpg')",
+          }}
+        />
+        <div className="absolute inset-0 hero-gradient" />
+        <div className="hero-content">
+          <h1
+            className="hero-title text-6xl"
+            data-testid="text-my-events-hero-title">
+            My Events
+          </h1>
+          <p
+            className="hero-description text-2xl"
+            data-testid="text-my-events-hero-description">
+            View and manage all events you have registered for
+          </p>
+        </div>
+      </section>
 
       {/* Search and Filters */}
       <section className="py-8 bg-white border-b">
@@ -522,27 +473,6 @@ export default function Events() {
                     );
                   }
 
-                  if (option.value === "registration") {
-                    return (
-                      <Button
-                        key={option.value}
-                        variant={
-                          registrationFilter === "open" ? "default" : "outline"
-                        }
-                        size="sm"
-                        onClick={() =>
-                          setRegistrationFilter(
-                            registrationFilter === "open" ? "all" : "open"
-                          )
-                        }
-                        className="gap-2"
-                        data-testid={`button-filter-registration`}>
-                        <IconComponent className="h-4 w-4" />
-                        {option.label}
-                      </Button>
-                    );
-                  }
-
                   return (
                     <Button
                       key={option.value}
@@ -567,18 +497,30 @@ export default function Events() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {processedEvents.length === 0 ? (
             <div className="text-center py-12">
+              <CalendarCheck className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
               <h3
                 className="text-2xl font-semibold text-foreground mb-4"
                 data-testid="text-no-events-title">
-                No Events Found
+                {registeredEvents.length === 0
+                  ? "No Registered Events"
+                  : "No Events Found"}
               </h3>
               <p
-                className="text-muted-foreground"
+                className="text-muted-foreground mb-8"
                 data-testid="text-no-events-description">
-                {searchQuery
-                  ? `No events match the keyword "${searchQuery}". Try searching with a different keyword.`
-                  : "No events match the current filter criteria. Try selecting a different category."}
+                {registeredEvents.length === 0
+                  ? "You haven't registered for any events yet. Browse events and register to see them here."
+                  : searchQuery
+                  ? `No registered events match the keyword "${searchQuery}". Try searching with a different keyword.`
+                  : "No registered events match the current filter criteria. Try selecting a different category or status."}
               </p>
+              {registeredEvents.length === 0 && (
+                <Link href="/events">
+                  <Button data-testid="button-browse-events">
+                    Browse Events
+                  </Button>
+                </Link>
+              )}
             </div>
           ) : (
             <>
@@ -586,7 +528,8 @@ export default function Events() {
                 <h2
                   className="text-2xl font-semibold text-foreground"
                   data-testid="text-events-count">
-                  Showing {processedEvents.length} events
+                  Showing {processedEvents.length} registered event
+                  {processedEvents.length !== 1 ? "s" : ""}
                   {searchQuery && (
                     <span className="text-muted-foreground">
                       {" "}
@@ -681,21 +624,23 @@ export default function Events() {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2
             className="text-3xl font-bold mb-4"
-            data-testid="text-events-cta-title">
-            Don't Miss Out on Campus Events
+            data-testid="text-my-events-cta-title">
+            Manage Your Event Registrations
           </h2>
           <p
             className="text-xl text-primary-foreground/90 mb-6"
-            data-testid="text-events-cta-description">
-            Connect with the campus community and make the most of your
-            university experience.
+            data-testid="text-my-events-cta-description">
+            View details, cancel registrations, and stay updated on all your
+            registered events in one place.
           </p>
-          <p
-            className="text-primary-foreground/80"
-            data-testid="text-events-cta-note">
-            For event registration and more information, please contact the
-            respective organizers or visit the student affairs office.
-          </p>
+          <Link href="/events">
+            <Button
+              variant="secondary"
+              size="lg"
+              data-testid="button-browse-more-events">
+              Browse More Events
+            </Button>
+          </Link>
         </div>
       </section>
     </div>

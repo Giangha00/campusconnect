@@ -21,6 +21,7 @@ import Gallery from "@/pages/gallery";
 import Feedback from "@/pages/feedback";
 import Contact from "@/pages/contact";
 import Bookmarks from "@/pages/bookmarks";
+import MyEvents from "@/pages/my-events";
 import XSSTestPage from "@/pages/xss-test";
 import NotFound from "@/pages/not-found";
 
@@ -51,6 +52,7 @@ function Router() {
           <Route path="/feedback" component={Feedback} />
           <Route path="/contact" component={Contact} />
           <Route path="/bookmarks" component={Bookmarks} />
+          <Route path="/my-events" component={MyEvents} />
           <Route path="/xss-test" component={XSSTestPage} />
           <Route path="/admin" component={AdminLoginPage} />
           <Route path="/admin/dashboard" component={AdminDashboard} />

@@ -6,11 +6,13 @@ import { useEvents } from "@/contexts/events-context";
 import { useRegistration } from "@/contexts/registration-context";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import { useValidation } from "@/hooks/use-validation";
 import {
   calculateEventStatus,
   getStatusColor,
   getStatusLabel,
 } from "@/lib/event-status";
+import { validateTime, validateCapacity } from "@/lib/validation";
 import { formatDate } from "@/lib/date-utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SafeText } from "@/components/common/safe-text";
@@ -62,6 +64,7 @@ import {
   Edit,
   Trash2,
   Plus,
+  Download,
 } from "lucide-react";
 import { AdminNavbar } from "@/components/admin/admin-navbar";
 
@@ -77,6 +80,7 @@ export default function AdminEventsPage() {
   const { events: eventsData, deleteEvent, createEvent } = useEvents();
   const { getRegistrationsByEvent } = useRegistration();
   const { toast } = useToast();
+  const { errors, validate, clearError, clearAllErrors } = useValidation();
   const [location] = useLocation();
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -293,21 +297,31 @@ export default function AdminEventsPage() {
 
   const exportCSV = (eventId: number) => {
     const regs = getRegistrationsByEvent(eventId);
+    const event = allEventsWithStatus.find((e) => e.id === eventId);
+    const eventName = event?.name || `Event-${eventId}`;
+    
+    // Sanitize event name for filename
+    const sanitizedEventName = eventName.replace(/[^a-z0-9]/gi, "_").toLowerCase();
+    
     const headers = [
-      "eventId",
-      "userId",
-      "name",
-      "role",
-      "department",
-      "registeredAt",
+      "Name",
+      "Email",
+      "Role",
+      "Department",
+      "Ticket Number",
+      "Registered At",
+      "Checked In",
+      "Checked In At",
     ];
     const rows = regs.map((r) => [
-      r.eventId,
-      r.userId,
       r.name,
+      r.email || "",
       r.role,
       r.department || "",
-      r.registeredAt,
+      r.ticket || "",
+      new Date(r.registeredAt).toLocaleString(),
+      r.checkedIn ? "Yes" : "No",
+      r.checkedInAt ? new Date(r.checkedInAt).toLocaleString() : "",
     ]);
     const csv = [
       headers.join(","),
@@ -319,9 +333,14 @@ export default function AdminEventsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `registrations-event-${eventId}.csv`;
+    a.download = `registrations-${sanitizedEventName}-${eventId}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Export Successful",
+      description: `Registration list for "${eventName}" has been exported.`,
+    });
   };
 
   const handleEditEvent = (eventId: number) => {
@@ -376,23 +395,78 @@ export default function AdminEventsPage() {
   };
 
   const handleCreateEvent = () => {
-    try {
-      // Validate required fields
-      if (
-        !newEvent.name ||
-        !newEvent.dateStart ||
-        !newEvent.dateEnd ||
-        !newEvent.venue
-      ) {
-        toast({
-          title: "Validation Error",
-          description:
-            "Please fill in all required fields (Name, Start Date, End Date, Venue).",
-          variant: "destructive",
-        });
-        return;
-      }
+    // Validate all fields
+    const isNameValid = validate("event-name", newEvent.name, {
+      required: true,
+      minLength: 2,
+      maxLength: 100,
+    });
+    const isDateStartValid = validate("event-dateStart", newEvent.dateStart, {
+      required: true,
+    });
+    const isVenueValid = validate("event-venue", newEvent.venue, {
+      required: true,
+      minLength: 2,
+      maxLength: 100,
+    });
+    const isTimeValid = validate("event-time", newEvent.time, {
+      custom: (value) => validateTime(value),
+    });
+    const isCapacityValid = validate("event-capacity", newEvent.capacity, {
+      custom: (value) => validateCapacity(value),
+    });
 
+    // Validate dateEnd with both required and relationship checks
+    const isDateEndValid = validate("event-dateEnd", newEvent.dateEnd, {
+      required: true,
+      custom: (val) => {
+        if (newEvent.dateStart && val) {
+          if (new Date(val) < new Date(newEvent.dateStart)) {
+            return {
+              isValid: false,
+              message: "End date must be on or after start date",
+            };
+          }
+        }
+        return { isValid: true };
+      },
+    });
+
+    const isRegistrationEndValid = validate("event-registrationEnd", newEvent.registrationEnd, {
+      custom: (val) => {
+        if (newEvent.registrationStart && val) {
+          if (new Date(val) < new Date(newEvent.registrationStart)) {
+            return {
+              isValid: false,
+              message:
+                "Registration end date must be on or after registration start date",
+            };
+          }
+        }
+        return { isValid: true };
+      },
+    });
+
+    // Check if all validations passed
+    if (
+      !isNameValid ||
+      !isDateStartValid ||
+      !isDateEndValid ||
+      !isVenueValid ||
+      !isTimeValid ||
+      !isCapacityValid ||
+      !isRegistrationEndValid
+    ) {
+      toast({
+        title: "Validation Error",
+        description:
+          "Please fix all validation errors before creating the event.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
       // Convert capacity to number if provided
       const capacity = newEvent.capacity
         ? parseInt(newEvent.capacity)
@@ -425,6 +499,7 @@ export default function AdminEventsPage() {
         registrationStart: "",
         registrationEnd: "",
       });
+      clearAllErrors();
       setShowCreateDialog(false);
     } catch (error) {
       console.error("Error creating event:", error);
@@ -441,6 +516,107 @@ export default function AdminEventsPage() {
       ...prev,
       [field]: value,
     }));
+    // Clear error when user starts typing
+    clearError(`event-${field}`);
+  };
+
+  const handleInputBlur = (field: string, value: any) => {
+    // Validate on blur
+    switch (field) {
+      case "name":
+        validate(`event-${field}`, value, {
+          required: true,
+          minLength: 2,
+          maxLength: 100,
+        });
+        break;
+      case "dateStart":
+        validate(`event-${field}`, value, {
+          required: true,
+        });
+        // Re-validate dateEnd if it exists
+        if (newEvent.dateEnd) {
+          validate("event-dateEnd", newEvent.dateEnd, {
+            required: true,
+            custom: (val) => {
+              if (val && new Date(val) < new Date(value)) {
+                return {
+                  isValid: false,
+                  message: "End date must be on or after start date",
+                };
+              }
+              return { isValid: true };
+            },
+          });
+        }
+        break;
+      case "dateEnd":
+        validate(`event-${field}`, value, {
+          required: true,
+          custom: (val) => {
+            if (newEvent.dateStart && val) {
+              if (new Date(val) < new Date(newEvent.dateStart)) {
+                return {
+                  isValid: false,
+                  message: "End date must be on or after start date",
+                };
+              }
+            }
+            return { isValid: true };
+          },
+        });
+        break;
+      case "venue":
+        validate(`event-${field}`, value, {
+          required: true,
+          minLength: 2,
+          maxLength: 100,
+        });
+        break;
+      case "time":
+        validate(`event-${field}`, value, {
+          custom: (val) => validateTime(val),
+        });
+        break;
+      case "capacity":
+        validate(`event-${field}`, value, {
+          custom: (val) => validateCapacity(val),
+        });
+        break;
+      case "registrationStart":
+        // Re-validate registrationEnd if it exists
+        if (newEvent.registrationEnd) {
+          validate("event-registrationEnd", newEvent.registrationEnd, {
+            custom: (val) => {
+              if (val && new Date(val) < new Date(value)) {
+                return {
+                  isValid: false,
+                  message:
+                    "Registration end date must be on or after registration start date",
+                };
+              }
+              return { isValid: true };
+            },
+          });
+        }
+        break;
+      case "registrationEnd":
+        validate(`event-${field}`, value, {
+          custom: (val) => {
+            if (newEvent.registrationStart && val) {
+              if (new Date(val) < new Date(newEvent.registrationStart)) {
+                return {
+                  isValid: false,
+                  message:
+                    "Registration end date must be on or after registration start date",
+                };
+              }
+            }
+            return { isValid: true };
+          },
+        });
+        break;
+    }
   };
 
   const cancelCreateEvent = () => {
@@ -461,6 +637,7 @@ export default function AdminEventsPage() {
       registrationStart: "",
       registrationEnd: "",
     });
+    clearAllErrors();
   };
 
   return (
@@ -497,19 +674,27 @@ export default function AdminEventsPage() {
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                   {/* Event Name */}
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="name" className="text-right">
+                  <div className="grid grid-cols-4 items-start gap-4">
+                    <Label htmlFor="name" className="text-right pt-2">
                       Event Name *
                     </Label>
-                    <Input
-                      id="name"
-                      value={newEvent.name}
-                      onChange={(e) =>
-                        handleInputChange("name", e.target.value)
-                      }
-                      className="col-span-3"
-                      placeholder="Enter event name"
-                    />
+                    <div className="col-span-3">
+                      <Input
+                        id="name"
+                        value={newEvent.name}
+                        onChange={(e) =>
+                          handleInputChange("name", e.target.value)
+                        }
+                        onBlur={(e) => handleInputBlur("name", e.target.value)}
+                        className={errors["event-name"] ? "border-red-500" : ""}
+                        placeholder="Enter event name"
+                      />
+                      {errors["event-name"] && (
+                        <p className="text-sm text-red-500 mt-1">
+                          {errors["event-name"]}
+                        </p>
+                      )}
+                    </div>
                   </div>
 
                   {/* Event Description */}
@@ -529,82 +714,131 @@ export default function AdminEventsPage() {
                   </div>
 
                   {/* Date and Time */}
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="dateStart" className="text-right">
+                  <div className="grid grid-cols-4 items-start gap-4">
+                    <Label htmlFor="dateStart" className="text-right pt-2">
                       Start Date *
                     </Label>
-                    <Input
-                      id="dateStart"
-                      type="date"
-                      value={newEvent.dateStart}
-                      onChange={(e) =>
-                        handleInputChange("dateStart", e.target.value)
-                      }
-                      className="col-span-3"
-                      min={getTomorrowDate()}
-                      onKeyDown={(e) => {
-                        // Prevent typing in date input
-                        if (e.key !== "Tab" && e.key !== "Enter" && e.key !== "Escape") {
-                          e.preventDefault();
+                    <div className="col-span-3">
+                      <Input
+                        id="dateStart"
+                        type="date"
+                        value={newEvent.dateStart}
+                        onChange={(e) =>
+                          handleInputChange("dateStart", e.target.value)
                         }
-                      }}
-                    />
+                        onBlur={(e) =>
+                          handleInputBlur("dateStart", e.target.value)
+                        }
+                        className={
+                          errors["event-dateStart"] ? "border-red-500" : ""
+                        }
+                        min={getTomorrowDate()}
+                        onKeyDown={(e) => {
+                          // Prevent typing in date input
+                          if (
+                            e.key !== "Tab" &&
+                            e.key !== "Enter" &&
+                            e.key !== "Escape"
+                          ) {
+                            e.preventDefault();
+                          }
+                        }}
+                      />
+                      {errors["event-dateStart"] && (
+                        <p className="text-sm text-red-500 mt-1">
+                          {errors["event-dateStart"]}
+                        </p>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="dateEnd" className="text-right">
+                  <div className="grid grid-cols-4 items-start gap-4">
+                    <Label htmlFor="dateEnd" className="text-right pt-2">
                       End Date *
                     </Label>
-                    <Input
-                      id="dateEnd"
-                      type="date"
-                      value={newEvent.dateEnd}
-                      onChange={(e) =>
-                        handleInputChange("dateEnd", e.target.value)
-                      }
-                      className="col-span-3"
-                      min={
-                        newEvent.dateStart ||
-                        getTomorrowDate()
-                      }
-                      onKeyDown={(e) => {
-                        // Prevent typing in date input
-                        if (e.key !== "Tab" && e.key !== "Enter" && e.key !== "Escape") {
-                          e.preventDefault();
+                    <div className="col-span-3">
+                      <Input
+                        id="dateEnd"
+                        type="date"
+                        value={newEvent.dateEnd}
+                        onChange={(e) =>
+                          handleInputChange("dateEnd", e.target.value)
                         }
-                      }}
-                    />
+                        onBlur={(e) =>
+                          handleInputBlur("dateEnd", e.target.value)
+                        }
+                        className={
+                          errors["event-dateEnd"] ? "border-red-500" : ""
+                        }
+                        min={newEvent.dateStart || getTomorrowDate()}
+                        onKeyDown={(e) => {
+                          // Prevent typing in date input
+                          if (
+                            e.key !== "Tab" &&
+                            e.key !== "Enter" &&
+                            e.key !== "Escape"
+                          ) {
+                            e.preventDefault();
+                          }
+                        }}
+                      />
+                      {errors["event-dateEnd"] && (
+                        <p className="text-sm text-red-500 mt-1">
+                          {errors["event-dateEnd"]}
+                        </p>
+                      )}
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="time" className="text-right">
+                  <div className="grid grid-cols-4 items-start gap-4">
+                    <Label htmlFor="time" className="text-right pt-2">
                       Time
                     </Label>
-                    <Input
-                      id="time"
-                      value={newEvent.time}
-                      onChange={(e) =>
-                        handleInputChange("time", e.target.value)
-                      }
-                      className="col-span-3"
-                      placeholder="e.g., 10:00 AM - 6:00 PM"
-                    />
+                    <div className="col-span-3">
+                      <Input
+                        id="time"
+                        value={newEvent.time}
+                        onChange={(e) =>
+                          handleInputChange("time", e.target.value)
+                        }
+                        onBlur={(e) =>
+                          handleInputBlur("time", e.target.value)
+                        }
+                        className={errors["event-time"] ? "border-red-500" : ""}
+                        placeholder="e.g., 10:00 AM - 6:00 PM"
+                      />
+                      {errors["event-time"] && (
+                        <p className="text-sm text-red-500 mt-1">
+                          {errors["event-time"]}
+                        </p>
+                      )}
+                    </div>
                   </div>
 
                   {/* Venue and Organizer */}
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="venue" className="text-right">
+                  <div className="grid grid-cols-4 items-start gap-4">
+                    <Label htmlFor="venue" className="text-right pt-2">
                       Venue *
                     </Label>
-                    <Input
-                      id="venue"
-                      value={newEvent.venue}
-                      onChange={(e) =>
-                        handleInputChange("venue", e.target.value)
-                      }
-                      className="col-span-3"
-                      placeholder="Enter venue"
-                    />
+                    <div className="col-span-3">
+                      <Input
+                        id="venue"
+                        value={newEvent.venue}
+                        onChange={(e) =>
+                          handleInputChange("venue", e.target.value)
+                        }
+                        onBlur={(e) =>
+                          handleInputBlur("venue", e.target.value)
+                        }
+                        className={errors["event-venue"] ? "border-red-500" : ""}
+                        placeholder="Enter venue"
+                      />
+                      {errors["event-venue"] && (
+                        <p className="text-sm text-red-500 mt-1">
+                          {errors["event-venue"]}
+                        </p>
+                      )}
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-4 items-center gap-4">
@@ -661,20 +895,33 @@ export default function AdminEventsPage() {
                   </div>
 
                   {/* Registration Settings */}
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="capacity" className="text-right">
+                  <div className="grid grid-cols-4 items-start gap-4">
+                    <Label htmlFor="capacity" className="text-right pt-2">
                       Capacity
                     </Label>
-                    <Input
-                      id="capacity"
-                      type="number"
-                      value={newEvent.capacity}
-                      onChange={(e) =>
-                        handleInputChange("capacity", e.target.value)
-                      }
-                      className="col-span-3"
-                      placeholder="Enter capacity (leave empty for no limit)"
-                    />
+                    <div className="col-span-3">
+                      <Input
+                        id="capacity"
+                        type="number"
+                        value={newEvent.capacity}
+                        onChange={(e) =>
+                          handleInputChange("capacity", e.target.value)
+                        }
+                        onBlur={(e) =>
+                          handleInputBlur("capacity", e.target.value)
+                        }
+                        className={
+                          errors["event-capacity"] ? "border-red-500" : ""
+                        }
+                        placeholder="Enter capacity (leave empty for no limit)"
+                        min="1"
+                      />
+                      {errors["event-capacity"] && (
+                        <p className="text-sm text-red-500 mt-1">
+                          {errors["event-capacity"]}
+                        </p>
+                      )}
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-4 items-center gap-4">
@@ -693,51 +940,77 @@ export default function AdminEventsPage() {
                   </div>
 
                   {/* Registration Dates */}
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="registrationStart" className="text-right">
+                  <div className="grid grid-cols-4 items-start gap-4">
+                    <Label htmlFor="registrationStart" className="text-right pt-2">
                       Registration Start
                     </Label>
-                    <Input
-                      id="registrationStart"
-                      type="date"
-                      value={newEvent.registrationStart}
-                      onChange={(e) =>
-                        handleInputChange("registrationStart", e.target.value)
-                      }
-                      className="col-span-3"
-                      min={getTomorrowDate()}
-                      onKeyDown={(e) => {
-                        // Prevent typing in date input
-                        if (e.key !== "Tab" && e.key !== "Enter" && e.key !== "Escape") {
-                          e.preventDefault();
+                    <div className="col-span-3">
+                      <Input
+                        id="registrationStart"
+                        type="date"
+                        value={newEvent.registrationStart}
+                        onChange={(e) =>
+                          handleInputChange("registrationStart", e.target.value)
                         }
-                      }}
-                    />
+                        onBlur={(e) =>
+                          handleInputBlur("registrationStart", e.target.value)
+                        }
+                        className="col-span-3"
+                        min={getTomorrowDate()}
+                        onKeyDown={(e) => {
+                          // Prevent typing in date input
+                          if (
+                            e.key !== "Tab" &&
+                            e.key !== "Enter" &&
+                            e.key !== "Escape"
+                          ) {
+                            e.preventDefault();
+                          }
+                        }}
+                      />
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="registrationEnd" className="text-right">
+                  <div className="grid grid-cols-4 items-start gap-4">
+                    <Label htmlFor="registrationEnd" className="text-right pt-2">
                       Registration End
                     </Label>
-                    <Input
-                      id="registrationEnd"
-                      type="date"
-                      value={newEvent.registrationEnd}
-                      onChange={(e) =>
-                        handleInputChange("registrationEnd", e.target.value)
-                      }
-                      className="col-span-3"
-                      min={
-                        newEvent.registrationStart ||
-                        getTomorrowDate()
-                      }
-                      onKeyDown={(e) => {
-                        // Prevent typing in date input
-                        if (e.key !== "Tab" && e.key !== "Enter" && e.key !== "Escape") {
-                          e.preventDefault();
+                    <div className="col-span-3">
+                      <Input
+                        id="registrationEnd"
+                        type="date"
+                        value={newEvent.registrationEnd}
+                        onChange={(e) =>
+                          handleInputChange("registrationEnd", e.target.value)
                         }
-                      }}
-                    />
+                        onBlur={(e) =>
+                          handleInputBlur("registrationEnd", e.target.value)
+                        }
+                        className={
+                          errors["event-registrationEnd"]
+                            ? "border-red-500"
+                            : ""
+                        }
+                        min={
+                          newEvent.registrationStart || getTomorrowDate()
+                        }
+                        onKeyDown={(e) => {
+                          // Prevent typing in date input
+                          if (
+                            e.key !== "Tab" &&
+                            e.key !== "Enter" &&
+                            e.key !== "Escape"
+                          ) {
+                            e.preventDefault();
+                          }
+                        }}
+                      />
+                      {errors["event-registrationEnd"] && (
+                        <p className="text-sm text-red-500 mt-1">
+                          {errors["event-registrationEnd"]}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
                 <DialogFooter>
@@ -1176,6 +1449,19 @@ export default function AdminEventsPage() {
                           <Users className="h-4 w-4" />
                           Registrants ({registrations.length})
                         </h4>
+                        {registrations.length > 0 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => exportCSV(event.id)}
+                            className="flex items-center gap-2 hover:bg-green-50 hover:border-green-200 hover:text-green-700"
+                            title="Export registrations to CSV"
+                            data-testid={`button-export-csv-${event.id}`}
+                          >
+                            <Download className="h-4 w-4" />
+                            Export CSV
+                          </Button>
+                        )}
                       </div>
 
                       {registrations.length === 0 ? (
