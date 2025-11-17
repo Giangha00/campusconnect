@@ -358,20 +358,35 @@ export function runXSSAttackSimulation(): {
         output = escapedHtml;
         method = "escapeHtml";
 
-        // Check if dangerous tags/attributes are escaped
-        const hasDangerous =
+        // Check if dangerous tags are properly escaped
+        // Only check for unescaped HTML tags (not escaped ones like &lt;)
+        // Also check that original dangerous patterns are not present as raw HTML
+        const hasUnescapedDangerousTags =
           escapedHtml.includes("<script>") ||
-          escapedHtml.includes("<img") ||
+          escapedHtml.includes("<script ") ||
+          escapedHtml.includes("</script>") ||
+          escapedHtml.includes("<img ") ||
+          escapedHtml.includes("<img>") ||
           escapedHtml.includes("<iframe") ||
-          escapedHtml.includes("onerror") ||
-          escapedHtml.includes("onload");
+          escapedHtml.includes("<body ") ||
+          escapedHtml.includes("<svg ") ||
+          escapedHtml.includes("<input ") ||
+          escapedHtml.includes("<div ") ||
+          escapedHtml.includes("<form ");
 
-        if (
-          !hasDangerous &&
-          (escapedHtml.includes("&lt;") ||
-            escapedHtml.includes("&gt;") ||
-            escapedHtml.length > 0)
-        ) {
+        // Check if HTML tags are properly escaped (should have &lt; instead of <)
+        const hasEscapedTags = 
+          escapedHtml.includes("&lt;") || 
+          escapedHtml.includes("&gt;") ||
+          escapedHtml.includes("&quot;") ||
+          escapedHtml.includes("&#x27;") ||
+          escapedHtml.includes("&#x2F;");
+
+        // Test passes if:
+        // 1. No unescaped dangerous HTML tags are present
+        // 2. HTML tags are properly escaped (contains &lt; or other HTML entities)
+        // OR the payload didn't contain HTML tags to begin with (length check)
+        if (!hasUnescapedDangerousTags && (hasEscapedTags || escapedHtml.length > 0)) {
           testResult = "passed";
           escaped++; // This increments the counter variable, not the local const
         } else {
@@ -393,7 +408,7 @@ export function runXSSAttackSimulation(): {
 
         if (!hasDangerous) {
           testResult = "passed";
-          sanitized++; // This increments the counter variable, not the local const
+          sanitizedCount++; // Increment the counter variable
         } else {
           failed++;
         }
