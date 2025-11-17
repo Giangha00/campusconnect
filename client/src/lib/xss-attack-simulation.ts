@@ -282,7 +282,7 @@ export function runXSSAttackSimulation(): {
   let total = 0;
   let blocked = 0;
   let escaped = 0;
-  let sanitized = 0;
+  let sanitizedCount = 0;
   let failed = 0;
   
   const results: Array<{
@@ -355,7 +355,7 @@ export function runXSSAttackSimulation(): {
         
         if (!hasDangerous) {
           testResult = 'passed';
-          sanitized++;
+          sanitizedCount++;
         } else {
           failed++;
         }
@@ -379,9 +379,9 @@ export function runXSSAttackSimulation(): {
   console.log(`Total Attacks Simulated: ${total}`);
   console.log(`%cBlocked: ${blocked}`, `color: #059669; font-weight: bold;`);
   console.log(`%cEscaped: ${escaped}`, `color: #059669; font-weight: bold;`);
-  console.log(`%cSanitized: ${sanitized}`, `color: #059669; font-weight: bold;`);
+  console.log(`%cSanitized: ${sanitizedCount}`, `color: #059669; font-weight: bold;`);
   console.log(`%cFailed: ${failed}`, `color: ${failed > 0 ? '#dc2626' : '#059669'}; font-weight: bold;`);
-  console.log(`Success Rate: ${(((blocked + escaped + sanitized) / total) * 100).toFixed(1)}%`);
+  console.log(`Success Rate: ${(((blocked + escaped + sanitizedCount) / total) * 100).toFixed(1)}%`);
   
   if (failed === 0) {
     console.log('\n%c🛡️ ALL ATTACKS BLOCKED - DEFENSE MECHANISMS WORKING!', 
@@ -395,7 +395,7 @@ export function runXSSAttackSimulation(): {
     total,
     blocked,
     escaped,
-    sanitized,
+    sanitized: sanitizedCount,
     failed,
     results,
   };
