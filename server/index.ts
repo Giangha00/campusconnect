@@ -14,9 +14,9 @@ app.use((req, res, next) => {
   const cspHeader = [
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // unsafe-inline/eval needed for Vite HMR in dev
-    "style-src 'self' 'unsafe-inline'", // unsafe-inline needed for Tailwind CSS
+    "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com", // Allow Google Fonts stylesheets
     "img-src 'self' data: https: http:", // Allow images from any HTTPS/HTTP source
-    "font-src 'self' data:",
+    "font-src 'self' data: https://fonts.gstatic.com", // Allow Google Fonts files
     "connect-src 'self' ws: wss:", // WebSocket for Vite HMR
     "frame-src 'none'", // Prevent iframe embedding
     "object-src 'none'", // Prevent object/embed tags
