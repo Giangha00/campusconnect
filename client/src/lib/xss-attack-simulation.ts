@@ -323,39 +323,39 @@ export function runXSSAttackSimulation(): {
         }
       } else if (attack.expectedResult === 'escaped') {
         // Test HTML escaping
-        const escaped = escapeHtml(attack.payload);
-        output = escaped;
+        const escapedHtml = escapeHtml(attack.payload);
+        output = escapedHtml;
         method = 'escapeHtml';
         
         // Check if dangerous tags/attributes are escaped
-        const hasDangerous = escaped.includes('<script>') || 
-                           escaped.includes('<img') ||
-                           escaped.includes('<iframe') ||
-                           escaped.includes('onerror') ||
-                           escaped.includes('onload');
+        const hasDangerous = escapedHtml.includes('<script>') || 
+                           escapedHtml.includes('<img') ||
+                           escapedHtml.includes('<iframe') ||
+                           escapedHtml.includes('onerror') ||
+                           escapedHtml.includes('onload');
         
-        if (!hasDangerous && (escaped.includes('&lt;') || escaped.includes('&gt;') || escaped.length > 0)) {
+        if (!hasDangerous && (escapedHtml.includes('&lt;') || escapedHtml.includes('&gt;') || escapedHtml.length > 0)) {
           testResult = 'passed';
-          escaped++;
+          escaped++; // This increments the counter variable, not the local const
         } else {
           failed++;
         }
       } else if (attack.expectedResult === 'sanitized') {
         // Test HTML sanitization
-        const sanitized = sanitizeHtml(attack.payload);
-        output = sanitized;
+        const sanitizedHtml = sanitizeHtml(attack.payload);
+        output = sanitizedHtml;
         method = 'sanitizeHtml';
         
         // Check if dangerous content is removed
-        const hasDangerous = sanitized.includes('<script>') || 
-                           sanitized.includes('<img') ||
-                           sanitized.includes('<iframe') ||
-                           sanitized.includes('onerror') ||
-                           sanitized.includes('onload');
+        const hasDangerous = sanitizedHtml.includes('<script>') || 
+                           sanitizedHtml.includes('<img') ||
+                           sanitizedHtml.includes('<iframe') ||
+                           sanitizedHtml.includes('onerror') ||
+                           sanitizedHtml.includes('onload');
         
         if (!hasDangerous) {
           testResult = 'passed';
-          sanitized++;
+          sanitized++; // This increments the counter variable, not the local const
         } else {
           failed++;
         }
