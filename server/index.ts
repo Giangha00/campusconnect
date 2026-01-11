@@ -9,11 +9,7 @@ app.use(express.urlencoded({ extended: false }));
 
 // Security headers middleware
 app.use((req, res, next) => {
-<<<<<<< HEAD
   // Content-Security-Policy: Security headers for controlling resource loading
-=======
-  // Content-Security-Policy: Prevents XSS attacks by controlling resource loading
->>>>>>> 1c5227fa65afffce420648b2d996e7e758824fa2
   const cspHeader = [
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // unsafe-inline/eval needed for Vite HMR in dev
