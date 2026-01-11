@@ -1,4 +1,4 @@
-import 'dotenv/config';
+import "dotenv/config";
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
@@ -9,7 +9,11 @@ app.use(express.urlencoded({ extended: false }));
 
 // Security headers middleware
 app.use((req, res, next) => {
+<<<<<<< HEAD
   // Content-Security-Policy: Security headers for controlling resource loading
+=======
+  // Content-Security-Policy: Prevents XSS attacks by controlling resource loading
+>>>>>>> 1c5227fa65afffce420648b2d996e7e758824fa2
   const cspHeader = [
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // unsafe-inline/eval needed for Vite HMR in dev
@@ -23,19 +27,24 @@ app.use((req, res, next) => {
     "form-action 'self'", // Restrict form submissions
     "frame-ancestors 'none'", // Prevent clickjacking
     "upgrade-insecure-requests", // Upgrade HTTP to HTTPS
-  ].join('; ');
+  ].join("; ");
+
+  res.setHeader("Content-Security-Policy", cspHeader);
+
+  // X-XSS-Protection: Legacy browser XSS filter
+  res.setHeader("X-XSS-Protection", "1; mode=block");
 
   res.setHeader('Content-Security-Policy', cspHeader);
   
   // X-Content-Type-Options: Prevent MIME type sniffing
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  
-  // X-Frame-Options: Prevent clickjacking (redundant with CSP but for older browsers)
-  res.setHeader('X-Frame-Options', 'DENY');
-  
+  res.setHeader("X-Content-Type-Options", "nosniff");
+
+  // X-Frame-Options: Prevent clickjacking
+  res.setHeader("X-Frame-Options", "DENY");
+
   // Referrer-Policy: Control referrer information
-  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
-  
+  res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+
   next();
 });
 
