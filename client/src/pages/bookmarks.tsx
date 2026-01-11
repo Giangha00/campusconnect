@@ -1,13 +1,15 @@
 import { EventCard } from "@/components/events/event-card";
 import { useUser } from "@/contexts/user-context";
-import eventsData from "@/data/events.json";
+// import eventsData from "@/data/events.json"; // Backup - keeping for reference
 import { Event } from "@/types/event";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { BookmarkX } from "lucide-react";
+import { useEvents } from "@/contexts/events-context";
 
 export default function Bookmarks() {
   const { user, isEventBookmarked } = useUser();
+  const { events } = useEvents();
 
   if (!user) {
     return (
@@ -55,7 +57,7 @@ export default function Bookmarks() {
     );
   }
 
-  const bookmarkedEvents = (eventsData as Event[]).filter((event) =>
+  const bookmarkedEvents = events.filter((event) =>
     isEventBookmarked(event.id)
   );
 

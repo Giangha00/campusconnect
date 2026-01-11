@@ -62,7 +62,9 @@ export default function Gallery() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-4">
             <GalleryFilters currentFilter={filter} onFilterChange={setFilter} />
-            <YearScroll years={[...new Set(galleryItems.map((i) => i.year))]} />
+            <YearScroll
+              years={Array.from(new Set(galleryItems.map((i) => i.year)))}
+            />
           </div>
         </div>
       </section>

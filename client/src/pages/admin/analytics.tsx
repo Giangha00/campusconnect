@@ -1,9 +1,10 @@
 import { useMemo } from "react";
 import { Link } from "wouter";
-import usersData from "@/data/users.json";
+// import usersData from "@/data/users.json"; // Backup - keeping for reference
 import { Event } from "@/types/event";
 import { useAdmin } from "@/contexts/admin-context";
 import { useEvents } from "@/contexts/events-context";
+import { useUsers } from "@/contexts/users-context";
 import {
   calculateEventStatus,
   getStatusColor,
@@ -55,6 +56,7 @@ const STATUS_COLORS = {
 export default function AdminAnalytics() {
   const { admin } = useAdmin();
   const { events: eventsData } = useEvents();
+  const { users } = useUsers();
 
   const isAdmin = !!admin;
 
@@ -64,8 +66,6 @@ export default function AdminAnalytics() {
       return { ...event, status };
     });
   }, [eventsData]);
-
-  const users = usersData.users;
 
   // Calculate statistics
   const stats = useMemo(() => {

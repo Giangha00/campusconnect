@@ -5,19 +5,10 @@ import {
   useEffect,
   ReactNode,
 } from "react";
-import feedbackData from "@/data/feedback.json";
+// import feedbackData from "@/data/feedback.json"; // Backup - keeping for reference
+import { feedbackApi, type Feedback } from "@/lib/api";
 
-export interface Feedback {
-  id: number;
-  eventAttended: string;
-  name: string;
-  email: string;
-  userType: "student" | "faculty" | "visitor";
-  rating: number;
-  feedback: string;
-  createdAt: string;
-  status: "active" | "hidden";
-}
+// Feedback interface is now imported from api.ts
 
 interface FeedbackContextType {
   feedbacks: Feedback[];
@@ -37,76 +28,91 @@ interface FeedbackProviderProps {
 
 const LS_FEEDBACKS_KEY = "campusconnect-feedbacks";
 
-function loadFeedbacks(): Feedback[] {
-  try {
-    const saved = localStorage.getItem(LS_FEEDBACKS_KEY);
-    if (saved) {
-      const parsedFeedbacks = JSON.parse(saved) as Feedback[];
-      // Filter out feedbacks with invalid userType (staff, alumni)
-      const validUserTypes: ("student" | "faculty" | "visitor")[] = [
-        "student",
-        "faculty",
-        "visitor",
-      ];
-      const filteredFeedbacks = parsedFeedbacks.filter((f) =>
-        validUserTypes.includes(f.userType as any)
-      );
-      // If we filtered out any feedbacks, save the cleaned data
-      if (filteredFeedbacks.length !== parsedFeedbacks.length) {
-        localStorage.setItem(
-          LS_FEEDBACKS_KEY,
-          JSON.stringify(filteredFeedbacks)
-        );
-      }
-      return filteredFeedbacks;
-    }
-    // If no saved data, use initial data from JSON file
-    return feedbackData.feedbacks as Feedback[];
-  } catch {
-    return feedbackData.feedbacks as Feedback[];
-  }
-}
-
-function saveFeedbacks(feedbacks: Feedback[]) {
-  localStorage.setItem(LS_FEEDBACKS_KEY, JSON.stringify(feedbacks));
-}
-
 export function FeedbackProvider({ children }: FeedbackProviderProps) {
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Load feedbacks from localStorage on mount
+  // Load feedbacks from API
   useEffect(() => {
-    const loadedFeedbacks = loadFeedbacks();
-    // Filter out any feedbacks with invalid userType (staff, alumni)
-    const validUserTypes: ("student" | "faculty" | "visitor")[] = [
-      "student",
-      "faculty",
-      "visitor",
-    ];
-    const filteredFeedbacks = loadedFeedbacks.filter((f) =>
-      validUserTypes.includes(f.userType as any)
-    );
-    setFeedbacks(filteredFeedbacks);
-  }, []);
+    const loadFeedbacks = async () => {
+      try {
+        setIsLoading(true);
+        // Try cache first
+        const saved = localStorage.getItem(LS_FEEDBACKS_KEY);
+        if (saved) {
+          const cachedFeedbacks = JSON.parse(saved) as Feedback[];
+          setFeedbacks(cachedFeedbacks);
+        }
 
-  // Save feedbacks to localStorage when they change
-  useEffect(() => {
-    if (feedbacks.length > 0) {
-      saveFeedbacks(feedbacks);
-    }
-  }, [feedbacks]);
-
-  const addFeedback = (
-    newFeedback: Omit<Feedback, "id" | "createdAt" | "status">
-  ) => {
-    const feedback: Feedback = {
-      ...newFeedback,
-      id: Math.max(...feedbacks.map((f) => f.id), 0) + 1,
-      createdAt: new Date().toISOString(),
-      status: "active",
+        // Always fetch from API
+        const apiFeedbacks = await feedbackApi.getAll();
+        // Filter out invalid userTypes
+        const validUserTypes: ("student" | "faculty" | "visitor")[] = [
+          "student",
+          "faculty",
+          "visitor",
+        ];
+        const filteredFeedbacks = apiFeedbacks.filter((f) =>
+          validUserTypes.includes(f.userType as any)
+        );
+        setFeedbacks(filteredFeedbacks);
+        localStorage.setItem(LS_FEEDBACKS_KEY, JSON.stringify(filteredFeedbacks));
+      } catch (error) {
+        console.error("Error loading feedbacks from API:", error);
+        // Fallback to cache
+        const saved = localStorage.getItem(LS_FEEDBACKS_KEY);
+        if (saved) {
+          try {
+            const cachedFeedbacks = JSON.parse(saved) as Feedback[];
+            setFeedbacks(cachedFeedbacks);
+          } catch (e) {
+            console.error("Error parsing cached feedbacks:", e);
+          }
+        }
+      } finally {
+        setIsLoading(false);
+      }
     };
 
-    setFeedbacks((prev) => [...prev, feedback]);
+    loadFeedbacks();
+  }, []);
+
+  const addFeedback = async (
+    newFeedback: Omit<Feedback, "id" | "createdAt" | "status">
+  ) => {
+    try {
+      // Find event ID from event name (this is a limitation - should use eventId directly)
+      // For now, we'll need to pass eventId separately or find it
+      const apiFeedback = {
+        name: newFeedback.name,
+        email: newFeedback.email,
+        userType: newFeedback.userType,
+        rating: newFeedback.rating,
+        feedback: newFeedback.feedback,
+        // eventId and userId would need to be passed separately
+      };
+
+      const created = await feedbackApi.create(apiFeedback);
+      setFeedbacks((prev) => {
+        const updated = [...prev, created];
+        localStorage.setItem(LS_FEEDBACKS_KEY, JSON.stringify(updated));
+        return updated;
+      });
+    } catch (error) {
+      console.error("Error creating feedback:", error);
+      // Optimistic update
+      const feedback: Feedback = {
+        ...newFeedback,
+        id: Math.max(...feedbacks.map((f) => f.id), 0) + 1,
+        createdAt: new Date().toISOString(),
+        status: "active",
+      };
+      setFeedbacks((prev) => {
+        const updated = [...prev, feedback];
+        localStorage.setItem(LS_FEEDBACKS_KEY, JSON.stringify(updated));
+        return updated;
+      });
+    }
   };
 
   const getFeedbacksByEvent = (eventName: string): Feedback[] => {

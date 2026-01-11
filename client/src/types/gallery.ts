@@ -1,11 +1,15 @@
 export interface GalleryItem {
   id: number;
-  src: string;
-  alt: string;
+  imageUrl: string;
+  altText?: string;
   year: string;
   category: 'technical' | 'cultural' | 'sports' | 'academic';
-  event: string;
+  eventName?: string;
   date?: string;
+  // Legacy fields for backward compatibility
+  src?: string;
+  alt?: string;
+  event?: string;
 }
 
 export type GalleryFilter = GalleryItem['year'] | GalleryItem['category'] | 'all';

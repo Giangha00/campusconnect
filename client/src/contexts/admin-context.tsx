@@ -5,16 +5,10 @@ import {
   useEffect,
   ReactNode,
 } from "react";
-import adminData from "@/data/admin.json";
+// import adminData from "@/data/admin.json"; // Backup - keeping for reference
+import { adminApi, type AdminUser } from "@/lib/api";
 
-interface AdminUser {
-  id: string;
-  username: string;
-  password: string;
-  name: string;
-  email: string;
-  role: "admin" | "faculty";
-}
+// AdminUser interface is now imported from api.ts
 
 interface AdminContextType {
   admin: AdminUser | null;
@@ -45,28 +39,21 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     setIsLoading(false);
   }, []);
 
-  const login = (username: string, password: string) => {
-    // Check against admin.json data (adminData is an array with one admin object)
-    const adminUser = adminData.find(
-      (admin) => admin.username === username && admin.password === password
-    );
+  const login = async (username: string, password: string) => {
+    try {
+      const adminUser = await adminApi.login(username, password);
+      
+      if (adminUser) {
+        setAdmin(adminUser);
+        localStorage.setItem("admin", JSON.stringify(adminUser));
+        return { ok: true, message: "Login successful" };
+      }
 
-    if (adminUser) {
-      const loggedInAdmin: AdminUser = {
-        id: adminUser.id,
-        username: adminUser.username,
-        password: adminUser.password,
-        name: adminUser.name,
-        email: adminUser.email,
-        role: adminUser.role as "admin" | "faculty",
-      };
-
-      setAdmin(loggedInAdmin);
-      localStorage.setItem("admin", JSON.stringify(loggedInAdmin));
-      return { ok: true, message: "Login successful" };
+      return { ok: false, message: "Invalid username or password" };
+    } catch (error) {
+      console.error("Error during login:", error);
+      return { ok: false, message: "Error connecting to server" };
     }
-
-    return { ok: false, message: "Invalid username or password" };
   };
 
   const logout = () => {

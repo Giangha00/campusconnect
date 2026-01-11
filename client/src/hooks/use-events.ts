@@ -1,20 +1,41 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Event, EventCategory, EventStatus, EventSortBy } from "@/types/event";
-import eventsData from "@/data/events.json";
+// import eventsData from "@/data/events.json"; // Backup - keeping for reference
 import { calculateEventStatus } from "@/lib/event-status";
+import { eventsApi, type Event as ApiEvent } from "@/lib/api";
 
 export function useEvents() {
   const [filter, setFilter] = useState<EventCategory>("all");
   const [statusFilter, setStatusFilter] = useState<EventStatus>("all");
   const [sortBy, setSortBy] = useState<EventSortBy>("date");
   const [searchQuery, setSearchQuery] = useState("");
+  const [eventsData, setEventsData] = useState<ApiEvent[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load events from API
+  useEffect(() => {
+    const loadEvents = async () => {
+      try {
+        setIsLoading(true);
+        const events = await eventsApi.getAll();
+        setEventsData(events);
+      } catch (error) {
+        console.error('Error loading events:', error);
+        setEventsData([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadEvents();
+  }, []);
 
   const allEventsWithStatus = useMemo(() => {
-    return (eventsData as Event[]).map((event) => {
-      const status = calculateEventStatus(event);
+    return eventsData.map((event) => {
+      const status = calculateEventStatus(event as any);
       return { ...event, status };
     });
-  }, []);
+  }, [eventsData]);
 
   const events = useMemo(() => {
     let filteredEvents = allEventsWithStatus;

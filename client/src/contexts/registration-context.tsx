@@ -12,7 +12,9 @@ import {
 } from "@/lib/email-service";
 import { useToast } from "@/hooks/use-toast";
 import { canRegisterForEvent } from "@/lib/event-status";
-import eventsData from "@/data/events.json";
+// import eventsData from "@/data/events.json"; // Backup - keeping for reference
+import { useEvents } from "./events-context";
+import { registrationsApi } from "@/lib/api";
 
 interface Registration {
   eventId: number;
@@ -49,25 +51,42 @@ interface RegistrationProviderProps {
 export function RegistrationProvider({ children }: RegistrationProviderProps) {
   const { user } = useUser();
   const { toast } = useToast();
+  const { events } = useEvents();
   const [registrations, setRegistrations] = useState<Registration[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Load registrations from localStorage on mount
+  // Load registrations from API
   useEffect(() => {
-    const savedRegistrations = localStorage.getItem(
-      "campusconnect-registrations"
-    );
-    if (savedRegistrations) {
-      setRegistrations(JSON.parse(savedRegistrations));
-    }
+    const loadRegistrations = async () => {
+      try {
+        setIsLoading(true);
+        const savedRegistrations = localStorage.getItem("campusconnect-registrations");
+        if (savedRegistrations) {
+          setRegistrations(JSON.parse(savedRegistrations));
+        }
+
+        // Always fetch from API
+        const apiRegistrations = await registrationsApi.getAll();
+        setRegistrations(apiRegistrations);
+        localStorage.setItem("campusconnect-registrations", JSON.stringify(apiRegistrations));
+      } catch (error) {
+        console.error("Error loading registrations from API:", error);
+        // Fallback to cache
+        const savedRegistrations = localStorage.getItem("campusconnect-registrations");
+        if (savedRegistrations) {
+          try {
+            setRegistrations(JSON.parse(savedRegistrations));
+          } catch (e) {
+            console.error("Error parsing cached registrations:", e);
+          }
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadRegistrations();
   }, []);
-
-  // Save registrations to localStorage when they change
-  useEffect(() => {
-    localStorage.setItem(
-      "campusconnect-registrations",
-      JSON.stringify(registrations)
-    );
-  }, [registrations]);
 
   const getRegistrationsByEvent = (eventId: number): Registration[] => {
     return registrations.filter((r) => r.eventId === eventId);
@@ -88,7 +107,7 @@ export function RegistrationProvider({ children }: RegistrationProviderProps) {
     if (existingRegistration) return;
 
     // Check if registration is allowed based on event dates
-    const event = eventsData.find((e) => e.id === eventId);
+    const event = events.find((e) => e.id === eventId);
     if (event && !canRegisterForEvent(event as any)) {
       toast({
         title: "Registration Closed",
@@ -101,26 +120,26 @@ export function RegistrationProvider({ children }: RegistrationProviderProps) {
     // Generate ticket number
     const ticket = generateTicketNumber();
 
-    const newRegistration: Registration = {
-      eventId,
-      userId: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      department: user.department,
-      registeredAt: new Date().toISOString(),
-      ticket,
-    };
-
-    // Add registration to state
-    setRegistrations((prev) => [...prev, newRegistration]);
-
-    // Send confirmation email
     try {
-      // Get event name from events data
-      const event = eventsData.find((e) => e.id === eventId);
-      const eventName = event ? event.name : `Event #${eventId}`;
+      // Create registration on server
+      const apiRegistration = {
+        userId: user.id,
+        eventId,
+        ticketNumber: ticket,
+        checkedIn: false,
+      };
 
+      const created = await registrationsApi.create(apiRegistration);
+      
+      // Add registration to state
+      setRegistrations((prev) => {
+        const updated = [...prev, created];
+        localStorage.setItem("campusconnect-registrations", JSON.stringify(updated));
+        return updated;
+      });
+
+      // Send confirmation email
+      const eventName = event ? event.name : `Event #${eventId}`;
       const emailResult = await sendRegistrationEmail({
         to: user.email,
         name: user.name,
@@ -130,34 +149,53 @@ export function RegistrationProvider({ children }: RegistrationProviderProps) {
 
       if (emailResult.success) {
         toast({
-          title: "Login Success!",
-          description:
-            "Email confirmation has been sent to your email address.",
+          title: "Registration Success!",
+          description: "Email confirmation has been sent to your email address.",
         });
       } else {
         toast({
-          title: "Register Success!",
-          description:
-            "However, we were unable to send the email confirmation. Please check your email address.",
+          title: "Registration Success!",
+          description: "However, we were unable to send the email confirmation. Please check your email address.",
           variant: "destructive",
         });
       }
     } catch (error) {
-      console.error("Error sending confirmation email:", error);
+      console.error("Error creating registration:", error);
       toast({
-        title: "Register Success!",
-        description: "However, we were unable to send the email confirmation.",
+        title: "Registration Failed",
+        description: "Unable to register for this event. Please try again.",
         variant: "destructive",
       });
     }
   };
 
-  const unregisterFromEvent = (eventId: number) => {
+  const unregisterFromEvent = async (eventId: number) => {
     if (!user) return;
 
-    setRegistrations((prev) =>
-      prev.filter((r) => !(r.eventId === eventId && r.userId === user.id))
-    );
+    try {
+      // Find registration to delete
+      const registration = registrations.find(
+        (r) => r.eventId === eventId && r.userId === user.id
+      );
+
+      if (registration && registration.ticket) {
+        // Need to find registration ID from API - this is a limitation
+        // For now, we'll do optimistic update
+        setRegistrations((prev) => {
+          const updated = prev.filter((r) => !(r.eventId === eventId && r.userId === user.id));
+          localStorage.setItem("campusconnect-registrations", JSON.stringify(updated));
+          return updated;
+        });
+      }
+    } catch (error) {
+      console.error("Error unregistering from event:", error);
+      // Optimistic update
+      setRegistrations((prev) => {
+        const updated = prev.filter((r) => !(r.eventId === eventId && r.userId === user.id));
+        localStorage.setItem("campusconnect-registrations", JSON.stringify(updated));
+        return updated;
+      });
+    }
   };
 
   const isEventRegistered = (eventId: number): boolean => {
@@ -173,32 +211,88 @@ export function RegistrationProvider({ children }: RegistrationProviderProps) {
     ).length;
   };
 
-  const checkInUser = (eventId: number, userId: string) => {
-    setRegistrations((prev) =>
-      prev.map((r) =>
-        r.eventId === eventId && r.userId === userId
-          ? {
-              ...r,
-              checkedIn: true,
-              checkedInAt: new Date().toISOString(),
-            }
-          : r
-      )
-    );
+  const checkInUser = async (eventId: number, userId: string) => {
+    try {
+      const registration = registrations.find(
+        (r) => r.eventId === eventId && r.userId === userId
+      );
+
+      if (registration && registration.ticket) {
+        // Update on server - need registration ID
+        // For now, optimistic update
+        setRegistrations((prev) => {
+          const updated = prev.map((r) =>
+            r.eventId === eventId && r.userId === userId
+              ? {
+                  ...r,
+                  checkedIn: true,
+                  checkedInAt: new Date().toISOString(),
+                }
+              : r
+          );
+          localStorage.setItem("campusconnect-registrations", JSON.stringify(updated));
+          return updated;
+        });
+      }
+    } catch (error) {
+      console.error("Error checking in user:", error);
+      // Optimistic update
+      setRegistrations((prev) => {
+        const updated = prev.map((r) =>
+          r.eventId === eventId && r.userId === userId
+            ? {
+                ...r,
+                checkedIn: true,
+                checkedInAt: new Date().toISOString(),
+              }
+            : r
+        );
+        localStorage.setItem("campusconnect-registrations", JSON.stringify(updated));
+        return updated;
+      });
+    }
   };
 
-  const checkOutUser = (eventId: number, userId: string) => {
-    setRegistrations((prev) =>
-      prev.map((r) =>
-        r.eventId === eventId && r.userId === userId
-          ? {
-              ...r,
-              checkedIn: false,
-              checkedInAt: undefined,
-            }
-          : r
-      )
-    );
+  const checkOutUser = async (eventId: number, userId: string) => {
+    try {
+      const registration = registrations.find(
+        (r) => r.eventId === eventId && r.userId === userId
+      );
+
+      if (registration && registration.ticket) {
+        // Update on server - need registration ID
+        // For now, optimistic update
+        setRegistrations((prev) => {
+          const updated = prev.map((r) =>
+            r.eventId === eventId && r.userId === userId
+              ? {
+                  ...r,
+                  checkedIn: false,
+                  checkedInAt: undefined,
+                }
+              : r
+          );
+          localStorage.setItem("campusconnect-registrations", JSON.stringify(updated));
+          return updated;
+        });
+      }
+    } catch (error) {
+      console.error("Error checking out user:", error);
+      // Optimistic update
+      setRegistrations((prev) => {
+        const updated = prev.map((r) =>
+          r.eventId === eventId && r.userId === userId
+            ? {
+                ...r,
+                checkedIn: false,
+                checkedInAt: undefined,
+              }
+            : r
+        );
+        localStorage.setItem("campusconnect-registrations", JSON.stringify(updated));
+        return updated;
+      });
+    }
   };
 
   const value: RegistrationContextType = {

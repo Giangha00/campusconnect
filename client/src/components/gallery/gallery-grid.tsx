@@ -42,18 +42,18 @@ export function GalleryGrid({ items }: GalleryGridProps) {
                   type="button"
                   onClick={() => setSelected(item)}
                   className="aspect-square relative overflow-hidden w-full cursor-zoom-in"
-                  aria-label={`Open ${item.event} image`}
+                  aria-label={`Open ${item.eventName || item.event || 'event'} image`}
                 >
                   <img
-                    src={item.src}
-                    alt={item.alt}
+                    src={item.imageUrl || item.src || ''}
+                    alt={item.altText || item.alt || item.eventName || 'Gallery image'}
                     className="w-full h-full object-cover transition-transform duration-300 hover:scale-105"
                     loading="lazy"
                   />
                 </button>
                 <CardContent className="p-3">
                   <p className="text-sm font-medium text-card-foreground mb-1" data-testid={`text-gallery-event-${item.id}`}>
-                    {item.event}
+                    {item.eventName || item.event || 'Event'}
                   </p>
                   <p className="text-xs text-muted-foreground" data-testid={`text-gallery-details-${item.id}`}>
                     {item.year} • {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
@@ -70,20 +70,20 @@ export function GalleryGrid({ items }: GalleryGridProps) {
           {selected && (
             <div className="space-y-3">
               <DialogHeader>
-                <DialogTitle>{selected.event}</DialogTitle>
+                <DialogTitle>{selected.eventName || selected.event || 'Event'}</DialogTitle>
                 <DialogDescription>
                   {selected.year} • {selected.category.charAt(0).toUpperCase() + selected.category.slice(1)}
                 </DialogDescription>
               </DialogHeader>
               <div className="w-full">
                 <img
-                  src={selected.src}
-                  alt={selected.alt}
+                  src={selected.imageUrl || selected.src || ''}
+                  alt={selected.altText || selected.alt || selected.eventName || 'Gallery image'}
                   className="w-full h-auto rounded-md"
                   loading="lazy"
                 />
               </div>
-              <p className="text-sm text-muted-foreground">{selected.alt}</p>
+              <p className="text-sm text-muted-foreground">{selected.altText || selected.alt || ''}</p>
             </div>
           )}
         </DialogContent>

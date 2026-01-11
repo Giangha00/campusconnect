@@ -25,7 +25,6 @@ const Feedback = lazy(() => import("@/pages/feedback"));
 const Contact = lazy(() => import("@/pages/contact"));
 const Bookmarks = lazy(() => import("@/pages/bookmarks"));
 const MyEvents = lazy(() => import("@/pages/my-events"));
-const XSSTestPage = lazy(() => import("@/pages/xss-test"));
 const NotFound = lazy(() => import("@/pages/not-found"));
 
 // Admin pages - lazy load
@@ -65,7 +64,6 @@ function Router() {
             <Route path="/contact" component={Contact} />
             <Route path="/bookmarks" component={Bookmarks} />
             <Route path="/my-events" component={MyEvents} />
-            <Route path="/xss-test" component={XSSTestPage} />
             <Route path="/admin" component={AdminLoginPage} />
             <Route path="/admin/dashboard" component={AdminDashboard} />
             <Route path="/admin/dashboard/events" component={AdminEventsPage} />

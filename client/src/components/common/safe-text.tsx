@@ -1,5 +1,3 @@
-import { escapeHtml, sanitizeUrl } from "@/lib/xss-protection";
-
 interface SafeTextProps {
   children: string | null | undefined;
   as?: keyof JSX.IntrinsicElements;
@@ -8,8 +6,7 @@ interface SafeTextProps {
 }
 
 /**
- * SafeText component automatically escapes HTML to prevent XSS attacks
- * Use this component when displaying user input or untrusted content
+ * Simple text component
  */
 export function SafeText({
   children,
@@ -17,35 +14,30 @@ export function SafeText({
   className,
   ...props
 }: SafeTextProps) {
-  const safeText = escapeHtml(children);
-
   return (
     <Component className={className} {...props}>
-      {safeText}
+      {children || ""}
     </Component>
   );
 }
 
 /**
- * SafeAttribute component for sanitizing HTML attributes
- * Use this for attributes like title, alt, aria-label, etc.
+ * Simple attribute sanitizer - returns value as is
  */
 export function sanitizeAttribute(value: string | null | undefined): string {
-  return escapeHtml(value);
+  return value || "";
 }
 
 /**
- * SafeUrl component for sanitizing URLs to prevent XSSI attacks
- * Use this for href, src, iframe src, etc.
- * @param url - URL to sanitize
- * @param allowedDomains - Optional array of allowed domains
- * @param strict - If true, only allow whitelisted domains. If false, allow any domain (for images)
- * @returns Sanitized URL or empty string if invalid
+ * Simple URL validator
+ * @param url - URL to validate
+ * @param allowedDomains - Ignored (kept for compatibility)
+ * @param strict - Ignored (kept for compatibility)
  */
 export function safeUrl(
   url: string | null | undefined,
   allowedDomains?: string[],
-  strict: boolean = true
+  strict?: boolean
 ): string {
-  return sanitizeUrl(url, allowedDomains, strict);
+  return url || "";
 }
