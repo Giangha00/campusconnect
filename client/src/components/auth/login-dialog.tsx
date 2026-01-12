@@ -71,7 +71,7 @@ export function LoginDialog({ children }: LoginDialogProps) {
     clearAllErrors();
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validate login fields
@@ -91,7 +91,8 @@ export function LoginDialog({ children }: LoginDialogProps) {
       return;
     }
 
-    const res = login(username.trim(), password);
+    // Await the async login function
+    const res = await login(username.trim(), password);
     if (res.ok) {
       toast({ title: "Login successful" });
       setIsOpen(false);

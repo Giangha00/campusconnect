@@ -6,15 +6,13 @@ import {
   ReactNode,
 } from "react";
 import { useUser } from "./user-context";
-import {
-  sendRegistrationEmail,
-  generateTicketNumber,
-} from "@/lib/email-service";
+import { sendRegistrationEmail } from "@/lib/email-service";
 import { useToast } from "@/hooks/use-toast";
 import { canRegisterForEvent } from "@/lib/event-status";
 // import eventsData from "@/data/events.json"; // Backup - keeping for reference
 import { useEvents } from "./events-context";
 import { registrationsApi } from "@/lib/api";
+import apiClient from "@/lib/api";
 
 interface Registration {
   eventId: number;
@@ -98,34 +96,32 @@ export function RegistrationProvider({ children }: RegistrationProviderProps) {
     if (event && !canRegisterForEvent(event as any)) {
       toast({
         title: "Registration Closed",
-        description: "Registration is only available 5-30 days before the event",
+        description:
+          "Registration is only available 5-30 days before the event",
         variant: "destructive",
       });
       return;
     }
 
-    // Generate ticket number
-    const ticket = generateTicketNumber();
-
     try {
       // Create registration on server
+      // Backend will automatically generate ticketNumber
       const apiRegistration = {
         userId: user.id,
         eventId,
-        ticketNumber: ticket,
-        checkedIn: false,
       };
 
       const created = await registrationsApi.create(apiRegistration);
-      
+
       // Add registration to state
       setRegistrations((prev) => {
         const updated = [...prev, created];
         return updated;
       });
 
-      // Send confirmation email
+      // Send confirmation email using ticketNumber from response
       const eventName = event ? event.name : `Event #${eventId}`;
+      const ticket = created.ticket || "N/A"; // Use ticket from response
       const emailResult = await sendRegistrationEmail({
         to: user.email,
         name: user.name,
@@ -136,20 +132,49 @@ export function RegistrationProvider({ children }: RegistrationProviderProps) {
       if (emailResult.success) {
         toast({
           title: "Registration Success!",
-          description: "Email confirmation has been sent to your email address.",
+          description:
+            "Email confirmation has been sent to your email address.",
         });
       } else {
         toast({
           title: "Registration Success!",
-          description: "However, we were unable to send the email confirmation. Please check your email address.",
+          description:
+            "However, we were unable to send the email confirmation. Please check your email address.",
           variant: "destructive",
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error creating registration:", error);
+
+      // Provide more specific error messages
+      let errorMessage = "Unable to register for this event. Please try again.";
+
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        if (errorData.message) {
+          errorMessage = errorData.message;
+        } else if (errorData.error) {
+          errorMessage = errorData.error;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      // Check if it's a validation error
+      if (error.response?.status === 400) {
+        errorMessage =
+          errorMessage ||
+          "Invalid registration data. Please check your information.";
+      } else if (error.response?.status === 409) {
+        errorMessage =
+          errorMessage || "You are already registered for this event.";
+      } else if (error.response?.status === 500) {
+        errorMessage = errorMessage || "Server error. Please try again later.";
+      }
+
       toast({
         title: "Registration Failed",
-        description: "Unable to register for this event. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -159,24 +184,23 @@ export function RegistrationProvider({ children }: RegistrationProviderProps) {
     if (!user) return;
 
     try {
-      // Find registration to delete
-      const registration = registrations.find(
-        (r) => r.eventId === eventId && r.userId === user.id
-      );
+      // Delete on server using userId and eventId
+      await registrationsApi.delete(user.id, eventId);
 
-      if (registration && registration.ticket) {
-        // Need to find registration ID from API - this is a limitation
-        // For now, we'll do optimistic update
-        setRegistrations((prev) => {
-          const updated = prev.filter((r) => !(r.eventId === eventId && r.userId === user.id));
-          return updated;
-        });
-      }
+      // Remove from state
+      setRegistrations((prev) => {
+        const updated = prev.filter(
+          (r) => !(r.eventId === eventId && r.userId === user.id)
+        );
+        return updated;
+      });
     } catch (error) {
       console.error("Error unregistering from event:", error);
       // Optimistic update
       setRegistrations((prev) => {
-        const updated = prev.filter((r) => !(r.eventId === eventId && r.userId === user.id));
+        const updated = prev.filter(
+          (r) => !(r.eventId === eventId && r.userId === user.id)
+        );
         return updated;
       });
     }
@@ -201,22 +225,73 @@ export function RegistrationProvider({ children }: RegistrationProviderProps) {
         (r) => r.eventId === eventId && r.userId === userId
       );
 
-      if (registration && registration.ticket) {
-        // Update on server - need registration ID
-        // For now, optimistic update
-        setRegistrations((prev) => {
-          const updated = prev.map((r) =>
-            r.eventId === eventId && r.userId === userId
-              ? {
-                  ...r,
-                  checkedIn: true,
-                  checkedInAt: new Date().toISOString(),
-                }
-              : r
-          );
-          return updated;
-        });
+      if (!registration) {
+        console.warn("Registration not found for check-in");
+        return;
       }
+
+      // Get all registrations from API to find the registration ID
+      const allRegsResponse = await registrationsApi.getAll();
+      const reg = allRegsResponse.find(
+        (r) => r.eventId === eventId && r.userId === userId
+      );
+
+      if (!reg) {
+        console.warn("Registration not found in API for check-in");
+        return;
+      }
+
+      // Find registration ID from mapping stored in sessionStorage
+      // We need to get all registrations from API and match by userId+eventId
+      const mappingKey = "campusconnect-registration-mapping";
+      const stored = sessionStorage.getItem(mappingKey);
+      if (stored) {
+        const mapping: Array<{
+          registrationId: string;
+          userId: string;
+          eventId: number;
+        }> = JSON.parse(stored);
+        const mapped = mapping.find(
+          (m) => m.userId === userId && m.eventId === eventId
+        );
+
+        if (mapped) {
+          // Call checkIn API with registration ID
+          await registrationsApi.checkIn(mapped.registrationId);
+
+          // Update state
+          setRegistrations((prev) => {
+            const updated = prev.map((r) =>
+              r.eventId === eventId && r.userId === userId
+                ? {
+                    ...r,
+                    checkedIn: true,
+                    checkedInAt: new Date().toISOString(),
+                  }
+                : r
+            );
+            return updated;
+          });
+          return;
+        }
+      }
+
+      // If mapping not found, do optimistic update
+      console.warn(
+        "Registration ID not found in mapping, doing optimistic update"
+      );
+      setRegistrations((prev) => {
+        const updated = prev.map((r) =>
+          r.eventId === eventId && r.userId === userId
+            ? {
+                ...r,
+                checkedIn: true,
+                checkedInAt: new Date().toISOString(),
+              }
+            : r
+        );
+        return updated;
+      });
     } catch (error) {
       console.error("Error checking in user:", error);
       // Optimistic update
@@ -236,43 +311,20 @@ export function RegistrationProvider({ children }: RegistrationProviderProps) {
   };
 
   const checkOutUser = async (eventId: number, userId: string) => {
-    try {
-      const registration = registrations.find(
-        (r) => r.eventId === eventId && r.userId === userId
+    // Backend doesn't have check-out endpoint, only check-in
+    // So we just update locally
+    setRegistrations((prev) => {
+      const updated = prev.map((r) =>
+        r.eventId === eventId && r.userId === userId
+          ? {
+              ...r,
+              checkedIn: false,
+              checkedInAt: undefined,
+            }
+          : r
       );
-
-      if (registration && registration.ticket) {
-        // Update on server - need registration ID
-        // For now, optimistic update
-        setRegistrations((prev) => {
-          const updated = prev.map((r) =>
-            r.eventId === eventId && r.userId === userId
-              ? {
-                  ...r,
-                  checkedIn: false,
-                  checkedInAt: undefined,
-                }
-              : r
-          );
-          return updated;
-        });
-      }
-    } catch (error) {
-      console.error("Error checking out user:", error);
-      // Optimistic update
-      setRegistrations((prev) => {
-        const updated = prev.map((r) =>
-          r.eventId === eventId && r.userId === userId
-            ? {
-                ...r,
-                checkedIn: false,
-                checkedInAt: undefined,
-              }
-            : r
-        );
-        return updated;
-      });
-    }
+      return updated;
+    });
   };
 
   const value: RegistrationContextType = {

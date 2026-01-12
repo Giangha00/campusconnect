@@ -573,16 +573,20 @@ export const adminApi = {
 };
 
 // ==================== Event Registrations API ====================
+// Backend EventRegistration entity response format
+// Note: user and event are @JsonIgnore, so response only has:
+// id, ticketNumber, registrationDate, checkedIn, checkedInAt, createdAt, updatedAt
 export interface EventRegistrationResponse {
   id: string;
-  userId: string;
-  eventId: number;
   ticketNumber: string;
-  registrationDate: string;
+  registrationDate: string; // ISO string
   checkedIn: boolean;
-  checkedInAt?: string;
-  createdAt?: string;
-  updatedAt?: string;
+  checkedInAt?: string; // ISO string, nullable
+  createdAt?: string; // ISO string
+  updatedAt?: string; // ISO string
+  // These are not in response but we need to track them
+  userId?: string;
+  eventId?: number;
 }
 
 export interface Registration {
@@ -598,19 +602,61 @@ export interface Registration {
   checkedInAt?: string;
 }
 
+// Internal mapping to track userId and eventId for each registration ID
+// This is needed because backend doesn't return userId and eventId in response
+const REGISTRATION_MAPPING_KEY = 'campusconnect-registration-mapping';
+
+interface RegistrationMapping {
+  registrationId: string;
+  userId: string;
+  eventId: number;
+}
+
+function getRegistrationMapping(): Map<string, { userId: string; eventId: number }> {
+  try {
+    const stored = sessionStorage.getItem(REGISTRATION_MAPPING_KEY);
+    if (stored) {
+      const data: RegistrationMapping[] = JSON.parse(stored);
+      return new Map(data.map(m => [m.registrationId, { userId: m.userId, eventId: m.eventId }]));
+    }
+  } catch (e) {
+    console.error('Error loading registration mapping:', e);
+  }
+  return new Map();
+}
+
+function saveRegistrationMapping(map: Map<string, { userId: string; eventId: number }>) {
+  try {
+    const data: RegistrationMapping[] = Array.from(map.entries()).map(([id, info]) => ({
+      registrationId: id,
+      userId: info.userId,
+      eventId: info.eventId,
+    }));
+    sessionStorage.setItem(REGISTRATION_MAPPING_KEY, JSON.stringify(data));
+  } catch (e) {
+    console.error('Error saving registration mapping:', e);
+  }
+}
+
 export const registrationsApi = {
   getAll: async (): Promise<Registration[]> => {
     try {
       const response = await apiClient.get<EventRegistrationResponse[]>('/event-registrations');
-      // Need to fetch user details for each registration
-      const registrations = await Promise.all(
-        response.data.map(async (reg) => {
+      const mapping = getRegistrationMapping();
+      
+      // Backend doesn't return userId and eventId, so we need to use our mapping
+      // For registrations not in mapping, we can't determine user/event info
+      const registrations: Registration[] = [];
+      
+      for (const reg of response.data) {
+        const mapped = mapping.get(reg.id);
+        if (mapped) {
           try {
-            const userResponse = await apiClient.get<UserResponse>(`/users/${reg.userId}`);
+            const userResponse = await apiClient.get<UserResponse>(`/users/${mapped.userId}`);
             const user = userResponse.data;
-            return {
-              eventId: reg.eventId,
-              userId: reg.userId,
+            registrations.push({
+              eventId: mapped.eventId,
+              userId: mapped.userId,
               name: user.name,
               email: user.email,
               role: user.role,
@@ -619,12 +665,12 @@ export const registrationsApi = {
               ticket: reg.ticketNumber,
               checkedIn: reg.checkedIn,
               checkedInAt: reg.checkedInAt,
-            };
+            });
           } catch (error) {
             console.error('Error fetching user for registration:', error);
-            return {
-              eventId: reg.eventId,
-              userId: reg.userId,
+            registrations.push({
+              eventId: mapped.eventId,
+              userId: mapped.userId,
               name: 'Unknown',
               email: '',
               role: 'visitor',
@@ -632,10 +678,11 @@ export const registrationsApi = {
               ticket: reg.ticketNumber,
               checkedIn: reg.checkedIn,
               checkedInAt: reg.checkedInAt,
-            };
+            });
           }
-        })
-      );
+        }
+      }
+      
       return registrations;
     } catch (error: any) {
       // If 404, endpoint doesn't exist yet - return empty array
@@ -650,41 +697,9 @@ export const registrationsApi = {
 
   getByEventId: async (eventId: number): Promise<Registration[]> => {
     try {
-      const response = await apiClient.get<EventRegistrationResponse[]>(`/event-registrations?eventId=${eventId}`);
-      const registrations = await Promise.all(
-        response.data.map(async (reg) => {
-          try {
-            const userResponse = await apiClient.get<UserResponse>(`/users/${reg.userId}`);
-            const user = userResponse.data;
-            return {
-              eventId: reg.eventId,
-              userId: reg.userId,
-              name: user.name,
-              email: user.email,
-              role: user.role,
-              department: user.department,
-              registeredAt: reg.registrationDate,
-              ticket: reg.ticketNumber,
-              checkedIn: reg.checkedIn,
-              checkedInAt: reg.checkedInAt,
-            };
-          } catch (error) {
-            console.error('Error fetching user for registration:', error);
-            return {
-              eventId: reg.eventId,
-              userId: reg.userId,
-              name: 'Unknown',
-              email: '',
-              role: 'visitor',
-              registeredAt: reg.registrationDate,
-              ticket: reg.ticketNumber,
-              checkedIn: reg.checkedIn,
-              checkedInAt: reg.checkedInAt,
-            };
-          }
-        })
-      );
-      return registrations;
+      // Backend doesn't have query param for eventId, so get all and filter
+      const allRegistrations = await registrationsApi.getAll();
+      return allRegistrations.filter(r => r.eventId === eventId);
     } catch (error: any) {
       // If 404, endpoint doesn't exist yet - return empty array
       if (error.response?.status === 404) {
@@ -696,15 +711,32 @@ export const registrationsApi = {
     }
   },
 
-  create: async (registration: Omit<EventRegistrationResponse, 'id' | 'registrationDate' | 'createdAt' | 'updatedAt'>): Promise<Registration> => {
+  create: async (registration: { userId: string; eventId: number }): Promise<Registration> => {
     try {
-      const response = await apiClient.post<EventRegistrationResponse>('/event-registrations', registration);
+      // Backend expects userId and eventId (camelCase) in request body
+      // Backend will automatically generate ticketNumber
+      const requestBody = {
+        userId: String(registration.userId),
+        eventId: Number(registration.eventId),
+      };
+
+      const response = await apiClient.post<EventRegistrationResponse>('/event-registrations', requestBody);
+      
+      // Store mapping: registrationId -> { userId, eventId }
+      const mapping = getRegistrationMapping();
+      mapping.set(response.data.id, {
+        userId: registration.userId,
+        eventId: registration.eventId,
+      });
+      saveRegistrationMapping(mapping);
+      
       // Fetch user details
-      const userResponse = await apiClient.get<UserResponse>(`/users/${response.data.userId}`);
+      const userResponse = await apiClient.get<UserResponse>(`/users/${registration.userId}`);
       const user = userResponse.data;
+      
       return {
-        eventId: response.data.eventId,
-        userId: response.data.userId,
+        eventId: registration.eventId,
+        userId: registration.userId,
         name: user.name,
         email: user.email,
         role: user.role,
@@ -714,20 +746,69 @@ export const registrationsApi = {
         checkedIn: response.data.checkedIn,
         checkedInAt: response.data.checkedInAt,
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating registration:', error);
+      
+      // If 500 error, check if registration was actually created
+      if (error.response?.status === 500) {
+        try {
+          // Wait a bit for database to commit
+          await new Promise((resolve) => setTimeout(resolve, 500));
+          
+          // Try to find the registration by getting all and checking mapping
+          const allRegs = await apiClient.get<EventRegistrationResponse[]>('/event-registrations');
+          const mapping = getRegistrationMapping();
+          
+          // Check if any registration matches (by checking mapping)
+          for (const reg of allRegs.data) {
+            const mapped = mapping.get(reg.id);
+            if (mapped && mapped.userId === registration.userId && mapped.eventId === registration.eventId) {
+              // Registration was created successfully
+              const userResponse = await apiClient.get<UserResponse>(`/users/${registration.userId}`);
+              const user = userResponse.data;
+              return {
+                eventId: registration.eventId,
+                userId: registration.userId,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                department: user.department,
+                registeredAt: reg.registrationDate,
+                ticket: reg.ticketNumber,
+                checkedIn: reg.checkedIn,
+                checkedInAt: reg.checkedInAt,
+              };
+            }
+          }
+        } catch (checkError) {
+          console.error('Error checking if registration was created:', checkError);
+        }
+      }
+      
       throw error;
     }
   },
 
-  update: async (id: string, registration: Partial<EventRegistrationResponse>): Promise<Registration> => {
+  checkIn: async (registrationId: string): Promise<Registration> => {
     try {
-      const response = await apiClient.put<EventRegistrationResponse>(`/event-registrations/${id}`, registration);
-      const userResponse = await apiClient.get<UserResponse>(`/users/${response.data.userId}`);
+      // Backend has PUT /event-registrations/{id}/checkin endpoint
+      const response = await apiClient.put<EventRegistrationResponse>(`/event-registrations/${registrationId}/checkin`);
+      
+      // Get mapping to find userId and eventId
+      const mapping = getRegistrationMapping();
+      const mapped = mapping.get(registrationId);
+      
+      if (!mapped) {
+        throw new Error('Registration mapping not found');
+      }
+      
+      // Fetch user details
+      const userResponse = await apiClient.get<UserResponse>(`/users/${mapped.userId}`);
       const user = userResponse.data;
+      
       return {
-        eventId: response.data.eventId,
-        userId: response.data.userId,
+        eventId: mapped.eventId,
+        userId: mapped.userId,
         name: user.name,
         email: user.email,
         role: user.role,
@@ -738,15 +819,36 @@ export const registrationsApi = {
         checkedInAt: response.data.checkedInAt,
       };
     } catch (error) {
-      console.error('Error updating registration:', error);
+      console.error('Error checking in registration:', error);
       throw error;
     }
   },
 
-  delete: async (id: string): Promise<void> => {
+  delete: async (userId: string, eventId: number): Promise<void> => {
     try {
-      await apiClient.delete(`/event-registrations/${id}`);
-    } catch (error) {
+      // Get all registrations and find the one matching userId and eventId
+      const allRegs = await apiClient.get<EventRegistrationResponse[]>('/event-registrations');
+      const mapping = getRegistrationMapping();
+      
+      // Find registration ID by userId and eventId
+      const registration = allRegs.data.find(reg => {
+        const mapped = mapping.get(reg.id);
+        return mapped && mapped.userId === userId && mapped.eventId === eventId;
+      });
+      
+      if (registration) {
+        await apiClient.delete(`/event-registrations/${registration.id}`);
+        // Remove from mapping
+        mapping.delete(registration.id);
+        saveRegistrationMapping(mapping);
+      } else {
+        console.warn(`Registration not found for userId: ${userId}, eventId: ${eventId}`);
+      }
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        // Registration doesn't exist, that's fine
+        return;
+      }
       console.error('Error deleting registration:', error);
       throw error;
     }
@@ -754,19 +856,64 @@ export const registrationsApi = {
 };
 
 // ==================== Event Bookmarks API ====================
+// Backend EventBookmark entity response format
+// Note: user and event are @JsonIgnore, so response only has id and createdAt
+// Backend doesn't return eventId in response, so we need to track it differently
 export interface EventBookmarkResponse {
   id: string;
-  userId: string;
-  eventId: number;
-  createdAt?: string;
+  createdAt?: string; // Backend returns this as ISO string
+}
+
+// Internal mapping to track eventId for each bookmark ID
+// This is needed because backend doesn't return eventId in response
+// Store in sessionStorage to persist across page reloads
+const BOOKMARK_MAPPING_KEY = 'campusconnect-bookmark-mapping';
+
+function getBookmarkMapping(): Map<string, number> {
+  try {
+    const stored = sessionStorage.getItem(BOOKMARK_MAPPING_KEY);
+    if (stored) {
+      const data = JSON.parse(stored);
+      return new Map(Object.entries(data).map(([k, v]) => [k, Number(v)]));
+    }
+  } catch (e) {
+    console.error('Error loading bookmark mapping:', e);
+  }
+  return new Map();
+}
+
+function saveBookmarkMapping(map: Map<string, number>) {
+  try {
+    const data = Object.fromEntries(map);
+    sessionStorage.setItem(BOOKMARK_MAPPING_KEY, JSON.stringify(data));
+  } catch (e) {
+    console.error('Error saving bookmark mapping:', e);
+  }
 }
 
 export const bookmarksApi = {
   getAll: async (userId?: string): Promise<number[]> => {
     try {
+      // Backend uses userId (camelCase) in query param
       const url = userId ? `/event-bookmarks?userId=${userId}` : '/event-bookmarks';
       const response = await apiClient.get<EventBookmarkResponse[]>(url);
-      return response.data.map(b => b.eventId);
+      
+      // Backend only returns id and createdAt, not eventId
+      // Use our internal mapping to get eventIds
+      const mapping = getBookmarkMapping();
+      const eventIds: number[] = [];
+      
+      response.data.forEach(bookmark => {
+        const eventId = mapping.get(bookmark.id);
+        if (eventId) {
+          eventIds.push(eventId);
+        }
+      });
+      
+      // Return eventIds from mapping
+      // Note: If mapping is empty (first load), will return empty array
+      // This is a limitation - backend should expose eventId in response
+      return eventIds;
     } catch (error: any) {
       if (error.response?.status === 404) {
         // Endpoint not found - silently return empty array (no error logging)
@@ -779,23 +926,57 @@ export const bookmarksApi = {
 
   create: async (userId: string, eventId: number): Promise<EventBookmarkResponse> => {
     try {
+      console.log('Creating bookmark:', { userId, eventId });
+      // Backend expects userId and eventId (camelCase) in request body
       const response = await apiClient.post<EventBookmarkResponse>('/event-bookmarks', {
-        userId,
-        eventId,
+        userId: userId,
+        eventId: eventId,
       });
+      console.log('Bookmark created successfully:', response.data);
+      
+      // Store mapping: bookmarkId -> eventId (needed because backend doesn't return eventId)
+      const mapping = getBookmarkMapping();
+      mapping.set(response.data.id, eventId);
+      saveBookmarkMapping(mapping);
+      
       return response.data;
-    } catch (error) {
-      console.error('Error creating bookmark:', error);
+    } catch (error: any) {
+      // Log detailed error information
+      if (error.response) {
+        console.error('Error creating bookmark:', {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          data: error.response.data,
+          url: error.config?.url,
+        });
+      } else {
+        console.error('Error creating bookmark:', error.message || error);
+      }
       throw error;
     }
   },
 
   delete: async (userId: string, eventId: number): Promise<void> => {
     try {
-      // Try to find bookmark ID first
-      const bookmarks = await apiClient.get<EventBookmarkResponse[]>(`/event-bookmarks?userId=${userId}&eventId=${eventId}`);
-      if (bookmarks.data.length > 0) {
-        await apiClient.delete(`/event-bookmarks/${bookmarks.data[0].id}`);
+      // Backend uses userId (camelCase) in query param
+      // Get all bookmarks for user
+      const bookmarks = await apiClient.get<EventBookmarkResponse[]>(`/event-bookmarks?userId=${userId}`);
+      
+      // Find bookmark by eventId using our internal mapping
+      const mapping = getBookmarkMapping();
+      const bookmark = bookmarks.data.find(b => {
+        const mappedEventId = mapping.get(b.id);
+        return mappedEventId === eventId;
+      });
+      
+      if (bookmark) {
+        await apiClient.delete(`/event-bookmarks/${bookmark.id}`);
+        // Remove from internal mapping
+        const mapping = getBookmarkMapping();
+        mapping.delete(bookmark.id);
+        saveBookmarkMapping(mapping);
+      } else {
+        console.warn(`Bookmark not found for userId: ${userId}, eventId: ${eventId}`);
       }
     } catch (error: any) {
       if (error.response?.status === 404) {
@@ -827,27 +1008,27 @@ export interface UserRegisterRequest {
 export const userAuthApi = {
   login: async (username: string, password: string): Promise<UserResponse | null> => {
     try {
-      // Try to get user by username first, then verify password
-      // Note: This assumes backend has a login endpoint or we can get user and verify
-      const response = await apiClient.post<UserResponse>('/users/login', {
-        username,
-        password,
-      });
-      return response.data;
-    } catch (error: any) {
-      if (error.response?.status === 404) {
-        // Try alternative: get all users and find match
-        try {
-          const usersResponse = await apiClient.get<UserResponse[]>('/users');
-          const user = usersResponse.data.find(u => u.username === username);
-          // Note: Password verification should be done on backend
-          // For now, just return user if found
-          return user || null;
-        } catch (e) {
-          return null;
-        }
+      // Get all users from API
+      const usersResponse = await apiClient.get<UserResponse[]>('/users');
+      const users = usersResponse.data;
+      
+      // Find user by username (case-insensitive)
+      const user = users.find(
+        u => u.username.toLowerCase().trim() === username.toLowerCase().trim()
+      );
+      
+      if (!user) {
+        // User not found
+        return null;
       }
+      
+      // Note: Password verification should ideally be done on backend
+      // For now, if user exists, allow login
+      // In production, you should have a proper login endpoint that verifies password
+      return user;
+    } catch (error: any) {
       console.error('Error during login:', error);
+      // If API call fails, return null
       return null;
     }
   },

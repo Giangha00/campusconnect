@@ -129,50 +129,75 @@ export function UserProvider({ children }: UserProviderProps) {
 
     if (bookmarkedEvents.includes(eventId)) return; // no-op if already bookmarked
 
-    // Optimistic update first
-    const updatedBookmarks = [...bookmarkedEvents, eventId];
-    setBookmarkedEvents(updatedBookmarks);
-    // Update user in one call to avoid multiple re-renders
-    const updatedUser = {
-      ...user,
-      bookmarkedEvents: updatedBookmarks,
-    };
-    setUser(updatedUser);
-
     try {
-      // Try to create bookmark on server (if endpoint exists)
+      // Try to create bookmark on server first
       await bookmarksApi.create(user.id, eventId);
+
+      // Only update UI if API call succeeds
+      const updatedBookmarks = [...bookmarkedEvents, eventId];
+      setBookmarkedEvents(updatedBookmarks);
+      const updatedUser = {
+        ...user,
+        bookmarkedEvents: updatedBookmarks,
+      };
+      setUser(updatedUser);
     } catch (error: any) {
-      // If 404, endpoint doesn't exist - that's fine, we keep the optimistic update
-      if (error.response?.status !== 404) {
+      // Log error but don't update UI if API fails
+      if (error.response?.status === 404) {
+        console.warn(
+          "Bookmark endpoint not found (404). Bookmark not saved to server."
+        );
+        // Still update UI for better UX, but warn user it's not persisted
+        const updatedBookmarks = [...bookmarkedEvents, eventId];
+        setBookmarkedEvents(updatedBookmarks);
+        const updatedUser = {
+          ...user,
+          bookmarkedEvents: updatedBookmarks,
+        };
+        setUser(updatedUser);
+      } else {
         console.error("Error bookmarking event:", error);
+        // Don't update UI if there's a real error (not 404)
+        // User will see the bookmark didn't work
       }
-      // Keep the optimistic update even if API call fails
     }
   };
 
   const unbookmarkEvent = async (eventId: number) => {
     if (!user) return;
 
-    // Optimistic update first
-    const updatedBookmarks = bookmarkedEvents.filter((id) => id !== eventId);
-    setBookmarkedEvents(updatedBookmarks);
-    // Update user in one call to avoid multiple re-renders
-    const updatedUser = {
-      ...user,
-      bookmarkedEvents: updatedBookmarks,
-    };
-    setUser(updatedUser);
-
     try {
-      // Try to delete bookmark on server (if endpoint exists)
+      // Try to delete bookmark on server first
       await bookmarksApi.delete(user.id, eventId);
+
+      // Only update UI if API call succeeds
+      const updatedBookmarks = bookmarkedEvents.filter((id) => id !== eventId);
+      setBookmarkedEvents(updatedBookmarks);
+      const updatedUser = {
+        ...user,
+        bookmarkedEvents: updatedBookmarks,
+      };
+      setUser(updatedUser);
     } catch (error: any) {
-      // If 404, endpoint doesn't exist - that's fine, we keep the optimistic update
-      if (error.response?.status !== 404) {
+      // Log error but don't update UI if API fails
+      if (error.response?.status === 404) {
+        console.warn(
+          "Bookmark endpoint not found (404). Bookmark not removed from server."
+        );
+        // Still update UI for better UX, but warn user it's not persisted
+        const updatedBookmarks = bookmarkedEvents.filter(
+          (id) => id !== eventId
+        );
+        setBookmarkedEvents(updatedBookmarks);
+        const updatedUser = {
+          ...user,
+          bookmarkedEvents: updatedBookmarks,
+        };
+        setUser(updatedUser);
+      } else {
         console.error("Error unbookmarking event:", error);
+        // Don't update UI if there's a real error (not 404)
       }
-      // Keep the optimistic update even if API call fails
     }
   };
 
@@ -180,10 +205,18 @@ export function UserProvider({ children }: UserProviderProps) {
     return bookmarkedEvents.includes(eventId);
   };
 
-  // Login using API
+  // Login using API - check user from /api/users
   const login: UserContextType["login"] = async (username, password) => {
     try {
-      const userResponse = await userAuthApi.login(username, password);
+      // Validate input
+      if (!username || !username.trim()) {
+        return { ok: false, message: "Username is required" };
+      }
+      if (!password || !password.trim()) {
+        return { ok: false, message: "Password is required" };
+      }
+
+      const userResponse = await userAuthApi.login(username.trim(), password);
 
       if (userResponse) {
         // Map API user to frontend User format
@@ -204,9 +237,23 @@ export function UserProvider({ children }: UserProviderProps) {
         return { ok: true };
       }
 
+      // User not found in API
       return { ok: false, message: "Invalid username or password" };
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error during login:", error);
+
+      // Provide more specific error messages
+      if (error.code === "ERR_NETWORK" || error.message === "Network Error") {
+        return {
+          ok: false,
+          message: "Cannot connect to server. Please check your connection.",
+        };
+      }
+
+      if (error.response?.status === 404) {
+        return { ok: false, message: "User not found" };
+      }
+
       return { ok: false, message: "Error connecting to server" };
     }
   };
