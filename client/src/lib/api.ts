@@ -84,6 +84,7 @@ export interface Event {
   department: string;
   description: string;
   organizer: string;
+  organizerId?: string; // Store organizerId to fetch admin name
   image: string;
   registrationRequired: boolean;
   capacity: number | string;
@@ -108,7 +109,8 @@ function mapEventToFrontend(event: EventResponse, attendees: number = 0, checked
     category: event.category,
     department: 'General', // Default value
     description: event.description || '',
-    organizer: 'Admin', // Default value, can be fetched from admin table
+    organizer: 'Admin', // Default value, will be fetched from admin table
+    organizerId: event.organizerId, // Store organizerId to fetch admin name
     image: event.imageUrl || '',
     registrationRequired: event.registrationRequired ?? true,
     capacity: event.capacity || 'Unlimited',

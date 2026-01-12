@@ -15,7 +15,7 @@ interface AdminContextType {
   login: (
     username: string,
     password: string
-  ) => { ok: boolean; message: string };
+  ) => Promise<{ ok: boolean; message: string }>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -42,7 +42,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const login = async (username: string, password: string) => {
     try {
       const adminUser = await adminApi.login(username, password);
-      
+
       if (adminUser) {
         setAdmin(adminUser);
         sessionStorage.setItem("admin", JSON.stringify(adminUser));

@@ -23,13 +23,14 @@ import {
   UserCheck,
   UserPlus,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useUser } from "@/contexts/user-context";
 import { useEvents } from "@/contexts/events-context";
 import { useRegistration } from "@/contexts/registration-context";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { LoginDialog } from "@/components/auth/login-dialog";
+import { adminApi } from "@/lib/api";
 import {
   SafeText,
   sanitizeAttribute,
@@ -51,9 +52,46 @@ export default function EventDetail() {
   const { events } = useEvents();
   const { toast } = useToast();
   const [showLoginDialog, setShowLoginDialog] = useState(false);
+  const [organizerName, setOrganizerName] = useState<string>("");
 
   const eventId = params?.id ? parseInt(params.id) : null;
   const event = events?.find((e: any) => e.id === eventId);
+
+  // Fetch organizer name from admins API
+  useEffect(() => {
+    const fetchOrganizerName = async () => {
+      if (!event) {
+        setOrganizerName("");
+        return;
+      }
+      
+      // Get organizerId from event
+      const organizerId = (event as any).organizerId;
+      
+      if (!organizerId) {
+        // If no organizerId, use the existing organizer string as fallback
+        setOrganizerName(event.organizer || "Unknown");
+        return;
+      }
+
+      try {
+        const admins = await adminApi.getAll();
+        const admin = admins.find(a => a.id === organizerId);
+        if (admin) {
+          setOrganizerName(admin.name);
+        } else {
+          // Fallback to existing organizer string if admin not found
+          setOrganizerName(event.organizer || "Unknown");
+        }
+      } catch (error) {
+        console.error("Error fetching organizer name:", error);
+        // Fallback to existing organizer string on error
+        setOrganizerName(event.organizer || "Unknown");
+      }
+    };
+
+    fetchOrganizerName();
+  }, [event]);
 
   // Calculate current status based on dates
   const currentStatus = event ? calculateEventStatus(event as any) : null;
@@ -272,7 +310,7 @@ export default function EventDetail() {
                   <User className="h-5 w-5 text-gray-500 mt-0.5" />
                   <div>
                     <p className="font-medium text-gray-900">Organizer</p>
-                    <p className="text-gray-600">{event.organizer}</p>
+                    <p className="text-gray-600">{organizerName || event.organizer || "Unknown"}</p>
                   </div>
                 </div>
 
