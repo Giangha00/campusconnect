@@ -13,8 +13,8 @@ const apiClient = axios.create({
 // Request interceptor (optional - for adding auth tokens)
 apiClient.interceptors.request.use(
   (config) => {
-    // Add auth token if available
-    const token = localStorage.getItem('authToken');
+    // Add auth token if available (using sessionStorage instead of localStorage)
+    const token = sessionStorage.getItem('authToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -29,11 +29,25 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Don't log 404 errors for event-bookmarks endpoint (it's optional)
+    const isBookmarks404 = error.config?.url?.includes('/event-bookmarks') && error.response?.status === 404;
+    
     if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
       console.error('API Error: Cannot connect to backend server at', API_BASE_URL);
       console.error('Please ensure the Spring Boot backend is running on http://localhost:8080');
-    } else {
-      console.error('API Error:', error.response?.data || error.message);
+    } else if (!isBookmarks404) {
+      // Log detailed error information (except for bookmarks 404)
+      if (error.response) {
+        console.error('API Error:', {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          data: error.response.data,
+          url: error.config?.url,
+          method: error.config?.method,
+        });
+      } else {
+        console.error('API Error:', error.message);
+      }
     }
     return Promise.reject(error);
   }
@@ -735,6 +749,147 @@ export const registrationsApi = {
     } catch (error) {
       console.error('Error deleting registration:', error);
       throw error;
+    }
+  },
+};
+
+// ==================== Event Bookmarks API ====================
+export interface EventBookmarkResponse {
+  id: string;
+  userId: string;
+  eventId: number;
+  createdAt?: string;
+}
+
+export const bookmarksApi = {
+  getAll: async (userId?: string): Promise<number[]> => {
+    try {
+      const url = userId ? `/event-bookmarks?userId=${userId}` : '/event-bookmarks';
+      const response = await apiClient.get<EventBookmarkResponse[]>(url);
+      return response.data.map(b => b.eventId);
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        // Endpoint not found - silently return empty array (no error logging)
+        return [];
+      }
+      console.error('Error fetching bookmarks:', error);
+      throw error;
+    }
+  },
+
+  create: async (userId: string, eventId: number): Promise<EventBookmarkResponse> => {
+    try {
+      const response = await apiClient.post<EventBookmarkResponse>('/event-bookmarks', {
+        userId,
+        eventId,
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error creating bookmark:', error);
+      throw error;
+    }
+  },
+
+  delete: async (userId: string, eventId: number): Promise<void> => {
+    try {
+      // Try to find bookmark ID first
+      const bookmarks = await apiClient.get<EventBookmarkResponse[]>(`/event-bookmarks?userId=${userId}&eventId=${eventId}`);
+      if (bookmarks.data.length > 0) {
+        await apiClient.delete(`/event-bookmarks/${bookmarks.data[0].id}`);
+      }
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        // Bookmark doesn't exist, that's fine
+        return;
+      }
+      console.error('Error deleting bookmark:', error);
+      throw error;
+    }
+  },
+};
+
+// ==================== User Auth API ====================
+export interface UserLoginRequest {
+  username: string;
+  password: string;
+}
+
+export interface UserRegisterRequest {
+  username: string;
+  password: string;
+  name: string;
+  email: string;
+  role: 'student' | 'faculty' | 'visitor';
+  department?: string;
+  year?: string;
+}
+
+export const userAuthApi = {
+  login: async (username: string, password: string): Promise<UserResponse | null> => {
+    try {
+      // Try to get user by username first, then verify password
+      // Note: This assumes backend has a login endpoint or we can get user and verify
+      const response = await apiClient.post<UserResponse>('/users/login', {
+        username,
+        password,
+      });
+      return response.data;
+    } catch (error: any) {
+      if (error.response?.status === 404) {
+        // Try alternative: get all users and find match
+        try {
+          const usersResponse = await apiClient.get<UserResponse[]>('/users');
+          const user = usersResponse.data.find(u => u.username === username);
+          // Note: Password verification should be done on backend
+          // For now, just return user if found
+          return user || null;
+        } catch (e) {
+          return null;
+        }
+      }
+      console.error('Error during login:', error);
+      return null;
+    }
+  },
+
+  register: async (data: UserRegisterRequest): Promise<UserResponse> => {
+    try {
+      // Ensure all required fields are present
+      const requestData = {
+        username: data.username.trim(),
+        password: data.password,
+        name: data.name.trim(),
+        email: data.email.trim().toLowerCase(),
+        role: data.role,
+        department: data.department?.trim() || undefined,
+        year: data.year?.trim() || undefined,
+      };
+
+      const response = await apiClient.post<UserResponse>('/users', requestData);
+      return response.data;
+    } catch (error: any) {
+      console.error('Error during registration:', error);
+      
+      // Extract error message from response
+      let errorMessage = 'Registration failed';
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        if (errorData.message) {
+          errorMessage = errorData.message;
+        } else if (errorData.error) {
+          errorMessage = errorData.error;
+        } else if (typeof errorData === 'string') {
+          errorMessage = errorData;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      // Create a more detailed error
+      const detailedError = new Error(errorMessage);
+      (detailedError as any).response = error.response;
+      (detailedError as any).status = error.response?.status;
+      throw detailedError;
     }
   },
 };

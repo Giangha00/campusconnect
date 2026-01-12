@@ -60,26 +60,13 @@ export function RegistrationProvider({ children }: RegistrationProviderProps) {
     const loadRegistrations = async () => {
       try {
         setIsLoading(true);
-        const savedRegistrations = localStorage.getItem("campusconnect-registrations");
-        if (savedRegistrations) {
-          setRegistrations(JSON.parse(savedRegistrations));
-        }
-
         // Always fetch from API
         const apiRegistrations = await registrationsApi.getAll();
         setRegistrations(apiRegistrations);
-        localStorage.setItem("campusconnect-registrations", JSON.stringify(apiRegistrations));
       } catch (error) {
         console.error("Error loading registrations from API:", error);
-        // Fallback to cache
-        const savedRegistrations = localStorage.getItem("campusconnect-registrations");
-        if (savedRegistrations) {
-          try {
-            setRegistrations(JSON.parse(savedRegistrations));
-          } catch (e) {
-            console.error("Error parsing cached registrations:", e);
-          }
-        }
+        // Set empty array on error
+        setRegistrations([]);
       } finally {
         setIsLoading(false);
       }
@@ -134,7 +121,6 @@ export function RegistrationProvider({ children }: RegistrationProviderProps) {
       // Add registration to state
       setRegistrations((prev) => {
         const updated = [...prev, created];
-        localStorage.setItem("campusconnect-registrations", JSON.stringify(updated));
         return updated;
       });
 
@@ -183,7 +169,6 @@ export function RegistrationProvider({ children }: RegistrationProviderProps) {
         // For now, we'll do optimistic update
         setRegistrations((prev) => {
           const updated = prev.filter((r) => !(r.eventId === eventId && r.userId === user.id));
-          localStorage.setItem("campusconnect-registrations", JSON.stringify(updated));
           return updated;
         });
       }
@@ -192,7 +177,6 @@ export function RegistrationProvider({ children }: RegistrationProviderProps) {
       // Optimistic update
       setRegistrations((prev) => {
         const updated = prev.filter((r) => !(r.eventId === eventId && r.userId === user.id));
-        localStorage.setItem("campusconnect-registrations", JSON.stringify(updated));
         return updated;
       });
     }
@@ -230,7 +214,6 @@ export function RegistrationProvider({ children }: RegistrationProviderProps) {
                 }
               : r
           );
-          localStorage.setItem("campusconnect-registrations", JSON.stringify(updated));
           return updated;
         });
       }
@@ -247,7 +230,6 @@ export function RegistrationProvider({ children }: RegistrationProviderProps) {
               }
             : r
         );
-        localStorage.setItem("campusconnect-registrations", JSON.stringify(updated));
         return updated;
       });
     }
@@ -272,7 +254,6 @@ export function RegistrationProvider({ children }: RegistrationProviderProps) {
                 }
               : r
           );
-          localStorage.setItem("campusconnect-registrations", JSON.stringify(updated));
           return updated;
         });
       }
@@ -289,7 +270,6 @@ export function RegistrationProvider({ children }: RegistrationProviderProps) {
               }
             : r
         );
-        localStorage.setItem("campusconnect-registrations", JSON.stringify(updated));
         return updated;
       });
     }

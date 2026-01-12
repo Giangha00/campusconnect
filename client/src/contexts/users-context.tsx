@@ -20,8 +20,6 @@ interface UsersContextType {
 
 const UsersContext = createContext<UsersContextType | undefined>(undefined);
 
-const LS_USERS_KEY = "campusconnect-users";
-
 export function UsersProvider({ children }: { children: ReactNode }) {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,29 +29,13 @@ export function UsersProvider({ children }: { children: ReactNode }) {
     const loadUsers = async () => {
       try {
         setIsLoading(true);
-        // Try cache first
-        const saved = localStorage.getItem(LS_USERS_KEY);
-        if (saved) {
-          const cachedUsers = JSON.parse(saved) as User[];
-          setUsers(cachedUsers);
-        }
-
         // Always fetch from API
         const apiUsers = await usersApi.getAll();
         setUsers(apiUsers);
-        localStorage.setItem(LS_USERS_KEY, JSON.stringify(apiUsers));
       } catch (error) {
         console.error("Error loading users from API:", error);
-        // Fallback to cache
-        const saved = localStorage.getItem(LS_USERS_KEY);
-        if (saved) {
-          try {
-            const cachedUsers = JSON.parse(saved) as User[];
-            setUsers(cachedUsers);
-          } catch (e) {
-            console.error("Error parsing cached users:", e);
-          }
-        }
+        // Set empty array on error
+        setUsers([]);
       } finally {
         setIsLoading(false);
       }
@@ -85,7 +67,6 @@ export function UsersProvider({ children }: { children: ReactNode }) {
         const updatedUsers = prevUsers.map((u) =>
           u.id === userId ? updated : u
         );
-        localStorage.setItem(LS_USERS_KEY, JSON.stringify(updatedUsers));
         return updatedUsers;
       });
     } catch (error) {
@@ -95,7 +76,6 @@ export function UsersProvider({ children }: { children: ReactNode }) {
         const updatedUsers = prevUsers.map((user) =>
           user.id === userId ? { ...user, ...updatedUser } : user
         );
-        localStorage.setItem(LS_USERS_KEY, JSON.stringify(updatedUsers));
         return updatedUsers;
       });
     }
@@ -110,7 +90,6 @@ export function UsersProvider({ children }: { children: ReactNode }) {
       
       setUsers((prevUsers) => {
         const updatedUsers = prevUsers.filter((u) => u.id !== userId);
-        localStorage.setItem(LS_USERS_KEY, JSON.stringify(updatedUsers));
         return updatedUsers;
       });
     } catch (error) {
@@ -118,7 +97,6 @@ export function UsersProvider({ children }: { children: ReactNode }) {
       // Optimistic update
       setUsers((prevUsers) => {
         const updatedUsers = prevUsers.filter((u) => u.id !== userId);
-        localStorage.setItem(LS_USERS_KEY, JSON.stringify(updatedUsers));
         return updatedUsers;
       });
     }
@@ -141,7 +119,6 @@ export function UsersProvider({ children }: { children: ReactNode }) {
       
       setUsers((prevUsers) => {
         const updatedUsers = [created, ...prevUsers];
-        localStorage.setItem(LS_USERS_KEY, JSON.stringify(updatedUsers));
         return updatedUsers;
       });
     } catch (error) {
@@ -156,7 +133,6 @@ export function UsersProvider({ children }: { children: ReactNode }) {
           lastLogin: new Date().toISOString(),
         };
         const updatedUsers = [userWithDefaults, ...prevUsers];
-        localStorage.setItem(LS_USERS_KEY, JSON.stringify(updatedUsers));
         return updatedUsers;
       });
     }

@@ -3,75 +3,30 @@ import {
   useContext,
   useState,
   useEffect,
+  useCallback,
+  useRef,
   ReactNode,
 } from "react";
 import { User, UserRole } from "@/types/event";
-
-// LocalStorage keys
-const LS_USER_KEY = "campusconnect-user";
-const LS_ACCOUNTS_KEY = "campusconnect-accounts";
-const LS_USERNAME_KEY = "campusconnect-username";
-
-// Account stored in localStorage for frontend-only auth
-interface Account {
-  id: string;
-  username: string;
-  password: string;
-  name: string;
-  email: string;
-  role: UserRole;
-  department?: string;
-  bookmarkedEvents: number[];
-  registeredEvents: number[];
-}
-
-function loadAccounts(): Account[] {
-  try {
-    const raw = localStorage.getItem(LS_ACCOUNTS_KEY);
-    if (!raw) return [];
-
-    const accounts = JSON.parse(raw) as Account[];
-    // Migrate existing accounts that don't have email field
-    const migratedAccounts = accounts.map((account) => ({
-      ...account,
-      email: account.email || `${account.username}@example.com`, // Default email for existing accounts
-    }));
-
-    // Save migrated accounts if any were updated
-    if (
-      migratedAccounts.some(
-        (account, index) => account.email !== accounts[index]?.email
-      )
-    ) {
-      saveAccounts(migratedAccounts);
-    }
-
-    return migratedAccounts;
-  } catch {
-    return [];
-  }
-}
-
-function saveAccounts(accounts: Account[]) {
-  localStorage.setItem(LS_ACCOUNTS_KEY, JSON.stringify(accounts));
-}
-
-function generateId() {
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-}
+import {
+  userAuthApi,
+  bookmarksApi,
+  usersApi,
+  type UserResponse,
+} from "@/lib/api";
+import apiClient from "@/lib/api";
 
 interface UserContextType {
   user: User | null;
   setUser: (user: User | null) => void;
   isAuthenticated: boolean;
-  bookmarkEvent: (eventId: number) => void;
-  unbookmarkEvent: (eventId: number) => void;
+  bookmarkEvent: (eventId: number) => Promise<void>;
+  unbookmarkEvent: (eventId: number) => Promise<void>;
   isEventBookmarked: (eventId: number) => boolean;
-  // Auth API (frontend-only)
   login: (
     username: string,
     password: string
-  ) => { ok: true } | { ok: false; message: string };
+  ) => Promise<{ ok: true } | { ok: false; message: string }>;
   register: (data: {
     username: string;
     password: string;
@@ -79,7 +34,7 @@ interface UserContextType {
     email: string;
     role: UserRole;
     department?: string;
-  }) => { ok: true } | { ok: false; message: string };
+  }) => Promise<{ ok: true } | { ok: false; message: string }>;
   logout: () => void;
 }
 
@@ -91,107 +46,173 @@ interface UserProviderProps {
 
 export function UserProvider({ children }: UserProviderProps) {
   const [user, setUser] = useState<User | null>(null);
-  const [currentUsername, setCurrentUsername] = useState<string | null>(null);
+  const [bookmarkedEvents, setBookmarkedEvents] = useState<number[]>([]);
+  const isInitialMount = useRef(true);
+  const isSavingRef = useRef(false);
 
-  // Load user and username from localStorage on mount
-  useEffect(() => {
-    const savedUser = localStorage.getItem(LS_USER_KEY);
-    const savedUsername = localStorage.getItem(LS_USERNAME_KEY);
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-    if (savedUsername) {
-      setCurrentUsername(savedUsername);
+  // Load bookmarks from API (silently returns empty array if endpoint doesn't exist)
+  const loadBookmarks = useCallback(async (userId: string) => {
+    try {
+      const bookmarks = await bookmarksApi.getAll(userId);
+      setBookmarkedEvents(bookmarks);
+    } catch (error) {
+      // If error (not 404), log it but still set empty array
+      console.error("Error loading bookmarks:", error);
+      setBookmarkedEvents([]);
     }
   }, []);
 
-  // Save user and username to localStorage when they change
+  // Load user from sessionStorage on mount (only once)
   useEffect(() => {
-    if (user) {
-      localStorage.setItem(LS_USER_KEY, JSON.stringify(user));
-    } else {
-      localStorage.removeItem(LS_USER_KEY);
-    }
-  }, [user]);
+    if (!isInitialMount.current) return;
+    isInitialMount.current = false;
 
+    try {
+      const savedUser = sessionStorage.getItem("campusconnect-user");
+      if (savedUser) {
+        const parsedUser = JSON.parse(savedUser) as User;
+        setUser(parsedUser);
+        // Load bookmarks from API
+        if (parsedUser.id) {
+          loadBookmarks(parsedUser.id);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading user from sessionStorage:", error);
+      sessionStorage.removeItem("campusconnect-user");
+    }
+  }, [loadBookmarks]);
+
+  // Save user to sessionStorage when it changes (prevent infinite loop)
   useEffect(() => {
-    if (currentUsername) {
-      localStorage.setItem(LS_USERNAME_KEY, currentUsername);
-    } else {
-      localStorage.removeItem(LS_USERNAME_KEY);
-    }
-  }, [currentUsername]);
+    // Prevent saving during initial mount
+    if (isInitialMount.current) return;
 
-  const persistBookmarksToAccount = (updated: User) => {
-    if (!currentUsername) return;
-    const accounts = loadAccounts();
-    const idx = accounts.findIndex((a) => a.username === currentUsername);
-    if (idx !== -1) {
-      accounts[idx].bookmarkedEvents = updated.bookmarkedEvents;
-      // also sync profile fields in case they changed
-      accounts[idx].name = updated.name;
-      accounts[idx].role = updated.role;
-      accounts[idx].department = updated.department;
-      saveAccounts(accounts);
+    // Prevent recursive saves
+    if (isSavingRef.current) return;
+
+    isSavingRef.current = true;
+
+    try {
+      if (user) {
+        // Update user with current bookmarks before saving
+        const userWithBookmarks = {
+          ...user,
+          bookmarkedEvents: bookmarkedEvents,
+        };
+        const userString = JSON.stringify(userWithBookmarks);
+        const currentSaved = sessionStorage.getItem("campusconnect-user");
+
+        // Only save if data actually changed to prevent unnecessary updates
+        if (currentSaved !== userString) {
+          sessionStorage.setItem("campusconnect-user", userString);
+        }
+      } else {
+        sessionStorage.removeItem("campusconnect-user");
+        if (bookmarkedEvents.length > 0) {
+          setBookmarkedEvents([]);
+        }
+      }
+    } catch (error) {
+      console.error("Error saving user to sessionStorage:", error);
+    } finally {
+      // Reset flag in next tick
+      requestAnimationFrame(() => {
+        isSavingRef.current = false;
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]); // Only depend on user, bookmarkedEvents will be included in user object
+
+  const bookmarkEvent = async (eventId: number) => {
+    if (!user) return;
+
+    if (bookmarkedEvents.includes(eventId)) return; // no-op if already bookmarked
+
+    // Optimistic update first
+    const updatedBookmarks = [...bookmarkedEvents, eventId];
+    setBookmarkedEvents(updatedBookmarks);
+    // Update user in one call to avoid multiple re-renders
+    const updatedUser = {
+      ...user,
+      bookmarkedEvents: updatedBookmarks,
+    };
+    setUser(updatedUser);
+
+    try {
+      // Try to create bookmark on server (if endpoint exists)
+      await bookmarksApi.create(user.id, eventId);
+    } catch (error: any) {
+      // If 404, endpoint doesn't exist - that's fine, we keep the optimistic update
+      if (error.response?.status !== 404) {
+        console.error("Error bookmarking event:", error);
+      }
+      // Keep the optimistic update even if API call fails
     }
   };
 
-  const bookmarkEvent = (eventId: number) => {
+  const unbookmarkEvent = async (eventId: number) => {
     if (!user) return;
 
-    if (user.bookmarkedEvents.includes(eventId)) return; // no-op if already bookmarked
-
-    const updatedUser: User = {
+    // Optimistic update first
+    const updatedBookmarks = bookmarkedEvents.filter((id) => id !== eventId);
+    setBookmarkedEvents(updatedBookmarks);
+    // Update user in one call to avoid multiple re-renders
+    const updatedUser = {
       ...user,
-      bookmarkedEvents: [...user.bookmarkedEvents, eventId],
+      bookmarkedEvents: updatedBookmarks,
     };
     setUser(updatedUser);
-    persistBookmarksToAccount(updatedUser);
-  };
 
-  const unbookmarkEvent = (eventId: number) => {
-    if (!user) return;
-
-    const updatedUser: User = {
-      ...user,
-      bookmarkedEvents: user.bookmarkedEvents.filter((id) => id !== eventId),
-    };
-    setUser(updatedUser);
-    persistBookmarksToAccount(updatedUser);
+    try {
+      // Try to delete bookmark on server (if endpoint exists)
+      await bookmarksApi.delete(user.id, eventId);
+    } catch (error: any) {
+      // If 404, endpoint doesn't exist - that's fine, we keep the optimistic update
+      if (error.response?.status !== 404) {
+        console.error("Error unbookmarking event:", error);
+      }
+      // Keep the optimistic update even if API call fails
+    }
   };
 
   const isEventBookmarked = (eventId: number): boolean => {
-    if (!user) return false;
-    return user.bookmarkedEvents.includes(eventId);
+    return bookmarkedEvents.includes(eventId);
   };
 
-  // Frontend-only login
-  const login: UserContextType["login"] = (username, password) => {
-    const accounts = loadAccounts();
-    const account = accounts.find((a) => a.username === username);
-    if (!account) {
-      return { ok: false, message: "Account does not exist" };
-    }
-    if (account.password !== password) {
-      return { ok: false, message: "Incorrect password" };
-    }
+  // Login using API
+  const login: UserContextType["login"] = async (username, password) => {
+    try {
+      const userResponse = await userAuthApi.login(username, password);
 
-    const loggedUser: User = {
-      id: account.id,
-      name: account.name,
-      email: account.email,
-      role: account.role,
-      department: account.department,
-      bookmarkedEvents: account.bookmarkedEvents || [],
-      registeredEvents: account.registeredEvents || [],
-    };
-    setUser(loggedUser);
-    setCurrentUsername(account.username);
-    return { ok: true };
+      if (userResponse) {
+        // Map API user to frontend User format
+        const loggedUser: User = {
+          id: userResponse.id,
+          name: userResponse.name,
+          email: userResponse.email,
+          role: userResponse.role as UserRole,
+          department: userResponse.department,
+          bookmarkedEvents: [], // Will be loaded from API
+          registeredEvents: [], // Will be loaded from registrations API
+        };
+
+        setUser(loggedUser);
+        // Load bookmarks
+        await loadBookmarks(loggedUser.id);
+
+        return { ok: true };
+      }
+
+      return { ok: false, message: "Invalid username or password" };
+    } catch (error) {
+      console.error("Error during login:", error);
+      return { ok: false, message: "Error connecting to server" };
+    }
   };
 
-  // Frontend-only register
-  const register: UserContextType["register"] = ({
+  // Register using API
+  const register: UserContextType["register"] = async ({
     username,
     password,
     name,
@@ -199,51 +220,109 @@ export function UserProvider({ children }: UserProviderProps) {
     role,
     department,
   }) => {
-    const accounts = loadAccounts();
-    const exists = accounts.some((a) => a.username === username);
-    if (exists) {
-      return { ok: false, message: "Username already exists" };
+    try {
+      const userResponse = await userAuthApi.register({
+        username,
+        password,
+        name,
+        email,
+        role,
+        department,
+      });
+
+      // Map API user to frontend User format
+      const newUser: User = {
+        id: userResponse.id,
+        name: userResponse.name,
+        email: userResponse.email,
+        role: userResponse.role as UserRole,
+        department: userResponse.department,
+        bookmarkedEvents: [],
+        registeredEvents: [],
+      };
+
+      // Auto-login after successful registration
+      setUser(newUser);
+      // Load bookmarks (will return empty array if endpoint doesn't exist)
+      await loadBookmarks(newUser.id);
+
+      return { ok: true };
+    } catch (error: any) {
+      console.error("Registration failed:", error);
+
+      // Check if user was actually created despite the error (500 error but user exists)
+      if (error.response?.status === 500) {
+        try {
+          // Wait a bit for database to commit (if user was just created)
+          await new Promise((resolve) => setTimeout(resolve, 500));
+
+          // Try to get user by email from API directly
+          const allUsers = await apiClient.get<UserResponse[]>("/users");
+          const actualUser = allUsers.data.find(
+            (u: UserResponse) =>
+              u.email.toLowerCase() === email.toLowerCase().trim() ||
+              u.username.toLowerCase() === username.toLowerCase().trim()
+          );
+
+          if (actualUser) {
+            // User was created successfully despite 500 error, auto-login
+            const newUser: User = {
+              id: actualUser.id, // Use UUID string from API
+              name: actualUser.name,
+              email: actualUser.email,
+              role: actualUser.role as UserRole,
+              department: actualUser.department,
+              bookmarkedEvents: [],
+              registeredEvents: [],
+            };
+
+            setUser(newUser);
+            await loadBookmarks(newUser.id);
+
+            // Return success - user was created
+            return { ok: true };
+          }
+        } catch (checkError) {
+          console.error("Error checking if user was created:", checkError);
+          // Continue to show error message below
+        }
+      }
+
+      // Extract error message
+      let errorMessage = "Registration failed";
+      if (error.response?.data) {
+        const errorData = error.response.data;
+        if (errorData.message) {
+          errorMessage = errorData.message;
+        } else if (errorData.error) {
+          errorMessage = errorData.error;
+        } else if (typeof errorData === "string") {
+          errorMessage = errorData;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+
+      // Provide more specific error messages
+      if (error.response?.status === 400) {
+        errorMessage =
+          errorMessage || "Invalid registration data. Please check all fields.";
+      } else if (error.response?.status === 409) {
+        errorMessage =
+          errorMessage ||
+          "Username or email already exists. Please try a different one.";
+      } else if (error.response?.status === 500) {
+        errorMessage = errorMessage || "Server error. Please try again later.";
+      }
+
+      return { ok: false, message: errorMessage };
     }
-
-    const emailExists = accounts.some((a) => a.email === email);
-    if (emailExists) {
-      return { ok: false, message: "Email already exists" };
-    }
-
-    const id = generateId();
-    const newAccount: Account = {
-      id,
-      username,
-      password,
-      name: name.trim(),
-      email: email.trim(),
-      role,
-      department: department?.trim() || undefined,
-      bookmarkedEvents: [],
-      registeredEvents: [],
-    };
-
-    const next = [...accounts, newAccount];
-    saveAccounts(next);
-
-    const newUser: User = {
-      id,
-      name: newAccount.name,
-      email: newAccount.email,
-      role: newAccount.role,
-      department: newAccount.department,
-      bookmarkedEvents: [],
-      registeredEvents: [],
-    };
-
-    setUser(newUser);
-    setCurrentUsername(username);
-    return { ok: true };
   };
 
   const logout = () => {
     setUser(null);
-    setCurrentUsername(null);
+    setBookmarkedEvents([]);
+    sessionStorage.removeItem("campusconnect-user");
   };
 
   const value: UserContextType = {

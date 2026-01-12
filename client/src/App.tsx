@@ -14,6 +14,7 @@ import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { BackToTop } from "@/components/back-to-top";
+import { ErrorBoundary } from "@/components/error-boundary";
 
 // ✅ Lazy load các pages để giảm initial bundle size
 const Home = lazy(() => import("@/pages/home"));
@@ -88,26 +89,28 @@ function Router() {
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <EventsProvider>
-        <UsersProvider>
-          <UserProvider>
-            <AdminProvider>
-              <TooltipProvider>
-                <Toaster />
-                {/* Provide registration context globally */}
-                <RegistrationProvider>
-                  {/* Provide feedback context globally */}
-                  <FeedbackProvider>
-                    <Router />
-                  </FeedbackProvider>
-                </RegistrationProvider>
-              </TooltipProvider>
-            </AdminProvider>
-          </UserProvider>
-        </UsersProvider>
-      </EventsProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <EventsProvider>
+          <UsersProvider>
+            <UserProvider>
+              <AdminProvider>
+                <TooltipProvider>
+                  <Toaster />
+                  {/* Provide registration context globally */}
+                  <RegistrationProvider>
+                    {/* Provide feedback context globally */}
+                    <FeedbackProvider>
+                      <Router />
+                    </FeedbackProvider>
+                  </RegistrationProvider>
+                </TooltipProvider>
+              </AdminProvider>
+            </UserProvider>
+          </UsersProvider>
+        </EventsProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }
 

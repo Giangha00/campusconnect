@@ -76,5 +76,21 @@ export default defineConfig({
     },
     host: "localhost",
     port: 3000,
+    // ✅ Tối ưu HMR
+    hmr: {
+      overlay: true,
+    },
+    // ✅ Tối ưu file watching
+    watch: {
+      usePolling: false,
+      ignored: ['**/node_modules/**', '**/dist/**'],
+    },
   },
+  // ✅ Tối ưu cho development
+  ...(process.env.NODE_ENV === 'development' && {
+    esbuild: {
+      // Faster builds in dev
+      target: 'esnext',
+    },
+  }),
 });

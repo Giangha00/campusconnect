@@ -106,7 +106,7 @@ export function LoginDialog({ children }: LoginDialogProps) {
     }
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validate registration fields
@@ -154,7 +154,7 @@ export function LoginDialog({ children }: LoginDialogProps) {
       return;
     }
 
-    const res = register({
+    const res = await register({
       username: regUsername.trim(),
       password: regPassword,
       name: name.trim(),
@@ -162,6 +162,7 @@ export function LoginDialog({ children }: LoginDialogProps) {
       role,
       department: department.trim() || undefined,
     });
+    
     if (res.ok) {
       toast({
         title: "Registration successful",

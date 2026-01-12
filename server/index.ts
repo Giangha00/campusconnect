@@ -4,8 +4,14 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
 const app = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+
+// ✅ Tối ưu body parser - chỉ parse khi cần
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: false, limit: '10mb' }));
+
+// ✅ Compression middleware (nếu có thể cài thêm)
+// import compression from 'compression';
+// app.use(compression());
 
 // Security headers middleware
 app.use((req, res, next) => {
@@ -17,7 +23,7 @@ app.use((req, res, next) => {
     "img-src 'self' data: https: http:", // Allow images from any HTTPS/HTTP source
     "font-src 'self' data: https://fonts.gstatic.com", // Allow Google Fonts files
     "connect-src 'self' ws: wss: http://localhost:8080", // WebSocket for Vite HMR + Spring Boot API
-    "frame-src 'none'", // Prevent iframe embedding
+    "frame-src https://www.google.com https://maps.google.com", // Allow Google Maps iframe
     "object-src 'none'", // Prevent object/embed tags
     "base-uri 'self'", // Restrict base tag
     "form-action 'self'", // Restrict form submissions
@@ -29,8 +35,6 @@ app.use((req, res, next) => {
 
   // X-XSS-Protection: Legacy browser XSS filter
   res.setHeader("X-XSS-Protection", "1; mode=block");
-
-  res.setHeader('Content-Security-Policy', cspHeader);
   
   // X-Content-Type-Options: Prevent MIME type sniffing
   res.setHeader("X-Content-Type-Options", "nosniff");
@@ -44,6 +48,7 @@ app.use((req, res, next) => {
   next();
 });
 
+// Optimized logging middleware - only log slow requests or errors
 app.use((req, res, next) => {
   const start = Date.now();
   const path = req.path;
@@ -57,14 +62,21 @@ app.use((req, res, next) => {
 
   res.on("finish", () => {
     const duration = Date.now() - start;
-    if (path.startsWith("/api")) {
+    // Only log API routes, and only if slow (>100ms) or error status
+    if (path.startsWith("/api") && (duration > 100 || res.statusCode >= 400)) {
       let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-      if (capturedJsonResponse) {
-        logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
+      if (res.statusCode >= 400 && capturedJsonResponse) {
+        // Only include response body for errors
+        const errorMsg = typeof capturedJsonResponse === 'object' 
+          ? capturedJsonResponse.message || capturedJsonResponse.error 
+          : String(capturedJsonResponse);
+        if (errorMsg) {
+          logLine += ` :: ${errorMsg}`;
+        }
       }
 
-      if (logLine.length > 80) {
-        logLine = logLine.slice(0, 79) + "…";
+      if (logLine.length > 120) {
+        logLine = logLine.slice(0, 119) + "…";
       }
 
       log(logLine);

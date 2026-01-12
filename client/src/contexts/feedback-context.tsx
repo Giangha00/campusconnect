@@ -26,8 +26,6 @@ interface FeedbackProviderProps {
   children: ReactNode;
 }
 
-const LS_FEEDBACKS_KEY = "campusconnect-feedbacks";
-
 export function FeedbackProvider({ children }: FeedbackProviderProps) {
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -37,13 +35,6 @@ export function FeedbackProvider({ children }: FeedbackProviderProps) {
     const loadFeedbacks = async () => {
       try {
         setIsLoading(true);
-        // Try cache first
-        const saved = localStorage.getItem(LS_FEEDBACKS_KEY);
-        if (saved) {
-          const cachedFeedbacks = JSON.parse(saved) as Feedback[];
-          setFeedbacks(cachedFeedbacks);
-        }
-
         // Always fetch from API
         const apiFeedbacks = await feedbackApi.getAll();
         // Filter out invalid userTypes
@@ -56,19 +47,10 @@ export function FeedbackProvider({ children }: FeedbackProviderProps) {
           validUserTypes.includes(f.userType as any)
         );
         setFeedbacks(filteredFeedbacks);
-        localStorage.setItem(LS_FEEDBACKS_KEY, JSON.stringify(filteredFeedbacks));
       } catch (error) {
         console.error("Error loading feedbacks from API:", error);
-        // Fallback to cache
-        const saved = localStorage.getItem(LS_FEEDBACKS_KEY);
-        if (saved) {
-          try {
-            const cachedFeedbacks = JSON.parse(saved) as Feedback[];
-            setFeedbacks(cachedFeedbacks);
-          } catch (e) {
-            console.error("Error parsing cached feedbacks:", e);
-          }
-        }
+        // Set empty array on error
+        setFeedbacks([]);
       } finally {
         setIsLoading(false);
       }
@@ -95,7 +77,6 @@ export function FeedbackProvider({ children }: FeedbackProviderProps) {
       const created = await feedbackApi.create(apiFeedback);
       setFeedbacks((prev) => {
         const updated = [...prev, created];
-        localStorage.setItem(LS_FEEDBACKS_KEY, JSON.stringify(updated));
         return updated;
       });
     } catch (error) {
@@ -109,7 +90,6 @@ export function FeedbackProvider({ children }: FeedbackProviderProps) {
       };
       setFeedbacks((prev) => {
         const updated = [...prev, feedback];
-        localStorage.setItem(LS_FEEDBACKS_KEY, JSON.stringify(updated));
         return updated;
       });
     }

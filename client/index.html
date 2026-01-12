@@ -9,7 +9,7 @@
   <!-- Note: This is a fallback. Primary CSP is set via HTTP headers in server -->
   <!-- Note: frame-ancestors only works in HTTP headers, not in meta tags -->
   <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https: http:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' ws: wss: http://localhost:8080; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests;" />
+    content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: https: http:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' ws: wss: http://localhost:8080; frame-src https://www.google.com https://maps.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; upgrade-insecure-requests;" />
   <title>Campus Connect</title>
 </head>
 

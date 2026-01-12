@@ -27,13 +27,13 @@ export function AdminProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check if admin is logged in from localStorage
-    const savedAdmin = localStorage.getItem("admin");
+    // Check if admin is logged in from sessionStorage
+    const savedAdmin = sessionStorage.getItem("admin");
     if (savedAdmin) {
       try {
         setAdmin(JSON.parse(savedAdmin));
       } catch (error) {
-        localStorage.removeItem("admin");
+        sessionStorage.removeItem("admin");
       }
     }
     setIsLoading(false);
@@ -45,7 +45,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
       
       if (adminUser) {
         setAdmin(adminUser);
-        localStorage.setItem("admin", JSON.stringify(adminUser));
+        sessionStorage.setItem("admin", JSON.stringify(adminUser));
         return { ok: true, message: "Login successful" };
       }
 
@@ -58,7 +58,7 @@ export function AdminProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     setAdmin(null);
-    localStorage.removeItem("admin");
+    sessionStorage.removeItem("admin");
   };
 
   return (

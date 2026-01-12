@@ -40,46 +40,39 @@ export function EventsProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  // Load events from API
+  // Load events from API (optimized - load cache first, then fetch in background)
   useEffect(() => {
     const loadEvents = async () => {
       try {
         setIsLoading(true);
-        // Try to get from cache first
+
+        // Try to get from cache first for instant display
         const cachedEvents = await cache.get<Event[]>("events");
         if (cachedEvents && cachedEvents.length > 0) {
           const sortedEvents = sortEventsByDate(cachedEvents);
           setEvents(sortedEvents);
-          setIsLoading(false);
+          setIsLoading(false); // Show cached data immediately
         }
 
-        // Always fetch from API to get latest data
-        const apiEvents = await eventsApi.getAll();
-        const sortedEvents = sortEventsByDate(apiEvents);
-        setEvents(sortedEvents);
-        
-        // Update cache
-        await cache.set("events", sortedEvents, 7 * 24 * 60 * 60 * 1000); // 7 days
-        localStorage.setItem("campusconnect-events", JSON.stringify(sortedEvents));
-      } catch (error) {
-        console.error("Error loading events from API:", error);
-        // Fallback to cache or localStorage
+        // Fetch from API in background (don't block UI)
         try {
-          const cachedEvents = await cache.get<Event[]>("events");
-          if (cachedEvents && cachedEvents.length > 0) {
-            const sortedEvents = sortEventsByDate(cachedEvents);
-            setEvents(sortedEvents);
-          } else {
-            const savedEvents = localStorage.getItem("campusconnect-events");
-            if (savedEvents) {
-              const parsedEvents = JSON.parse(savedEvents);
-              const sortedEvents = sortEventsByDate(parsedEvents);
-              setEvents(sortedEvents);
-            }
+          const apiEvents = await eventsApi.getAll();
+          const sortedEvents = sortEventsByDate(apiEvents);
+          setEvents(sortedEvents);
+
+          // Update cache only (no localStorage)
+          await cache.set("events", sortedEvents, 7 * 24 * 60 * 60 * 1000); // 7 days
+        } catch (apiError) {
+          console.error("Error loading events from API:", apiError);
+          // Keep cached data if API fails
+          if (!cachedEvents || cachedEvents.length === 0) {
+            setEvents([]);
           }
-        } catch (cacheError) {
-          console.error("Error loading from cache:", cacheError);
         }
+      } catch (error) {
+        console.error("Error loading events:", error);
+        // Fallback to empty array
+        setEvents([]);
       } finally {
         setIsLoading(false);
       }
@@ -92,18 +85,19 @@ export function EventsProvider({ children }: { children: ReactNode }) {
     try {
       // Update on server
       const updated = await eventsApi.update(eventId, updatedEvent);
-      
+
       // Update local state
       setEvents((prevEvents) => {
         const updatedEvents = prevEvents.map((event) =>
           event.id === eventId ? updated : event
         );
         const sortedEvents = sortEventsByDate(updatedEvents);
-        
-        // Update cache
-        localStorage.setItem("campusconnect-events", JSON.stringify(sortedEvents));
-        cache.set("events", sortedEvents, 7 * 24 * 60 * 60 * 1000).catch(console.error);
-        
+
+        // Update cache only (no localStorage)
+        cache
+          .set("events", sortedEvents, 7 * 24 * 60 * 60 * 1000)
+          .catch(console.error);
+
         return sortedEvents;
       });
     } catch (error) {
@@ -114,8 +108,9 @@ export function EventsProvider({ children }: { children: ReactNode }) {
           event.id === eventId ? { ...event, ...updatedEvent } : event
         );
         const sortedEvents = sortEventsByDate(updatedEvents);
-        localStorage.setItem("campusconnect-events", JSON.stringify(sortedEvents));
-        cache.set("events", sortedEvents, 7 * 24 * 60 * 60 * 1000).catch(console.error);
+        cache
+          .set("events", sortedEvents, 7 * 24 * 60 * 60 * 1000)
+          .catch(console.error);
         return sortedEvents;
       });
     }
@@ -125,21 +120,27 @@ export function EventsProvider({ children }: { children: ReactNode }) {
     try {
       // Delete on server
       await eventsApi.delete(eventId);
-      
+
       // Update local state
       setEvents((prevEvents) => {
-        const updatedEvents = prevEvents.filter((event) => event.id !== eventId);
-        localStorage.setItem("campusconnect-events", JSON.stringify(updatedEvents));
-        cache.set("events", updatedEvents, 7 * 24 * 60 * 60 * 1000).catch(console.error);
+        const updatedEvents = prevEvents.filter(
+          (event) => event.id !== eventId
+        );
+        cache
+          .set("events", updatedEvents, 7 * 24 * 60 * 60 * 1000)
+          .catch(console.error);
         return updatedEvents;
       });
     } catch (error) {
       console.error("Error deleting event:", error);
       // Still update locally for optimistic UI
       setEvents((prevEvents) => {
-        const updatedEvents = prevEvents.filter((event) => event.id !== eventId);
-        localStorage.setItem("campusconnect-events", JSON.stringify(updatedEvents));
-        cache.set("events", updatedEvents, 7 * 24 * 60 * 60 * 1000).catch(console.error);
+        const updatedEvents = prevEvents.filter(
+          (event) => event.id !== eventId
+        );
+        cache
+          .set("events", updatedEvents, 7 * 24 * 60 * 60 * 1000)
+          .catch(console.error);
         return updatedEvents;
       });
     }
@@ -159,19 +160,21 @@ export function EventsProvider({ children }: { children: ReactNode }) {
         category: newEvent.category,
         imageUrl: newEvent.image,
         registrationRequired: newEvent.registrationRequired,
-        capacity: typeof newEvent.capacity === 'number' ? newEvent.capacity : undefined,
+        capacity:
+          typeof newEvent.capacity === "number" ? newEvent.capacity : undefined,
         registrationStart: newEvent.registrationStart,
         registrationEnd: newEvent.registrationEnd,
       };
-      
+
       const created = await eventsApi.create(apiEvent);
-      
+
       // Update local state
       setEvents((prevEvents) => {
         const updatedEvents = [created, ...prevEvents];
         const sortedEvents = sortEventsByDate(updatedEvents);
-        localStorage.setItem("campusconnect-events", JSON.stringify(sortedEvents));
-        cache.set("events", sortedEvents, 7 * 24 * 60 * 60 * 1000).catch(console.error);
+        cache
+          .set("events", sortedEvents, 7 * 24 * 60 * 60 * 1000)
+          .catch(console.error);
         return sortedEvents;
       });
     } catch (error) {
@@ -187,8 +190,9 @@ export function EventsProvider({ children }: { children: ReactNode }) {
         };
         const updatedEvents = [eventWithDefaults, ...prevEvents];
         const sortedEvents = sortEventsByDate(updatedEvents);
-        localStorage.setItem("campusconnect-events", JSON.stringify(sortedEvents));
-        cache.set("events", sortedEvents, 7 * 24 * 60 * 60 * 1000).catch(console.error);
+        cache
+          .set("events", sortedEvents, 7 * 24 * 60 * 60 * 1000)
+          .catch(console.error);
         return sortedEvents;
       });
     }
