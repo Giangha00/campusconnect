@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
 import { LoginDialog } from "@/components/auth/login-dialog";
+import { UserProfileDropdown } from "@/components/layout/user-profile-dropdown";
 import { useUser } from "@/contexts/user-context";
 
 const navigation = [
@@ -27,6 +28,7 @@ export function Header() {
     if (user.role !== "visitor") {
       userNavigation.push({ name: "Bookmarks", href: "/bookmarks" });
     }
+    // Profile link removed - now accessible via UserProfileDropdown
   }
 
   return (
@@ -75,7 +77,7 @@ export function Header() {
                 </Link>
               ))}
             </div>
-            <LoginDialog />
+            {user ? <UserProfileDropdown /> : <LoginDialog />}
           </div>
 
           {/* Tablet Navbar - Compact menu for medium screens */}
@@ -144,7 +146,7 @@ export function Header() {
                   </SheetContent>
                 </Sheet>
               )}
-              <LoginDialog />
+              {user ? <UserProfileDropdown /> : <LoginDialog />}
             </div>
           </div>
 
@@ -163,7 +165,7 @@ export function Header() {
               <SheetContent side="right" className="w-[300px] sm:w-[400px]">
                 <div className="flex flex-col space-y-4 mt-6">
                   <div className="pb-4 border-b">
-                    <LoginDialog />
+                    {user ? <UserProfileDropdown /> : <LoginDialog />}
                   </div>
                   {userNavigation.map((item) => (
                     <Link

@@ -12,8 +12,8 @@ import { usersApi, type User } from "@/lib/api";
 
 interface UsersContextType {
   users: User[];
-  updateUser: (userId: number, updatedUser: Partial<User>) => void;
-  deleteUser: (userId: number) => void;
+  updateUser: (userId: string, updatedUser: Partial<User>) => void;
+  deleteUser: (userId: string) => void;
   createUser: (newUser: Omit<User, "id" | "joinedDate" | "lastLogin">) => void;
   isLoading: boolean;
 }
@@ -44,7 +44,7 @@ export function UsersProvider({ children }: { children: ReactNode }) {
     loadUsers();
   }, []);
 
-  const updateUser = async (userId: number, updatedUser: Partial<User>) => {
+  const updateUser = async (userId: string, updatedUser: Partial<User>) => {
     try {
       // Find user to get UUID
       const user = users.find(u => u.id === userId);
@@ -59,9 +59,8 @@ export function UsersProvider({ children }: { children: ReactNode }) {
         year: updatedUser.year,
       };
 
-      // Update on server (need to use UUID, but we only have number ID)
-      // This is a limitation - we need to store UUID mapping
-      const updated = await usersApi.update(user.id.toString(), apiUser);
+      // Update on server using UUID
+      const updated = await usersApi.update(user.id, apiUser);
       
       setUsers((prevUsers) => {
         const updatedUsers = prevUsers.map((u) =>
@@ -81,12 +80,12 @@ export function UsersProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const deleteUser = async (userId: number) => {
+  const deleteUser = async (userId: string) => {
     try {
       const user = users.find(u => u.id === userId);
       if (!user) return;
 
-      await usersApi.delete(user.id.toString());
+      await usersApi.delete(user.id);
       
       setUsers((prevUsers) => {
         const updatedUsers = prevUsers.filter((u) => u.id !== userId);

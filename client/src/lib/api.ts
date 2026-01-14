@@ -252,7 +252,7 @@ export interface UserResponse {
 }
 
 export interface User {
-  id: number;
+  id: string; // Changed to string to match UUID from backend
   name: string;
   email: string;
   role: "faculty" | "student" | "visitor";
@@ -270,7 +270,7 @@ export interface User {
 // Map Spring Boot user to frontend format
 function mapUserToFrontend(user: UserResponse): User {
   return {
-    id: parseInt(user.id) || 0, // Convert UUID to number (temporary)
+    id: user.id, // Keep as string (UUID)
     name: user.name,
     email: user.email,
     role: user.role as "faculty" | "student" | "visitor",
@@ -1191,4 +1191,5 @@ export const userAuthApi = {
   },
 };
 
+export { apiClient };
 export default apiClient;
