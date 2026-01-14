@@ -1,12 +1,12 @@
-import axios from 'axios';
+import axios from "axios";
 
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = "http://localhost:8080/api";
 
 // Create axios instance with default config
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   headers: {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
   },
 });
 
@@ -14,7 +14,7 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   (config) => {
     // Add auth token if available (using sessionStorage instead of localStorage)
-    const token = sessionStorage.getItem('authToken');
+    const token = sessionStorage.getItem("authToken");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -30,15 +30,22 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     // Don't log 404 errors for event-bookmarks endpoint (it's optional)
-    const isBookmarks404 = error.config?.url?.includes('/event-bookmarks') && error.response?.status === 404;
-    
-    if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
-      console.error('API Error: Cannot connect to backend server at', API_BASE_URL);
-      console.error('Please ensure the Spring Boot backend is running on http://localhost:8080');
+    const isBookmarks404 =
+      error.config?.url?.includes("/event-bookmarks") &&
+      error.response?.status === 404;
+
+    if (error.code === "ERR_NETWORK" || error.message === "Network Error") {
+      console.error(
+        "API Error: Cannot connect to backend server at",
+        API_BASE_URL
+      );
+      console.error(
+        "Please ensure the Spring Boot backend is running on http://localhost:8080"
+      );
     } else if (!isBookmarks404) {
       // Log detailed error information (except for bookmarks 404)
       if (error.response) {
-        console.error('API Error:', {
+        console.error("API Error:", {
           status: error.response.status,
           statusText: error.response.statusText,
           data: error.response.data,
@@ -46,7 +53,7 @@ apiClient.interceptors.response.use(
           method: error.config?.method,
         });
       } else {
-        console.error('API Error:', error.message);
+        console.error("API Error:", error.message);
       }
     }
     return Promise.reject(error);
@@ -95,25 +102,32 @@ export interface Event {
 }
 
 // Map Spring Boot event to frontend format
-function mapEventToFrontend(event: EventResponse, attendees: number = 0, checkedIn: number = 0): Event {
+function mapEventToFrontend(
+  event: EventResponse,
+  attendees: number = 0,
+  checkedIn: number = 0
+): Event {
   const startDate = new Date(event.startDate);
   const endDate = event.endDate ? new Date(event.endDate) : startDate;
-  
+
   return {
     id: event.id,
     name: event.title,
     dateStart: event.startDate,
     dateEnd: event.endDate || event.startDate,
-    time: startDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-    venue: event.venue || 'TBA',
+    time: startDate.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
+    venue: event.venue || "TBA",
     category: event.category,
-    department: 'General', // Default value
-    description: event.description || '',
-    organizer: 'Admin', // Default value, will be fetched from admin table
+    department: "General", // Default value
+    description: event.description || "",
+    organizer: "Admin", // Default value, will be fetched from admin table
     organizerId: event.organizerId, // Store organizerId to fetch admin name
-    image: event.imageUrl || '',
+    image: event.imageUrl || "",
     registrationRequired: event.registrationRequired ?? true,
-    capacity: event.capacity || 'Unlimited',
+    capacity: event.capacity || "Unlimited",
     attendees,
     checkedIn,
     registrationStart: event.registrationStart,
@@ -124,34 +138,40 @@ function mapEventToFrontend(event: EventResponse, attendees: number = 0, checked
 export const eventsApi = {
   getAll: async (): Promise<Event[]> => {
     try {
-      const eventsResponse = await apiClient.get<EventResponse[]>('/events');
+      const eventsResponse = await apiClient.get<EventResponse[]>("/events");
       const events = eventsResponse.data;
 
       // Try to get registrations, but don't fail if endpoint doesn't exist
       let registrations: any[] = [];
       try {
-        const registrationsResponse = await apiClient.get<any[]>('/event-registrations');
+        const registrationsResponse = await apiClient.get<any[]>(
+          "/event-registrations"
+        );
         registrations = registrationsResponse.data || [];
       } catch (regError: any) {
         // If 404, endpoint doesn't exist yet - use empty array
         if (regError.response?.status !== 404) {
-          console.warn('Error fetching registrations (non-404):', regError);
+          console.warn("Error fetching registrations (non-404):", regError);
         }
       }
 
       // Calculate attendees and checkedIn for each event
-      const eventStats = events.map(event => {
-        const eventRegistrations = registrations.filter(reg => reg.eventId === event.id);
+      const eventStats = events.map((event) => {
+        const eventRegistrations = registrations.filter(
+          (reg) => reg.eventId === event.id
+        );
         const attendees = eventRegistrations.length;
-        const checkedIn = eventRegistrations.filter(reg => reg.checkedIn).length;
+        const checkedIn = eventRegistrations.filter(
+          (reg) => reg.checkedIn
+        ).length;
         return { event, attendees, checkedIn };
       });
 
-      return eventStats.map(({ event, attendees, checkedIn }) => 
+      return eventStats.map(({ event, attendees, checkedIn }) =>
         mapEventToFrontend(event, attendees, checkedIn)
       );
     } catch (error) {
-      console.error('Error fetching events:', error);
+      console.error("Error fetching events:", error);
       throw error;
     }
   },
@@ -164,41 +184,46 @@ export const eventsApi = {
       // Try to get registrations, but don't fail if endpoint doesn't exist
       let registrations: any[] = [];
       try {
-        const registrationsResponse = await apiClient.get<any[]>(`/event-registrations?eventId=${id}`);
+        const registrationsResponse = await apiClient.get<any[]>(
+          `/event-registrations?eventId=${id}`
+        );
         registrations = registrationsResponse.data || [];
       } catch (regError: any) {
         // If 404, endpoint doesn't exist yet - use empty array
         if (regError.response?.status !== 404) {
-          console.warn('Error fetching registrations (non-404):', regError);
+          console.warn("Error fetching registrations (non-404):", regError);
         }
       }
 
       const attendees = registrations.length;
-      const checkedIn = registrations.filter(reg => reg.checkedIn).length;
+      const checkedIn = registrations.filter((reg) => reg.checkedIn).length;
 
       return mapEventToFrontend(event, attendees, checkedIn);
     } catch (error) {
-      console.error('Error fetching event:', error);
+      console.error("Error fetching event:", error);
       throw error;
     }
   },
 
   create: async (event: Partial<EventResponse>): Promise<Event> => {
     try {
-      const response = await apiClient.post<EventResponse>('/events', event);
+      const response = await apiClient.post<EventResponse>("/events", event);
       return mapEventToFrontend(response.data);
     } catch (error) {
-      console.error('Error creating event:', error);
+      console.error("Error creating event:", error);
       throw error;
     }
   },
 
   update: async (id: number, event: Partial<EventResponse>): Promise<Event> => {
     try {
-      const response = await apiClient.put<EventResponse>(`/events/${id}`, event);
+      const response = await apiClient.put<EventResponse>(
+        `/events/${id}`,
+        event
+      );
       return mapEventToFrontend(response.data);
     } catch (error) {
-      console.error('Error updating event:', error);
+      console.error("Error updating event:", error);
       throw error;
     }
   },
@@ -207,7 +232,7 @@ export const eventsApi = {
     try {
       await apiClient.delete(`/events/${id}`);
     } catch (error) {
-      console.error('Error deleting event:', error);
+      console.error("Error deleting event:", error);
       throw error;
     }
   },
@@ -230,13 +255,13 @@ export interface User {
   id: number;
   name: string;
   email: string;
-  role: 'faculty' | 'student' | 'visitor';
+  role: "faculty" | "student" | "visitor";
   department: string;
   designation: string;
   phone: string;
   specialization: string;
   avatar: string;
-  status: 'active' | 'inactive';
+  status: "active" | "inactive";
   joinedDate: string;
   lastLogin: string;
   year?: string;
@@ -248,14 +273,21 @@ function mapUserToFrontend(user: UserResponse): User {
     id: parseInt(user.id) || 0, // Convert UUID to number (temporary)
     name: user.name,
     email: user.email,
-    role: user.role as 'faculty' | 'student' | 'visitor',
-    department: user.department || 'General',
-    designation: user.role === 'faculty' ? 'Faculty Member' : user.role === 'student' ? 'Student' : 'Visitor',
-    phone: '', // Not in DB
-    specialization: '', // Not in DB
-    avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=random`,
-    status: 'active',
-    joinedDate: user.createdAt || new Date().toISOString().split('T')[0],
+    role: user.role as "faculty" | "student" | "visitor",
+    department: user.department || "General",
+    designation:
+      user.role === "faculty"
+        ? "Faculty Member"
+        : user.role === "student"
+        ? "Student"
+        : "Visitor",
+    phone: "", // Not in DB
+    specialization: "", // Not in DB
+    avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(
+      user.name
+    )}&background=random`,
+    status: "active",
+    joinedDate: user.createdAt || new Date().toISOString().split("T")[0],
     lastLogin: new Date().toISOString(),
     year: user.year,
   };
@@ -264,10 +296,10 @@ function mapUserToFrontend(user: UserResponse): User {
 export const usersApi = {
   getAll: async (): Promise<User[]> => {
     try {
-      const response = await apiClient.get<UserResponse[]>('/users');
+      const response = await apiClient.get<UserResponse[]>("/users");
       return response.data.map(mapUserToFrontend);
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error("Error fetching users:", error);
       throw error;
     }
   },
@@ -277,17 +309,17 @@ export const usersApi = {
       const response = await apiClient.get<UserResponse>(`/users/${id}`);
       return mapUserToFrontend(response.data);
     } catch (error) {
-      console.error('Error fetching user:', error);
+      console.error("Error fetching user:", error);
       throw error;
     }
   },
 
   create: async (user: Partial<UserResponse>): Promise<User> => {
     try {
-      const response = await apiClient.post<UserResponse>('/users', user);
+      const response = await apiClient.post<UserResponse>("/users", user);
       return mapUserToFrontend(response.data);
     } catch (error) {
-      console.error('Error creating user:', error);
+      console.error("Error creating user:", error);
       throw error;
     }
   },
@@ -297,7 +329,7 @@ export const usersApi = {
       const response = await apiClient.put<UserResponse>(`/users/${id}`, user);
       return mapUserToFrontend(response.data);
     } catch (error) {
-      console.error('Error updating user:', error);
+      console.error("Error updating user:", error);
       throw error;
     }
   },
@@ -306,7 +338,7 @@ export const usersApi = {
     try {
       await apiClient.delete(`/users/${id}`);
     } catch (error) {
-      console.error('Error deleting user:', error);
+      console.error("Error deleting user:", error);
       throw error;
     }
   },
@@ -332,22 +364,26 @@ export interface Feedback {
   eventAttended: string;
   name: string;
   email: string;
-  userType: 'student' | 'faculty' | 'visitor';
+  userType: "student" | "faculty" | "visitor";
   rating: number;
   feedback: string;
   createdAt: string;
-  status: 'active' | 'hidden';
+  status: "active" | "hidden";
 }
 
 // Map Spring Boot feedback to frontend format
-async function mapFeedbackToFrontend(feedback: FeedbackResponse): Promise<Feedback> {
-  let eventName = 'General Event';
+async function mapFeedbackToFrontend(
+  feedback: FeedbackResponse
+): Promise<Feedback> {
+  let eventName = "General Event";
   if (feedback.eventId) {
     try {
-      const eventResponse = await apiClient.get<EventResponse>(`/events/${feedback.eventId}`);
+      const eventResponse = await apiClient.get<EventResponse>(
+        `/events/${feedback.eventId}`
+      );
       eventName = eventResponse.data.title;
     } catch (error) {
-      console.error('Error fetching event name for feedback:', error);
+      console.error("Error fetching event name for feedback:", error);
     }
   }
 
@@ -356,18 +392,18 @@ async function mapFeedbackToFrontend(feedback: FeedbackResponse): Promise<Feedba
     eventAttended: eventName,
     name: feedback.name,
     email: feedback.email,
-    userType: feedback.userType as 'student' | 'faculty' | 'visitor',
+    userType: feedback.userType as "student" | "faculty" | "visitor",
     rating: feedback.rating,
     feedback: feedback.feedback,
     createdAt: feedback.createdAt || new Date().toISOString(),
-    status: feedback.status as 'active' | 'hidden',
+    status: feedback.status as "active" | "hidden",
   };
 }
 
 export const feedbackApi = {
   getAll: async (): Promise<Feedback[]> => {
     try {
-      const response = await apiClient.get<FeedbackResponse[]>('/feedback');
+      const response = await apiClient.get<FeedbackResponse[]>("/feedback");
       const feedbacks = await Promise.all(
         response.data.map(mapFeedbackToFrontend)
       );
@@ -375,10 +411,10 @@ export const feedbackApi = {
     } catch (error: any) {
       // If 404, endpoint doesn't exist yet - return empty array
       if (error.response?.status === 404) {
-        console.warn('Feedback endpoint not found, returning empty array');
+        console.warn("Feedback endpoint not found, returning empty array");
         return [];
       }
-      console.error('Error fetching feedbacks:', error);
+      console.error("Error fetching feedbacks:", error);
       throw error;
     }
   },
@@ -388,27 +424,38 @@ export const feedbackApi = {
       const response = await apiClient.get<FeedbackResponse>(`/feedback/${id}`);
       return await mapFeedbackToFrontend(response.data);
     } catch (error) {
-      console.error('Error fetching feedback:', error);
+      console.error("Error fetching feedback:", error);
       throw error;
     }
   },
 
-  create: async (feedback: Omit<FeedbackResponse, 'id' | 'createdAt' | 'updatedAt'>): Promise<Feedback> => {
+  create: async (
+    feedback: Omit<FeedbackResponse, "id" | "createdAt" | "updatedAt">
+  ): Promise<Feedback> => {
     try {
-      const response = await apiClient.post<FeedbackResponse>('/feedback', feedback);
+      const response = await apiClient.post<FeedbackResponse>(
+        "/feedback",
+        feedback
+      );
       return await mapFeedbackToFrontend(response.data);
     } catch (error) {
-      console.error('Error creating feedback:', error);
+      console.error("Error creating feedback:", error);
       throw error;
     }
   },
 
-  update: async (id: number, feedback: Partial<FeedbackResponse>): Promise<Feedback> => {
+  update: async (
+    id: number,
+    feedback: Partial<FeedbackResponse>
+  ): Promise<Feedback> => {
     try {
-      const response = await apiClient.put<FeedbackResponse>(`/feedback/${id}`, feedback);
+      const response = await apiClient.put<FeedbackResponse>(
+        `/feedback/${id}`,
+        feedback
+      );
       return await mapFeedbackToFrontend(response.data);
     } catch (error) {
-      console.error('Error updating feedback:', error);
+      console.error("Error updating feedback:", error);
       throw error;
     }
   },
@@ -417,7 +464,7 @@ export const feedbackApi = {
     try {
       await apiClient.delete(`/feedback/${id}`);
     } catch (error) {
-      console.error('Error deleting feedback:', error);
+      console.error("Error deleting feedback:", error);
       throw error;
     }
   },
@@ -451,8 +498,8 @@ export interface GalleryItem {
 // Map Spring Boot gallery to frontend format
 function mapGalleryToFrontend(gallery: GalleryResponse): GalleryItem {
   // Handle eventId from either eventId field or event object
-  const eventId = gallery.eventId || (gallery.event?.id);
-  
+  const eventId = gallery.eventId || gallery.event?.id;
+
   return {
     id: gallery.id,
     imageUrl: gallery.imageUrl,
@@ -467,15 +514,15 @@ function mapGalleryToFrontend(gallery: GalleryResponse): GalleryItem {
 export const galleryApi = {
   getAll: async (): Promise<GalleryItem[]> => {
     try {
-      const response = await apiClient.get<GalleryResponse[]>('/gallery');
+      const response = await apiClient.get<GalleryResponse[]>("/gallery");
       return response.data.map(mapGalleryToFrontend);
     } catch (error: any) {
       // If 404, endpoint doesn't exist yet - return empty array
       if (error.response?.status === 404) {
-        console.warn('Gallery endpoint not found, returning empty array');
+        console.warn("Gallery endpoint not found, returning empty array");
         return [];
       }
-      console.error('Error fetching gallery:', error);
+      console.error("Error fetching gallery:", error);
       throw error;
     }
   },
@@ -485,27 +532,38 @@ export const galleryApi = {
       const response = await apiClient.get<GalleryResponse>(`/gallery/${id}`);
       return mapGalleryToFrontend(response.data);
     } catch (error) {
-      console.error('Error fetching gallery item:', error);
+      console.error("Error fetching gallery item:", error);
       throw error;
     }
   },
 
-  create: async (gallery: Omit<GalleryResponse, 'id' | 'createdAt' | 'updatedAt'>): Promise<GalleryItem> => {
+  create: async (
+    gallery: Omit<GalleryResponse, "id" | "createdAt" | "updatedAt">
+  ): Promise<GalleryItem> => {
     try {
-      const response = await apiClient.post<GalleryResponse>('/gallery', gallery);
+      const response = await apiClient.post<GalleryResponse>(
+        "/gallery",
+        gallery
+      );
       return mapGalleryToFrontend(response.data);
     } catch (error) {
-      console.error('Error creating gallery item:', error);
+      console.error("Error creating gallery item:", error);
       throw error;
     }
   },
 
-  update: async (id: number, gallery: Partial<GalleryResponse>): Promise<GalleryItem> => {
+  update: async (
+    id: number,
+    gallery: Partial<GalleryResponse>
+  ): Promise<GalleryItem> => {
     try {
-      const response = await apiClient.put<GalleryResponse>(`/gallery/${id}`, gallery);
+      const response = await apiClient.put<GalleryResponse>(
+        `/gallery/${id}`,
+        gallery
+      );
       return mapGalleryToFrontend(response.data);
     } catch (error) {
-      console.error('Error updating gallery item:', error);
+      console.error("Error updating gallery item:", error);
       throw error;
     }
   },
@@ -514,7 +572,7 @@ export const galleryApi = {
     try {
       await apiClient.delete(`/gallery/${id}`);
     } catch (error) {
-      console.error('Error deleting gallery item:', error);
+      console.error("Error deleting gallery item:", error);
       throw error;
     }
   },
@@ -526,7 +584,7 @@ export interface AdminResponse {
   username: string;
   name: string;
   email: string;
-  role: 'admin' | 'faculty';
+  role: "admin" | "faculty";
   createdAt?: string;
   updatedAt?: string;
 }
@@ -537,23 +595,26 @@ export interface AdminUser {
   password: string;
   name: string;
   email: string;
-  role: 'admin' | 'faculty';
+  role: "admin" | "faculty";
 }
 
 export const adminApi = {
   getAll: async (): Promise<AdminResponse[]> => {
     try {
-      const response = await apiClient.get<AdminResponse[]>('/admins');
+      const response = await apiClient.get<AdminResponse[]>("/admins");
       return response.data;
     } catch (error) {
-      console.error('Error fetching admins:', error);
+      console.error("Error fetching admins:", error);
       throw error;
     }
   },
 
-  login: async (username: string, password: string): Promise<AdminUser | null> => {
+  login: async (
+    username: string,
+    password: string
+  ): Promise<AdminUser | null> => {
     try {
-      const response = await apiClient.post<AdminResponse>('/admins/login', {
+      const response = await apiClient.post<AdminResponse>("/admins/login", {
         username,
         password,
       });
@@ -562,13 +623,13 @@ export const adminApi = {
       return {
         id: response.data.id,
         username: response.data.username,
-        password: '', // Should not store password
+        password: "", // Should not store password
         name: response.data.name,
         email: response.data.email,
         role: response.data.role,
       };
     } catch (error) {
-      console.error('Error logging in:', error);
+      console.error("Error logging in:", error);
       return null;
     }
   },
@@ -606,7 +667,7 @@ export interface Registration {
 
 // Internal mapping to track userId and eventId for each registration ID
 // This is needed because backend doesn't return userId and eventId in response
-const REGISTRATION_MAPPING_KEY = 'campusconnect-registration-mapping';
+const REGISTRATION_MAPPING_KEY = "campusconnect-registration-mapping";
 
 interface RegistrationMapping {
   registrationId: string;
@@ -614,47 +675,63 @@ interface RegistrationMapping {
   eventId: number;
 }
 
-function getRegistrationMapping(): Map<string, { userId: string; eventId: number }> {
+function getRegistrationMapping(): Map<
+  string,
+  { userId: string; eventId: number }
+> {
   try {
     const stored = sessionStorage.getItem(REGISTRATION_MAPPING_KEY);
     if (stored) {
       const data: RegistrationMapping[] = JSON.parse(stored);
-      return new Map(data.map(m => [m.registrationId, { userId: m.userId, eventId: m.eventId }]));
+      return new Map(
+        data.map((m) => [
+          m.registrationId,
+          { userId: m.userId, eventId: m.eventId },
+        ])
+      );
     }
   } catch (e) {
-    console.error('Error loading registration mapping:', e);
+    console.error("Error loading registration mapping:", e);
   }
   return new Map();
 }
 
-function saveRegistrationMapping(map: Map<string, { userId: string; eventId: number }>) {
+function saveRegistrationMapping(
+  map: Map<string, { userId: string; eventId: number }>
+) {
   try {
-    const data: RegistrationMapping[] = Array.from(map.entries()).map(([id, info]) => ({
-      registrationId: id,
-      userId: info.userId,
-      eventId: info.eventId,
-    }));
+    const data: RegistrationMapping[] = Array.from(map.entries()).map(
+      ([id, info]) => ({
+        registrationId: id,
+        userId: info.userId,
+        eventId: info.eventId,
+      })
+    );
     sessionStorage.setItem(REGISTRATION_MAPPING_KEY, JSON.stringify(data));
   } catch (e) {
-    console.error('Error saving registration mapping:', e);
+    console.error("Error saving registration mapping:", e);
   }
 }
 
 export const registrationsApi = {
   getAll: async (): Promise<Registration[]> => {
     try {
-      const response = await apiClient.get<EventRegistrationResponse[]>('/event-registrations');
+      const response = await apiClient.get<EventRegistrationResponse[]>(
+        "/event-registrations"
+      );
       const mapping = getRegistrationMapping();
-      
+
       // Backend doesn't return userId and eventId, so we need to use our mapping
       // For registrations not in mapping, we can't determine user/event info
       const registrations: Registration[] = [];
-      
+
       for (const reg of response.data) {
         const mapped = mapping.get(reg.id);
         if (mapped) {
           try {
-            const userResponse = await apiClient.get<UserResponse>(`/users/${mapped.userId}`);
+            const userResponse = await apiClient.get<UserResponse>(
+              `/users/${mapped.userId}`
+            );
             const user = userResponse.data;
             registrations.push({
               eventId: mapped.eventId,
@@ -669,13 +746,13 @@ export const registrationsApi = {
               checkedInAt: reg.checkedInAt,
             });
           } catch (error) {
-            console.error('Error fetching user for registration:', error);
+            console.error("Error fetching user for registration:", error);
             registrations.push({
               eventId: mapped.eventId,
               userId: mapped.userId,
-              name: 'Unknown',
-              email: '',
-              role: 'visitor',
+              name: "Unknown",
+              email: "",
+              role: "visitor",
               registeredAt: reg.registrationDate,
               ticket: reg.ticketNumber,
               checkedIn: reg.checkedIn,
@@ -684,15 +761,17 @@ export const registrationsApi = {
           }
         }
       }
-      
+
       return registrations;
     } catch (error: any) {
       // If 404, endpoint doesn't exist yet - return empty array
       if (error.response?.status === 404) {
-        console.warn('Event registrations endpoint not found, returning empty array');
+        console.warn(
+          "Event registrations endpoint not found, returning empty array"
+        );
         return [];
       }
-      console.error('Error fetching registrations:', error);
+      console.error("Error fetching registrations:", error);
       throw error;
     }
   },
@@ -701,19 +780,24 @@ export const registrationsApi = {
     try {
       // Backend doesn't have query param for eventId, so get all and filter
       const allRegistrations = await registrationsApi.getAll();
-      return allRegistrations.filter(r => r.eventId === eventId);
+      return allRegistrations.filter((r) => r.eventId === eventId);
     } catch (error: any) {
       // If 404, endpoint doesn't exist yet - return empty array
       if (error.response?.status === 404) {
-        console.warn('Event registrations endpoint not found, returning empty array');
+        console.warn(
+          "Event registrations endpoint not found, returning empty array"
+        );
         return [];
       }
-      console.error('Error fetching registrations by event:', error);
+      console.error("Error fetching registrations by event:", error);
       throw error;
     }
   },
 
-  create: async (registration: { userId: string; eventId: number }): Promise<Registration> => {
+  create: async (registration: {
+    userId: string;
+    eventId: number;
+  }): Promise<Registration> => {
     try {
       // Backend expects userId and eventId (camelCase) in request body
       // Backend will automatically generate ticketNumber
@@ -722,8 +806,11 @@ export const registrationsApi = {
         eventId: Number(registration.eventId),
       };
 
-      const response = await apiClient.post<EventRegistrationResponse>('/event-registrations', requestBody);
-      
+      const response = await apiClient.post<EventRegistrationResponse>(
+        "/event-registrations",
+        requestBody
+      );
+
       // Store mapping: registrationId -> { userId, eventId }
       const mapping = getRegistrationMapping();
       mapping.set(response.data.id, {
@@ -731,11 +818,13 @@ export const registrationsApi = {
         eventId: registration.eventId,
       });
       saveRegistrationMapping(mapping);
-      
+
       // Fetch user details
-      const userResponse = await apiClient.get<UserResponse>(`/users/${registration.userId}`);
+      const userResponse = await apiClient.get<UserResponse>(
+        `/users/${registration.userId}`
+      );
       const user = userResponse.data;
-      
+
       return {
         eventId: registration.eventId,
         userId: registration.userId,
@@ -749,24 +838,32 @@ export const registrationsApi = {
         checkedInAt: response.data.checkedInAt,
       };
     } catch (error: any) {
-      console.error('Error creating registration:', error);
-      
+      console.error("Error creating registration:", error);
+
       // If 500 error, check if registration was actually created
       if (error.response?.status === 500) {
         try {
           // Wait a bit for database to commit
           await new Promise((resolve) => setTimeout(resolve, 500));
-          
+
           // Try to find the registration by getting all and checking mapping
-          const allRegs = await apiClient.get<EventRegistrationResponse[]>('/event-registrations');
+          const allRegs = await apiClient.get<EventRegistrationResponse[]>(
+            "/event-registrations"
+          );
           const mapping = getRegistrationMapping();
-          
+
           // Check if any registration matches (by checking mapping)
           for (const reg of allRegs.data) {
             const mapped = mapping.get(reg.id);
-            if (mapped && mapped.userId === registration.userId && mapped.eventId === registration.eventId) {
+            if (
+              mapped &&
+              mapped.userId === registration.userId &&
+              mapped.eventId === registration.eventId
+            ) {
               // Registration was created successfully
-              const userResponse = await apiClient.get<UserResponse>(`/users/${registration.userId}`);
+              const userResponse = await apiClient.get<UserResponse>(
+                `/users/${registration.userId}`
+              );
               const user = userResponse.data;
               return {
                 eventId: registration.eventId,
@@ -783,10 +880,13 @@ export const registrationsApi = {
             }
           }
         } catch (checkError) {
-          console.error('Error checking if registration was created:', checkError);
+          console.error(
+            "Error checking if registration was created:",
+            checkError
+          );
         }
       }
-      
+
       throw error;
     }
   },
@@ -794,20 +894,24 @@ export const registrationsApi = {
   checkIn: async (registrationId: string): Promise<Registration> => {
     try {
       // Backend has PUT /event-registrations/{id}/checkin endpoint
-      const response = await apiClient.put<EventRegistrationResponse>(`/event-registrations/${registrationId}/checkin`);
-      
+      const response = await apiClient.put<EventRegistrationResponse>(
+        `/event-registrations/${registrationId}/checkin`
+      );
+
       // Get mapping to find userId and eventId
       const mapping = getRegistrationMapping();
       const mapped = mapping.get(registrationId);
-      
+
       if (!mapped) {
-        throw new Error('Registration mapping not found');
+        throw new Error("Registration mapping not found");
       }
-      
+
       // Fetch user details
-      const userResponse = await apiClient.get<UserResponse>(`/users/${mapped.userId}`);
+      const userResponse = await apiClient.get<UserResponse>(
+        `/users/${mapped.userId}`
+      );
       const user = userResponse.data;
-      
+
       return {
         eventId: mapped.eventId,
         userId: mapped.userId,
@@ -821,7 +925,7 @@ export const registrationsApi = {
         checkedInAt: response.data.checkedInAt,
       };
     } catch (error) {
-      console.error('Error checking in registration:', error);
+      console.error("Error checking in registration:", error);
       throw error;
     }
   },
@@ -829,29 +933,33 @@ export const registrationsApi = {
   delete: async (userId: string, eventId: number): Promise<void> => {
     try {
       // Get all registrations and find the one matching userId and eventId
-      const allRegs = await apiClient.get<EventRegistrationResponse[]>('/event-registrations');
+      const allRegs = await apiClient.get<EventRegistrationResponse[]>(
+        "/event-registrations"
+      );
       const mapping = getRegistrationMapping();
-      
+
       // Find registration ID by userId and eventId
-      const registration = allRegs.data.find(reg => {
+      const registration = allRegs.data.find((reg) => {
         const mapped = mapping.get(reg.id);
         return mapped && mapped.userId === userId && mapped.eventId === eventId;
       });
-      
+
       if (registration) {
         await apiClient.delete(`/event-registrations/${registration.id}`);
         // Remove from mapping
         mapping.delete(registration.id);
         saveRegistrationMapping(mapping);
       } else {
-        console.warn(`Registration not found for userId: ${userId}, eventId: ${eventId}`);
+        console.warn(
+          `Registration not found for userId: ${userId}, eventId: ${eventId}`
+        );
       }
     } catch (error: any) {
       if (error.response?.status === 404) {
         // Registration doesn't exist, that's fine
         return;
       }
-      console.error('Error deleting registration:', error);
+      console.error("Error deleting registration:", error);
       throw error;
     }
   },
@@ -869,7 +977,7 @@ export interface EventBookmarkResponse {
 // Internal mapping to track eventId for each bookmark ID
 // This is needed because backend doesn't return eventId in response
 // Store in sessionStorage to persist across page reloads
-const BOOKMARK_MAPPING_KEY = 'campusconnect-bookmark-mapping';
+const BOOKMARK_MAPPING_KEY = "campusconnect-bookmark-mapping";
 
 function getBookmarkMapping(): Map<string, number> {
   try {
@@ -879,7 +987,7 @@ function getBookmarkMapping(): Map<string, number> {
       return new Map(Object.entries(data).map(([k, v]) => [k, Number(v)]));
     }
   } catch (e) {
-    console.error('Error loading bookmark mapping:', e);
+    console.error("Error loading bookmark mapping:", e);
   }
   return new Map();
 }
@@ -889,7 +997,7 @@ function saveBookmarkMapping(map: Map<string, number>) {
     const data = Object.fromEntries(map);
     sessionStorage.setItem(BOOKMARK_MAPPING_KEY, JSON.stringify(data));
   } catch (e) {
-    console.error('Error saving bookmark mapping:', e);
+    console.error("Error saving bookmark mapping:", e);
   }
 }
 
@@ -897,21 +1005,23 @@ export const bookmarksApi = {
   getAll: async (userId?: string): Promise<number[]> => {
     try {
       // Backend uses userId (camelCase) in query param
-      const url = userId ? `/event-bookmarks?userId=${userId}` : '/event-bookmarks';
+      const url = userId
+        ? `/event-bookmarks?userId=${userId}`
+        : "/event-bookmarks";
       const response = await apiClient.get<EventBookmarkResponse[]>(url);
-      
+
       // Backend only returns id and createdAt, not eventId
       // Use our internal mapping to get eventIds
       const mapping = getBookmarkMapping();
       const eventIds: number[] = [];
-      
-      response.data.forEach(bookmark => {
+
+      response.data.forEach((bookmark) => {
         const eventId = mapping.get(bookmark.id);
         if (eventId) {
           eventIds.push(eventId);
         }
       });
-      
+
       // Return eventIds from mapping
       // Note: If mapping is empty (first load), will return empty array
       // This is a limitation - backend should expose eventId in response
@@ -921,38 +1031,44 @@ export const bookmarksApi = {
         // Endpoint not found - silently return empty array (no error logging)
         return [];
       }
-      console.error('Error fetching bookmarks:', error);
+      console.error("Error fetching bookmarks:", error);
       throw error;
     }
   },
 
-  create: async (userId: string, eventId: number): Promise<EventBookmarkResponse> => {
+  create: async (
+    userId: string,
+    eventId: number
+  ): Promise<EventBookmarkResponse> => {
     try {
-      console.log('Creating bookmark:', { userId, eventId });
+      console.log("Creating bookmark:", { userId, eventId });
       // Backend expects userId and eventId (camelCase) in request body
-      const response = await apiClient.post<EventBookmarkResponse>('/event-bookmarks', {
-        userId: userId,
-        eventId: eventId,
-      });
-      console.log('Bookmark created successfully:', response.data);
-      
+      const response = await apiClient.post<EventBookmarkResponse>(
+        "/event-bookmarks",
+        {
+          userId: userId,
+          eventId: eventId,
+        }
+      );
+      console.log("Bookmark created successfully:", response.data);
+
       // Store mapping: bookmarkId -> eventId (needed because backend doesn't return eventId)
       const mapping = getBookmarkMapping();
       mapping.set(response.data.id, eventId);
       saveBookmarkMapping(mapping);
-      
+
       return response.data;
     } catch (error: any) {
       // Log detailed error information
       if (error.response) {
-        console.error('Error creating bookmark:', {
+        console.error("Error creating bookmark:", {
           status: error.response.status,
           statusText: error.response.statusText,
           data: error.response.data,
           url: error.config?.url,
         });
       } else {
-        console.error('Error creating bookmark:', error.message || error);
+        console.error("Error creating bookmark:", error.message || error);
       }
       throw error;
     }
@@ -962,15 +1078,17 @@ export const bookmarksApi = {
     try {
       // Backend uses userId (camelCase) in query param
       // Get all bookmarks for user
-      const bookmarks = await apiClient.get<EventBookmarkResponse[]>(`/event-bookmarks?userId=${userId}`);
-      
+      const bookmarks = await apiClient.get<EventBookmarkResponse[]>(
+        `/event-bookmarks?userId=${userId}`
+      );
+
       // Find bookmark by eventId using our internal mapping
       const mapping = getBookmarkMapping();
-      const bookmark = bookmarks.data.find(b => {
+      const bookmark = bookmarks.data.find((b) => {
         const mappedEventId = mapping.get(b.id);
         return mappedEventId === eventId;
       });
-      
+
       if (bookmark) {
         await apiClient.delete(`/event-bookmarks/${bookmark.id}`);
         // Remove from internal mapping
@@ -978,14 +1096,16 @@ export const bookmarksApi = {
         mapping.delete(bookmark.id);
         saveBookmarkMapping(mapping);
       } else {
-        console.warn(`Bookmark not found for userId: ${userId}, eventId: ${eventId}`);
+        console.warn(
+          `Bookmark not found for userId: ${userId}, eventId: ${eventId}`
+        );
       }
     } catch (error: any) {
       if (error.response?.status === 404) {
         // Bookmark doesn't exist, that's fine
         return;
       }
-      console.error('Error deleting bookmark:', error);
+      console.error("Error deleting bookmark:", error);
       throw error;
     }
   },
@@ -1002,35 +1122,26 @@ export interface UserRegisterRequest {
   password: string;
   name: string;
   email: string;
-  role: 'student' | 'faculty' | 'visitor';
+  role: "student" | "faculty" | "visitor";
   department?: string;
   year?: string;
 }
 
 export const userAuthApi = {
-  login: async (username: string, password: string): Promise<UserResponse | null> => {
+  login: async (
+    username: string,
+    password: string
+  ): Promise<UserResponse | null> => {
     try {
-      // Get all users from API
-      const usersResponse = await apiClient.get<UserResponse[]>('/users');
-      const users = usersResponse.data;
-      
-      // Find user by username (case-insensitive)
-      const user = users.find(
-        u => u.username.toLowerCase().trim() === username.toLowerCase().trim()
-      );
-      
-      if (!user) {
-        // User not found
-        return null;
-      }
-      
-      // Note: Password verification should ideally be done on backend
-      // For now, if user exists, allow login
-      // In production, you should have a proper login endpoint that verifies password
-      return user;
+      // Call login endpoint to verify username and password
+      const response = await apiClient.post<UserResponse>("/users/login", {
+        username,
+        password,
+      });
+      return response.data;
     } catch (error: any) {
-      console.error('Error during login:', error);
-      // If API call fails, return null
+      console.error("Error during login:", error);
+      // If API call fails (401 Unauthorized or other error), return null
       return null;
     }
   },
@@ -1048,20 +1159,23 @@ export const userAuthApi = {
         year: data.year?.trim() || undefined,
       };
 
-      const response = await apiClient.post<UserResponse>('/users', requestData);
+      const response = await apiClient.post<UserResponse>(
+        "/users",
+        requestData
+      );
       return response.data;
     } catch (error: any) {
-      console.error('Error during registration:', error);
-      
+      console.error("Error during registration:", error);
+
       // Extract error message from response
-      let errorMessage = 'Registration failed';
+      let errorMessage = "Registration failed";
       if (error.response?.data) {
         const errorData = error.response.data;
         if (errorData.message) {
           errorMessage = errorData.message;
         } else if (errorData.error) {
           errorMessage = errorData.error;
-        } else if (typeof errorData === 'string') {
+        } else if (typeof errorData === "string") {
           errorMessage = errorData;
         }
       } else if (error.message) {
