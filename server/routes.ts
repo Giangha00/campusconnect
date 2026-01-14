@@ -25,25 +25,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Validate required fields
       if (!to || !name || !eventName || !ticket) {
+        console.error('Missing required fields:', { to: !!to, name: !!name, eventName: !!eventName, ticket: !!ticket });
         return res.status(400).json({
           success: false,
           message: 'Thiếu thông tin bắt buộc: to, name, eventName, ticket'
         });
       }
 
+      console.log('Sending registration email:', { to, name, eventName, ticket });
+
       // Send email
       const result = await sendRegistrationEmail(to, name, eventName, ticket);
       
       if (result.success) {
+        console.log('Email sent successfully to:', to);
         res.json(result);
       } else {
+        console.error('Failed to send email:', result.message);
         res.status(500).json(result);
       }
     } catch (error) {
       console.error('Error in send-registration-email endpoint:', error);
       res.status(500).json({
         success: false,
-        message: 'Lỗi server khi gửi email'
+        message: error instanceof Error ? error.message : 'Lỗi server khi gửi email'
       });
     }
   });

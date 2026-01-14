@@ -297,43 +297,24 @@ export function UserProvider({ children }: UserProviderProps) {
     } catch (error: any) {
       console.error("Registration failed:", error);
 
-      // Check if user was actually created despite the error (500 error but user exists)
-      if (error.response?.status === 500) {
-        try {
-          // Wait a bit for database to commit (if user was just created)
-          await new Promise((resolve) => setTimeout(resolve, 500));
-
-          // Try to get user by email from API directly
-          const allUsers = await apiClient.get<UserResponse[]>("/users");
-          const actualUser = allUsers.data.find(
-            (u: UserResponse) =>
-              u.email.toLowerCase() === email.toLowerCase().trim() ||
-              u.username.toLowerCase() === username.toLowerCase().trim()
-          );
-
-          if (actualUser) {
-            // User was created successfully despite 500 error, auto-login
-            const newUser: User = {
-              id: actualUser.id, // Use UUID string from API
-              name: actualUser.name,
-              email: actualUser.email,
-              role: actualUser.role as UserRole,
-              department: actualUser.department,
-              bookmarkedEvents: [],
-              registeredEvents: [],
-            };
-
-            setUser(newUser);
-            await loadBookmarks(newUser.id);
-
-            // Return success - user was created
-            return { ok: true };
+      // Don't try to auto-login if it's a conflict error (409) - username/email already exists
+      if (error.response?.status === 409) {
+        // Extract error message for duplicate username/email
+        let errorMessage = "Username hoặc email đã tồn tại";
+        if (error.response?.data) {
+          const errorData = error.response.data;
+          if (errorData.message) {
+            errorMessage = errorData.message;
           }
-        } catch (checkError) {
-          console.error("Error checking if user was created:", checkError);
-          // Continue to show error message below
         }
+        return { ok: false, message: errorMessage };
       }
+
+      // SECURITY FIX: Never auto-login on 500 error - this is a serious security vulnerability
+      // If registration fails with 500, it means there was an error, not a success
+      // We should NOT check if user exists and auto-login - this allows unauthorized access
+      // The old logic was dangerous: if someone tried to register with existing credentials,
+      // the 500 error would trigger auto-login, giving them access to someone else's account!
 
       // Extract error message
       let errorMessage = "Registration failed";

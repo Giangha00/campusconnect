@@ -20,13 +20,30 @@ export async function sendRegistrationEmail(data: SendEmailRequest): Promise<Sen
       body: JSON.stringify(data),
     });
 
+    // Check if response is ok before parsing JSON
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Email API error:', response.status, errorText);
+      let errorMessage = 'Lỗi khi gửi email';
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.message || errorMessage;
+      } catch {
+        errorMessage = errorText || errorMessage;
+      }
+      return {
+        success: false,
+        message: errorMessage
+      };
+    }
+
     const result = await response.json();
     return result;
   } catch (error) {
     console.error('Error sending email:', error);
     return {
       success: false,
-      message: 'Lỗi kết nối khi gửi email'
+      message: error instanceof Error ? error.message : 'Lỗi kết nối khi gửi email'
     };
   }
 }

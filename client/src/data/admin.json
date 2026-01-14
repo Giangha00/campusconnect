@@ -1,18 +1,18 @@
 [
-    {
-        "id": "1757654550888-gh8fcp9h",
-        "username": "admin",
-        "password": "123456",
-        "name": "admin",
-        "email": "giangha1997htm@gmail.com",
-        "role": "admin"
-    },
-    {
-        "id": "1757654550889-gh8fcp9i",
-        "username": "faculty",
-        "password": "123456",
-        "name": "Faculty Member",
-        "email": "faculty@campusconnect.edu",
-        "role": "faculty"
-    }
+  {
+    "id": "1757654550888-gh8fcp9h",
+    "username": "admin",
+    "password": "123456",
+    "name": "admin",
+    "email": "giangha1997htm@gmail.com",
+    "role": "admin"
+  },
+  {
+    "id": "1757654550889-gh8fcp9i",
+    "username": "faculty",
+    "password": "123456",
+    "name": "Faculty Member",
+    "email": "faculty@campusconnect.edu",
+    "role": "faculty"
+  }
 ]
