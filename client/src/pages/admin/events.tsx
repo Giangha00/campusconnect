@@ -333,10 +333,12 @@ export default function AdminEventsPage() {
     const regs = getRegistrationsByEvent(eventId);
     const event = allEventsWithStatus.find((e) => e.id === eventId);
     const eventName = event?.name || `Event-${eventId}`;
-    
+
     // Sanitize event name for filename
-    const sanitizedEventName = eventName.replace(/[^a-z0-9]/gi, "_").toLowerCase();
-    
+    const sanitizedEventName = eventName
+      .replace(/[^a-z0-9]/gi, "_")
+      .toLowerCase();
+
     const headers = [
       "Name",
       "Email",
@@ -370,7 +372,7 @@ export default function AdminEventsPage() {
     a.download = `registrations-${sanitizedEventName}-${eventId}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    
+
     toast({
       title: "Export Successful",
       description: `Registration list for "${eventName}" has been exported.`,
@@ -466,20 +468,24 @@ export default function AdminEventsPage() {
       },
     });
 
-    const isRegistrationEndValid = validate("event-registrationEnd", newEvent.registrationEnd, {
-      custom: (val) => {
-        if (newEvent.registrationStart && val) {
-          if (new Date(val) < new Date(newEvent.registrationStart)) {
-            return {
-              isValid: false,
-              message:
-                "Registration end date must be on or after registration start date",
-            };
+    const isRegistrationEndValid = validate(
+      "event-registrationEnd",
+      newEvent.registrationEnd,
+      {
+        custom: (val) => {
+          if (newEvent.registrationStart && val) {
+            if (new Date(val) < new Date(newEvent.registrationStart)) {
+              return {
+                isValid: false,
+                message:
+                  "Registration end date must be on or after registration start date",
+              };
+            }
           }
-        }
-        return { isValid: true };
-      },
-    });
+          return { isValid: true };
+        },
+      }
+    );
 
     // Validate organizer selection for Admin
     if (isAdmin && !selectedOrganizerId) {
@@ -870,9 +876,7 @@ export default function AdminEventsPage() {
                         onChange={(e) =>
                           handleInputChange("time", e.target.value)
                         }
-                        onBlur={(e) =>
-                          handleInputBlur("time", e.target.value)
-                        }
+                        onBlur={(e) => handleInputBlur("time", e.target.value)}
                         className={errors["event-time"] ? "border-red-500" : ""}
                         placeholder="e.g., 10:00 AM - 6:00 PM"
                       />
@@ -896,10 +900,10 @@ export default function AdminEventsPage() {
                         onChange={(e) =>
                           handleInputChange("venue", e.target.value)
                         }
-                        onBlur={(e) =>
-                          handleInputBlur("venue", e.target.value)
+                        onBlur={(e) => handleInputBlur("venue", e.target.value)}
+                        className={
+                          errors["event-venue"] ? "border-red-500" : ""
                         }
-                        className={errors["event-venue"] ? "border-red-500" : ""}
                         placeholder="Enter venue"
                       />
                       {errors["event-venue"] && (
@@ -927,7 +931,8 @@ export default function AdminEventsPage() {
                           if (selectedAdmin) {
                             setNewEvent((prev) => ({
                               ...prev,
-                              organizer: selectedAdmin.username || selectedAdmin.name,
+                              organizer:
+                                selectedAdmin.username || selectedAdmin.name,
                             }));
                           }
                         }}
@@ -1051,7 +1056,10 @@ export default function AdminEventsPage() {
 
                   {/* Registration Dates */}
                   <div className="grid grid-cols-4 items-start gap-4">
-                    <Label htmlFor="registrationStart" className="text-right pt-2">
+                    <Label
+                      htmlFor="registrationStart"
+                      className="text-right pt-2"
+                    >
                       Registration Start
                     </Label>
                     <div className="col-span-3">
@@ -1082,7 +1090,10 @@ export default function AdminEventsPage() {
                   </div>
 
                   <div className="grid grid-cols-4 items-start gap-4">
-                    <Label htmlFor="registrationEnd" className="text-right pt-2">
+                    <Label
+                      htmlFor="registrationEnd"
+                      className="text-right pt-2"
+                    >
                       Registration End
                     </Label>
                     <div className="col-span-3">
@@ -1101,9 +1112,7 @@ export default function AdminEventsPage() {
                             ? "border-red-500"
                             : ""
                         }
-                        min={
-                          newEvent.registrationStart || getTomorrowDate()
-                        }
+                        min={newEvent.registrationStart || getTomorrowDate()}
                         onKeyDown={(e) => {
                           // Prevent typing in date input
                           if (
@@ -1478,9 +1487,12 @@ export default function AdminEventsPage() {
                           (typeof event.capacity === "string" &&
                             event.capacity.toLowerCase() === "no limit")
                             ? "No limit"
-                            : `${count}${event.capacity && typeof event.capacity === "number"
-                                ? `/${event.capacity}`
-                                : ""}`}
+                            : `${count}${
+                                event.capacity &&
+                                typeof event.capacity === "number"
+                                  ? `/${event.capacity}`
+                                  : ""
+                              }`}
                         </span>
                       </div>
                       {event.capacity && typeof event.capacity === "number" && (
