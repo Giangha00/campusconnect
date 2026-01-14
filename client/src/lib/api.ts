@@ -609,6 +609,22 @@ export const adminApi = {
     }
   },
 
+  create: async (admin: {
+    username: string;
+    password: string;
+    name: string;
+    email: string;
+    role: "admin" | "faculty";
+  }): Promise<AdminResponse> => {
+    try {
+      const response = await apiClient.post<AdminResponse>("/admins", admin);
+      return response.data;
+    } catch (error) {
+      console.error("Error creating admin:", error);
+      throw error;
+    }
+  },
+
   login: async (
     username: string,
     password: string

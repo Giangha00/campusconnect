@@ -2,11 +2,13 @@ import { useMemo, useState, useEffect } from "react";
 import { Link } from "wouter";
 import { Event } from "@/types/event";
 import { useAdmin } from "@/contexts/admin-context";
+import { useUser } from "@/contexts/user-context";
 import { useEvents } from "@/contexts/events-context";
 import { useRegistration } from "@/contexts/registration-context";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useValidation } from "@/hooks/use-validation";
+import { adminApi, type AdminResponse } from "@/lib/api";
 import {
   calculateEventStatus,
   getStatusColor,
@@ -77,6 +79,7 @@ const getTomorrowDate = (): string => {
 
 export default function AdminEventsPage() {
   const { admin } = useAdmin();
+  const { user } = useUser();
   const { events: eventsData, deleteEvent, createEvent } = useEvents();
   const { getRegistrationsByEvent } = useRegistration();
   const { toast } = useToast();
@@ -91,6 +94,8 @@ export default function AdminEventsPage() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [eventToDelete, setEventToDelete] = useState<any>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [adminsList, setAdminsList] = useState<AdminResponse[]>([]);
+  const [selectedOrganizerId, setSelectedOrganizerId] = useState<string>("");
   const [newEvent, setNewEvent] = useState({
     name: "",
     dateStart: "",
@@ -109,7 +114,36 @@ export default function AdminEventsPage() {
   });
   const eventsPerPage = 6;
 
+  // Check if user can create events (Admin or Faculty)
   const isAdmin = !!admin;
+  const isFaculty = user?.role === "faculty";
+  const canCreateEvents = isAdmin || isFaculty;
+
+  // Fetch admins list when admin is logged in
+  useEffect(() => {
+    const fetchAdmins = async () => {
+      if (isAdmin) {
+        try {
+          const admins = await adminApi.getAll();
+          setAdminsList(admins);
+          // Set default organizer to current admin if available
+          if (admin?.id && admins.length > 0) {
+            const currentAdmin = admins.find((a) => a.id === admin.id);
+            if (currentAdmin) {
+              setSelectedOrganizerId(admin.id);
+              setNewEvent((prev) => ({
+                ...prev,
+                organizer: currentAdmin.username || currentAdmin.name,
+              }));
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching admins:", error);
+        }
+      }
+    };
+    fetchAdmins();
+  }, [isAdmin, admin]);
 
   // Handle query parameter for initial filter
   useEffect(() => {
@@ -447,6 +481,16 @@ export default function AdminEventsPage() {
       },
     });
 
+    // Validate organizer selection for Admin
+    if (isAdmin && !selectedOrganizerId) {
+      toast({
+        title: "Validation Error",
+        description: "Please select an organizer from the dropdown.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Check if all validations passed
     if (
       !isNameValid ||
@@ -472,10 +516,23 @@ export default function AdminEventsPage() {
         ? parseInt(newEvent.capacity)
         : "No limit";
 
-      createEvent({
-        ...newEvent,
-        capacity,
-      });
+      // Determine organizerId based on role:
+      // - If Faculty: use user.id (Faculty's own ID)
+      // - If Admin: use selectedOrganizerId from dropdown
+      let organizerId: string | undefined;
+      if (isFaculty && user?.id) {
+        organizerId = user.id; // Faculty uses their own ID
+      } else if (isAdmin) {
+        organizerId = selectedOrganizerId || admin?.id; // Admin can select or use their own
+      }
+
+      createEvent(
+        {
+          ...newEvent,
+          capacity,
+        },
+        organizerId
+      );
 
       toast({
         title: "Event Created",
@@ -621,6 +678,7 @@ export default function AdminEventsPage() {
 
   const cancelCreateEvent = () => {
     setShowCreateDialog(false);
+    setSelectedOrganizerId("");
     setNewEvent({
       name: "",
       dateStart: "",
@@ -637,6 +695,17 @@ export default function AdminEventsPage() {
       registrationStart: "",
       registrationEnd: "",
     });
+    // Reset organizer selection based on role
+    if (isAdmin && admin?.id) {
+      setSelectedOrganizerId(admin.id);
+      const currentAdmin = adminsList.find((a) => a.id === admin.id);
+      if (currentAdmin) {
+        setNewEvent((prev) => ({
+          ...prev,
+          organizer: currentAdmin.username || currentAdmin.name,
+        }));
+      }
+    }
     clearAllErrors();
   };
 
@@ -841,19 +910,60 @@ export default function AdminEventsPage() {
                     </div>
                   </div>
 
+                  {/* Organizer field - different behavior for Admin vs Faculty */}
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="organizer" className="text-right">
                       Organizer
                     </Label>
-                    <Input
-                      id="organizer"
-                      value={newEvent.organizer}
-                      onChange={(e) =>
-                        handleInputChange("organizer", e.target.value)
-                      }
-                      className="col-span-3"
-                      placeholder="Enter organizer"
-                    />
+                    {isAdmin ? (
+                      // Admin: Show dropdown to select from admins list
+                      <Select
+                        value={selectedOrganizerId}
+                        onValueChange={(value) => {
+                          setSelectedOrganizerId(value);
+                          const selectedAdmin = adminsList.find(
+                            (a) => a.id === value
+                          );
+                          if (selectedAdmin) {
+                            setNewEvent((prev) => ({
+                              ...prev,
+                              organizer: selectedAdmin.username || selectedAdmin.name,
+                            }));
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="col-span-3">
+                          <SelectValue placeholder="Select an organizer (Admin)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {adminsList.map((adminItem) => (
+                            <SelectItem key={adminItem.id} value={adminItem.id}>
+                              {adminItem.username} ({adminItem.name})
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : isFaculty ? (
+                      // Faculty: Show read-only field with their own name
+                      <Input
+                        id="organizer"
+                        value={user?.name || "Faculty"}
+                        className="col-span-3"
+                        disabled
+                        readOnly
+                      />
+                    ) : (
+                      // Fallback: text input
+                      <Input
+                        id="organizer"
+                        value={newEvent.organizer}
+                        onChange={(e) =>
+                          handleInputChange("organizer", e.target.value)
+                        }
+                        className="col-span-3"
+                        placeholder="Enter organizer"
+                      />
+                    )}
                   </div>
 
                   {/* Category and Department */}

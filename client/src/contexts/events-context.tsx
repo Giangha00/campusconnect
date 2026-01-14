@@ -16,7 +16,8 @@ interface EventsContextType {
   updateEvent: (eventId: number, updatedEvent: Partial<Event>) => void;
   deleteEvent: (eventId: number) => void;
   createEvent: (
-    newEvent: Omit<Event, "id" | "attendees" | "checkedIn">
+    newEvent: Omit<Event, "id" | "attendees" | "checkedIn">,
+    organizerId?: string
   ) => void;
   isLoading: boolean;
 }
@@ -147,7 +148,8 @@ export function EventsProvider({ children }: { children: ReactNode }) {
   };
 
   const createEvent = async (
-    newEvent: Omit<Event, "id" | "attendees" | "checkedIn">
+    newEvent: Omit<Event, "id" | "attendees" | "checkedIn">,
+    organizerId?: string
   ) => {
     try {
       // Helper function to calculate status from date strings
@@ -217,6 +219,7 @@ export function EventsProvider({ children }: { children: ReactNode }) {
 
       // Create on server - map frontend format to API format
       const apiEvent = {
+        organizerId: organizerId || undefined, // Set organizerId from logged-in admin
         title: newEvent.name,
         description: newEvent.description || "",
         startDate: startDate,
