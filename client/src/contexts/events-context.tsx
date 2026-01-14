@@ -150,20 +150,86 @@ export function EventsProvider({ children }: { children: ReactNode }) {
     newEvent: Omit<Event, "id" | "attendees" | "checkedIn">
   ) => {
     try {
+      // Helper function to calculate status from date strings
+      const calculateStatusFromDates = (
+        dateStart: string,
+        dateEnd: string,
+        time?: string
+      ): string => {
+        const now = new Date();
+        const startDate = dateStart ? new Date(dateStart) : null;
+        const endDate = dateEnd ? new Date(dateEnd) : null;
+
+        if (!startDate) return "upcoming";
+
+        // If time is provided, combine date and time
+        let eventStartDateTime = startDate;
+        let eventEndDateTime = endDate || startDate;
+
+        if (time) {
+          // Parse time string (e.g., "10:00 AM - 6:00 PM")
+          const timeMatch = time.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+          if (timeMatch) {
+            let hour = parseInt(timeMatch[1], 10);
+            const minute = parseInt(timeMatch[2], 10);
+            const period = timeMatch[3].toUpperCase();
+            if (period === "PM" && hour !== 12) hour += 12;
+            if (period === "AM" && hour === 12) hour = 0;
+            eventStartDateTime = new Date(startDate);
+            eventStartDateTime.setHours(hour, minute, 0, 0);
+          }
+        }
+
+        // Determine status
+        if (endDate && now > eventEndDateTime) return "completed";
+        if (now >= eventStartDateTime && now <= eventEndDateTime)
+          return "ongoing";
+        if (now < eventStartDateTime) {
+          const daysUntilStart = Math.ceil(
+            (eventStartDateTime.getTime() - now.getTime()) /
+              (1000 * 60 * 60 * 24)
+          );
+          return daysUntilStart >= 30 ? "incoming" : "upcoming";
+        }
+        return "upcoming";
+      };
+
+      // Calculate status based on startDate and endDate
+      const status = calculateStatusFromDates(
+        newEvent.dateStart,
+        newEvent.dateEnd,
+        newEvent.time
+      );
+
+      // Ensure dates are in ISO format (Instant format for backend)
+      const startDate = newEvent.dateStart
+        ? new Date(newEvent.dateStart).toISOString()
+        : undefined;
+      const endDate = newEvent.dateEnd
+        ? new Date(newEvent.dateEnd).toISOString()
+        : undefined;
+      const registrationStart = newEvent.registrationStart
+        ? new Date(newEvent.registrationStart).toISOString()
+        : undefined;
+      const registrationEnd = newEvent.registrationEnd
+        ? new Date(newEvent.registrationEnd).toISOString()
+        : undefined;
+
       // Create on server - map frontend format to API format
       const apiEvent = {
         title: newEvent.name,
-        description: newEvent.description,
-        startDate: newEvent.dateStart,
-        endDate: newEvent.dateEnd,
+        description: newEvent.description || "",
+        startDate: startDate,
+        endDate: endDate,
         venue: newEvent.venue,
         category: newEvent.category,
-        imageUrl: newEvent.image,
-        registrationRequired: newEvent.registrationRequired,
+        status: status, // Required field - calculate based on dates
+        imageUrl: newEvent.image || undefined,
+        registrationRequired: newEvent.registrationRequired ?? true,
         capacity:
           typeof newEvent.capacity === "number" ? newEvent.capacity : undefined,
-        registrationStart: newEvent.registrationStart,
-        registrationEnd: newEvent.registrationEnd,
+        registrationStart: registrationStart,
+        registrationEnd: registrationEnd,
       };
 
       const created = await eventsApi.create(apiEvent);
