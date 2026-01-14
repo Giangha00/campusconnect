@@ -28,8 +28,8 @@ export default function Profile() {
   const getViewFromUrl = (): ViewMode => {
     const urlParams = new URLSearchParams(window.location.search);
     const viewParam = urlParams.get("view") as ViewMode;
-    return (viewParam && ["profile", "edit", "password"].includes(viewParam)) 
-      ? viewParam 
+    return viewParam && ["profile", "edit", "password"].includes(viewParam)
+      ? viewParam
       : "profile";
   };
 

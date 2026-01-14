@@ -25,7 +25,7 @@ export default function AdminLoginPage() {
     return null;
   }
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validate login fields
@@ -45,7 +45,7 @@ export default function AdminLoginPage() {
       return;
     }
 
-    const res = login(username.trim(), password);
+    const res = await login(username.trim(), password);
     if (res.ok) {
       toast({
         title: "Login successful",
