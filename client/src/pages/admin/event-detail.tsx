@@ -51,10 +51,12 @@ import {
   UsersRound,
 } from "lucide-react";
 import { useAdmin } from "@/contexts/admin-context";
+import { useUser } from "@/contexts/user-context";
 import { useEvents } from "@/contexts/events-context";
 import { useRegistration } from "@/contexts/registration-context";
 import { useFeedback } from "@/contexts/feedback-context";
 import { useToast } from "@/hooks/use-toast";
+import { adminApi, type AdminResponse } from "@/lib/api";
 import { Link } from "wouter";
 import { AdminNavbar } from "@/components/admin/admin-navbar";
 import {
@@ -81,6 +83,7 @@ export default function AdminEventDetail() {
   const [, params] = useRoute("/admin/dashboard/events/:id");
   const [location] = useLocation();
   const { admin } = useAdmin();
+  const { user } = useUser();
   const { events, updateEvent, deleteEvent } = useEvents();
   const { getRegistrationsByEvent } = useRegistration();
   const { getFeedbacksByEvent } = useFeedback();
@@ -90,6 +93,12 @@ export default function AdminEventDetail() {
   const [isEditing, setIsEditing] = useState(false);
   const [editedEvent, setEditedEvent] = useState<any>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [adminsList, setAdminsList] = useState<AdminResponse[]>([]);
+  const [selectedOrganizerId, setSelectedOrganizerId] = useState<string>("");
+
+  // Check if user can edit events (Admin or Faculty)
+  const isAdmin = !!admin;
+  const isFaculty = user?.role === "faculty";
   const [startTime, setStartTime] = useState({
     hour: "10",
     minute: "00",
@@ -174,6 +183,21 @@ export default function AdminEventDetail() {
     });
   }, [eventId, event, events.length, isEditing, location]);
 
+  // Fetch admins list when admin is logged in
+  useEffect(() => {
+    const fetchAdmins = async () => {
+      if (isAdmin) {
+        try {
+          const admins = await adminApi.getAll();
+          setAdminsList(admins);
+        } catch (error) {
+          console.error("Error fetching admins:", error);
+        }
+      }
+    };
+    fetchAdmins();
+  }, [isAdmin]);
+
   // Initialize edited event data when event is found
   useEffect(() => {
     if (event) {
@@ -181,8 +205,19 @@ export default function AdminEventDetail() {
       const parsed = parseTimeToState(event.time);
       setStartTime(parsed.start);
       setEndTime(parsed.end);
+      
+      // Set selectedOrganizerId from event.organizerId if available
+      if (event.organizerId) {
+        setSelectedOrganizerId(event.organizerId);
+      } else if (isAdmin && admin?.id) {
+        // Default to current admin if no organizerId
+        setSelectedOrganizerId(admin.id);
+      } else if (isFaculty && user?.id) {
+        // Default to current faculty if no organizerId
+        setSelectedOrganizerId(user.id);
+      }
     }
-  }, [event]);
+  }, [event, isAdmin, admin, isFaculty, user]);
 
   // Check for edit query parameter and automatically enable edit mode
   useEffect(() => {
@@ -470,10 +505,21 @@ export default function AdminEventDetail() {
       return;
     }
 
-    if (isEmpty(editedEvent.organizer)) {
+    // Validate organizer selection
+    if (isAdmin && !selectedOrganizerId) {
       toast({
         title: "Validation Error",
-        description: "Organizer is required and cannot be empty.",
+        description: "Please select an organizer from the dropdown.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // For Faculty, organizerId should be their own ID
+    if (isFaculty && !user?.id) {
+      toast({
+        title: "Validation Error",
+        description: "Unable to determine organizer. Please try again.",
         variant: "destructive",
       });
       return;
@@ -685,8 +731,22 @@ export default function AdminEventDetail() {
     }
 
     try {
+      // Prepare update data with organizerId
+      const updateData: any = { ...editedEvent };
+      
+      // Set organizerId based on role:
+      // - If Faculty: use user.id (Faculty's own ID)
+      // - If Admin: use selectedOrganizerId from dropdown
+      if (isFaculty && user?.id) {
+        updateData.organizerId = user.id; // Faculty uses their own ID
+      } else if (isAdmin && selectedOrganizerId) {
+        updateData.organizerId = selectedOrganizerId; // Admin can select
+      } else if (isAdmin && admin?.id) {
+        updateData.organizerId = admin.id; // Fallback to current admin
+      }
+
       // Update the event using the context
-      updateEvent(event.id, editedEvent);
+      updateEvent(event.id, updateData);
 
       toast({
         title: "Event Updated",
@@ -707,6 +767,14 @@ export default function AdminEventDetail() {
   const handleCancelEdit = () => {
     setEditedEvent(event ? { ...event } : null);
     setIsEditing(false);
+    // Reset organizer selection
+    if (event?.organizerId) {
+      setSelectedOrganizerId(event.organizerId);
+    } else if (isAdmin && admin?.id) {
+      setSelectedOrganizerId(admin.id);
+    } else if (isFaculty && user?.id) {
+      setSelectedOrganizerId(user.id);
+    }
   };
 
   const handleInputChange = (field: string, value: any) => {
@@ -1141,13 +1209,52 @@ export default function AdminEventDetail() {
                       <div className="flex-1">
                         <p className="text-sm text-gray-500">Organizer</p>
                         {isEditing ? (
-                          <Input
-                            value={editedEvent?.organizer || ""}
-                            onChange={(e) =>
-                              handleInputChange("organizer", e.target.value)
-                            }
-                            placeholder="Event organizer"
-                          />
+                          isAdmin ? (
+                            // Admin: Show dropdown to select from admins list
+                            <Select
+                              value={selectedOrganizerId}
+                              onValueChange={(value) => {
+                                setSelectedOrganizerId(value);
+                                const selectedAdmin = adminsList.find(
+                                  (a) => a.id === value
+                                );
+                                if (selectedAdmin) {
+                                  setEditedEvent((prev: any) => ({
+                                    ...prev,
+                                    organizer: selectedAdmin.username || selectedAdmin.name,
+                                    organizerId: value,
+                                  }));
+                                }
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select an organizer (Admin)" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {adminsList.map((adminItem) => (
+                                  <SelectItem key={adminItem.id} value={adminItem.id}>
+                                    {adminItem.username} ({adminItem.name})
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : isFaculty ? (
+                            // Faculty: Show read-only field with their own name
+                            <Input
+                              value={user?.name || "Faculty"}
+                              disabled
+                              readOnly
+                            />
+                          ) : (
+                            // Fallback: text input
+                            <Input
+                              value={editedEvent?.organizer || ""}
+                              onChange={(e) =>
+                                handleInputChange("organizer", e.target.value)
+                              }
+                              placeholder="Event organizer"
+                            />
+                          )
                         ) : (
                           <p className="font-medium">
                             {displayEvent?.organizer}
