@@ -143,11 +143,12 @@ function mapEventToFrontend(
     organizerId: event.organizerId || event.organizer?.id, // Store organizerId
     image: event.imageUrl || "",
     registrationRequired: event.registrationRequired ?? true,
-    // Map capacity: if registrationRequired is false (0), capacity = "No limit"
-    // Otherwise, use the capacity value from DB (or null if not set)
-    capacity: event.registrationRequired === false 
-      ? "No limit" 
-      : (event.capacity || null),
+    // Map capacity: if registrationRequired is false, capacity = "No limit"
+    // Otherwise, use the capacity value from DB (or undefined if not set)
+    capacity:
+      event.registrationRequired === false
+        ? "No limit"
+        : event.capacity ?? undefined,
     attendees,
     checkedIn,
     registrationStart: event.registrationStart,
@@ -239,10 +240,12 @@ export const eventsApi = {
     try {
       // Update event
       await apiClient.put<EventResponse>(`/events/${id}`, event);
-      
+
       // Fetch updated event to get complete data including organizer
-      const updatedEventResponse = await apiClient.get<EventResponse>(`/events/${id}`);
-      
+      const updatedEventResponse = await apiClient.get<EventResponse>(
+        `/events/${id}`
+      );
+
       // Try to get registrations for attendees/checkedIn
       let registrations: any[] = [];
       try {
@@ -255,11 +258,15 @@ export const eventsApi = {
           console.warn("Error fetching registrations (non-404):", regError);
         }
       }
-      
+
       const attendees = registrations.length;
       const checkedIn = registrations.filter((reg) => reg.checkedIn).length;
-      
-      return mapEventToFrontend(updatedEventResponse.data, attendees, checkedIn);
+
+      return mapEventToFrontend(
+        updatedEventResponse.data,
+        attendees,
+        checkedIn
+      );
     } catch (error) {
       console.error("Error updating event:", error);
       throw error;
