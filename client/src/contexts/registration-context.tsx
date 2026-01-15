@@ -3,6 +3,7 @@ import {
   useContext,
   useState,
   useEffect,
+  useCallback,
   ReactNode,
 } from "react";
 import { useUser } from "./user-context";
@@ -423,7 +424,7 @@ export function RegistrationProvider({ children }: RegistrationProviderProps) {
     });
   };
 
-  const reloadRegistrations = async () => {
+  const reloadRegistrations = useCallback(async () => {
     if (!user) {
       setRegistrations([]);
       return;
@@ -439,7 +440,7 @@ export function RegistrationProvider({ children }: RegistrationProviderProps) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [user]);
 
   const value: RegistrationContextType = {
     getRegistrationsByEvent,

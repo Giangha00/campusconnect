@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRoute, useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -82,11 +82,11 @@ const getTomorrowDate = (): string => {
 export default function AdminEventDetail() {
   const [, params] = useRoute("/admin/dashboard/events/:id");
   const [location] = useLocation();
-  const { admin } = useAdmin();
+  const { admin, isLoading: isAdminLoading } = useAdmin();
   const { user } = useUser();
   const { events, updateEvent, deleteEvent } = useEvents();
   const { getRegistrationsByEvent } = useRegistration();
-  const { getFeedbacksByEvent } = useFeedback();
+  const { loadFeedbacksByEventId } = useFeedback();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
@@ -95,10 +95,44 @@ export default function AdminEventDetail() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [adminsList, setAdminsList] = useState<AdminResponse[]>([]);
   const [selectedOrganizerId, setSelectedOrganizerId] = useState<string>("");
-
-  // Check if user can edit events (Admin or Faculty)
+  const [eventFeedbacks, setEventFeedbacks] = useState<any[]>([]);
+  
+  // Check if user is admin or faculty (used throughout component)
   const isAdmin = !!admin;
   const isFaculty = user?.role === "faculty";
+  
+  // Helper function to check sessionStorage for auth (for new tab scenarios)
+  const checkSessionStorageAuth = useCallback(() => {
+    try {
+      const savedAdmin = sessionStorage.getItem("admin");
+      if (savedAdmin) {
+        try {
+          const parsed = JSON.parse(savedAdmin);
+          // If admin exists in storage, we have access
+          return !!parsed;
+        } catch {
+          return false;
+        }
+      }
+      
+      const savedUser = sessionStorage.getItem("campusconnect-user");
+      if (savedUser) {
+        try {
+          const parsed = JSON.parse(savedUser);
+          return parsed?.role === "faculty";
+        } catch {
+          return false;
+        }
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }, []);
+  
+  // Check sessionStorage immediately (for new tab scenarios)
+  const hasAccessFromStorage = checkSessionStorageAuth();
+  
   const [startTime, setStartTime] = useState({
     hour: "10",
     minute: "00",
@@ -198,6 +232,24 @@ export default function AdminEventDetail() {
     fetchAdmins();
   }, [isAdmin]);
 
+  // Load feedbacks for the current event
+  useEffect(() => {
+    const loadFeedbacks = async () => {
+      if (eventId && event) {
+        try {
+          const feedbacks = await loadFeedbacksByEventId(eventId);
+          setEventFeedbacks(feedbacks);
+        } catch (error) {
+          console.error("Error loading feedbacks:", error);
+          setEventFeedbacks([]);
+        }
+      } else {
+        setEventFeedbacks([]);
+      }
+    };
+    loadFeedbacks();
+  }, [eventId, event, loadFeedbacksByEventId]);
+
   // Initialize edited event data when event is found
   useEffect(() => {
     if (event) {
@@ -281,7 +333,24 @@ export default function AdminEventDetail() {
   // Calculate current status based on dates
   const currentStatus = event ? calculateEventStatus(event as any) : null;
 
-  if (!admin) {
+  // Check if user has access (admin or faculty)
+  // Check both context and sessionStorage (for new tab scenarios)
+  const hasAccessFromContext = isAdmin || isFaculty;
+  const hasAccess = hasAccessFromContext || hasAccessFromStorage;
+  
+  // If we have access from storage, allow immediately (don't wait for context)
+  // Only show loading if we don't have access from storage AND context is still loading
+  if (!hasAccessFromStorage && isAdminLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!hasAccess) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
         <div className="text-center">
@@ -289,7 +358,7 @@ export default function AdminEventDetail() {
             Access Denied
           </h1>
           <p className="text-gray-600 mb-4">
-            Please log in as admin to view this page.
+            Please log in as admin or faculty to view this page.
           </p>
           <Link href="/admin">
             <Button>Go to Admin Login</Button>
@@ -327,7 +396,6 @@ export default function AdminEventDetail() {
   const registrations = getRegistrationsByEvent(event.id);
   const checkInCount = displayEvent?.checkedIn || 0;
   const count = displayEvent?.attendees || 0;
-  const eventFeedbacks = event ? getFeedbacksByEvent(event.name) : [];
   const capacityPercentage =
     event.capacity && typeof event.capacity === "number" && event.capacity > 0
       ? (count / event.capacity) * 100

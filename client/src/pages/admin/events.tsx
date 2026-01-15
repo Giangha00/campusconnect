@@ -1,11 +1,10 @@
 import { useMemo, useState, useEffect } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { Event } from "@/types/event";
 import { useAdmin } from "@/contexts/admin-context";
 import { useUser } from "@/contexts/user-context";
 import { useEvents } from "@/contexts/events-context";
 import { useRegistration } from "@/contexts/registration-context";
-import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
 import { useValidation } from "@/hooks/use-validation";
 import { adminApi, type AdminResponse } from "@/lib/api";
@@ -67,6 +66,7 @@ import {
   Trash2,
   Plus,
   Download,
+  ExternalLink,
 } from "lucide-react";
 import { AdminNavbar } from "@/components/admin/admin-navbar";
 
@@ -84,7 +84,7 @@ export default function AdminEventsPage() {
   const { getRegistrationsByEvent } = useRegistration();
   const { toast } = useToast();
   const { errors, validate, clearError, clearAllErrors } = useValidation();
-  const [location] = useLocation();
+  const [location, setLocation] = useLocation();
   const [query, setQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [expanded, setExpanded] = useState<Record<number, boolean>>({});
@@ -1388,11 +1388,23 @@ export default function AdminEventsPage() {
                 <CardHeader className="pb-4">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      <Link href={`/admin/dashboard/events/${event.id}`}>
+                      <a 
+                        href={`/admin/dashboard/events/${event.id}`}
+                        className="block"
+                        onClick={(e) => {
+                          // Handle normal left-click - use wouter navigation (no page reload)
+                          if (!e.ctrlKey && !e.metaKey && e.button === 0 && !e.shiftKey) {
+                            e.preventDefault();
+                            setLocation(`/admin/dashboard/events/${event.id}`);
+                          }
+                          // For right-click, middle-click, Ctrl/Cmd+click, or Shift+click, 
+                          // let browser handle it naturally (open in new tab/window)
+                        }}
+                      >
                         <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2 cursor-pointer hover:underline">
                           <SafeText>{event.name}</SafeText>
                         </CardTitle>
-                      </Link>
+                      </a>
                       <div className="flex items-center gap-2 mt-2 text-sm text-gray-600">
                         <Calendar className="h-4 w-4" />
                         <span>
@@ -1409,6 +1421,22 @@ export default function AdminEventsPage() {
                       </div>
                     </div>
                     <div className="flex gap-2">
+                      {(isAdmin || isFaculty) && (
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          title="Open event in new tab"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            window.open(`/admin/dashboard/events/${event.id}`, '_blank');
+                          }}
+                          className="h-8 w-8 hover:bg-green-50 hover:border-green-200"
+                          data-testid={`button-open-new-tab-${event.id}`}
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </Button>
+                      )}
                       <Button
                         variant="outline"
                         size="icon"
