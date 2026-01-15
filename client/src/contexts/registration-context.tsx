@@ -36,6 +36,7 @@ interface RegistrationContextType {
   isEventRegistered: (eventId: number) => boolean;
   checkInUser: (eventId: number, userId: string) => void;
   checkOutUser: (eventId: number, userId: string) => void;
+  reloadRegistrations: () => Promise<void>;
 }
 
 const RegistrationContext = createContext<RegistrationContextType | undefined>(
@@ -53,13 +54,14 @@ export function RegistrationProvider({ children }: RegistrationProviderProps) {
   const [registrations, setRegistrations] = useState<Registration[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load registrations from API
+  // Load registrations from API when user changes (login/logout)
   useEffect(() => {
     const loadRegistrations = async () => {
       try {
         setIsLoading(true);
-        // Always fetch from API
-        const apiRegistrations = await registrationsApi.getAll();
+        // Fetch registrations filtered by userId to get only current user's registrations
+        // This ensures we get the correct data even when switching between machines
+        const apiRegistrations = await registrationsApi.getAll(user.id);
         setRegistrations(apiRegistrations);
       } catch (error) {
         console.error("Error loading registrations from API:", error);
@@ -70,8 +72,15 @@ export function RegistrationProvider({ children }: RegistrationProviderProps) {
       }
     };
 
-    loadRegistrations();
-  }, []);
+    // Only load if user is logged in
+    if (user) {
+      loadRegistrations();
+    } else {
+      // Clear registrations when user logs out
+      setRegistrations([]);
+      setIsLoading(false);
+    }
+  }, [user]);
 
   const getRegistrationsByEvent = (eventId: number): Registration[] => {
     return registrations.filter((r) => r.eventId === eventId);
@@ -84,7 +93,28 @@ export function RegistrationProvider({ children }: RegistrationProviderProps) {
   const registerForEvent = async (eventId: number) => {
     if (!user) return;
 
-    // Check if already registered
+    // First, ensure registrations are up-to-date by reloading from backend
+    // This ensures we have the latest registration status from DB
+    // Query with userId to get only current user's registrations
+    try {
+      const apiRegistrations = await registrationsApi.getAll(user.id);
+      setRegistrations(apiRegistrations);
+
+      // Check if already registered after reload
+      const existingRegistration = apiRegistrations.find(
+        (r) => r.eventId === eventId && r.userId === user.id
+      );
+
+      if (existingRegistration) {
+        // Already registered - silently return, UI will show "Registered" button
+        return;
+      }
+    } catch (error) {
+      console.error("Error reloading registrations before register:", error);
+      // Continue with registration attempt even if reload fails
+    }
+
+    // Double-check local state as well
     const existingRegistration = registrations.find(
       (r) => r.eventId === eventId && r.userId === user.id
     );
@@ -146,7 +176,23 @@ export function RegistrationProvider({ children }: RegistrationProviderProps) {
     } catch (error: any) {
       console.error("Error creating registration:", error);
 
-      // Provide more specific error messages
+      // Handle 409 Conflict - registration already exists
+      if (error.response?.status === 409) {
+        // Reload registrations from backend to sync state silently
+        // No toast notification - just update the UI
+        // Query with userId to get only current user's registrations
+        try {
+          const apiRegistrations = await registrationsApi.getAll(user.id);
+          setRegistrations(apiRegistrations);
+          // UI will automatically update to show "Registered" button
+        } catch (reloadError) {
+          console.error("Error reloading registrations:", reloadError);
+        }
+        // Exit silently - no toast notification
+        return;
+      }
+
+      // Provide more specific error messages for other errors
       let errorMessage = "Unable to register for this event. Please try again.";
 
       if (error.response?.data) {
@@ -165,10 +211,27 @@ export function RegistrationProvider({ children }: RegistrationProviderProps) {
         errorMessage =
           errorMessage ||
           "Invalid registration data. Please check your information.";
-      } else if (error.response?.status === 409) {
-        errorMessage =
-          errorMessage || "You are already registered for this event.";
       } else if (error.response?.status === 500) {
+        // For 500 errors, check if registration was actually created
+        // (might be a race condition or partial success)
+        try {
+          const apiRegistrations = await registrationsApi.getAll(user.id);
+          const existingReg = apiRegistrations.find(
+            (r) => r.eventId === eventId && r.userId === user.id
+          );
+          if (existingReg) {
+            // Registration was created, sync state
+            setRegistrations(apiRegistrations);
+            toast({
+              title: "Registration Success!",
+              description:
+                "You have been registered for this event. Email confirmation may be delayed.",
+            });
+            return; // Exit early
+          }
+        } catch (reloadError) {
+          console.error("Error checking registration status:", reloadError);
+        }
         errorMessage = errorMessage || "Server error. Please try again later.";
       }
 
@@ -187,22 +250,55 @@ export function RegistrationProvider({ children }: RegistrationProviderProps) {
       // Delete on server using userId and eventId
       await registrationsApi.delete(user.id, eventId);
 
-      // Remove from state
-      setRegistrations((prev) => {
-        const updated = prev.filter(
-          (r) => !(r.eventId === eventId && r.userId === user.id)
+      // Reload registrations from backend to ensure state is in sync
+      // This ensures UI reflects the actual DB state
+      try {
+        const apiRegistrations = await registrationsApi.getAll(user.id);
+        setRegistrations(apiRegistrations);
+      } catch (reloadError) {
+        console.error(
+          "Error reloading registrations after unregister:",
+          reloadError
         );
-        return updated;
-      });
+        // Fallback to optimistic update if reload fails
+        setRegistrations((prev) => {
+          const updated = prev.filter(
+            (r) => !(r.eventId === eventId && r.userId === user.id)
+          );
+          return updated;
+        });
+      }
     } catch (error) {
       console.error("Error unregistering from event:", error);
-      // Optimistic update
-      setRegistrations((prev) => {
-        const updated = prev.filter(
-          (r) => !(r.eventId === eventId && r.userId === user.id)
+
+      // Check if registration was actually deleted (might have been deleted already)
+      try {
+        const apiRegistrations = await registrationsApi.getAll(user.id);
+        const stillExists = apiRegistrations.find(
+          (r) => r.eventId === eventId && r.userId === user.id
         );
-        return updated;
-      });
+        if (!stillExists) {
+          // Registration was deleted, sync state
+          setRegistrations(apiRegistrations);
+        } else {
+          // Registration still exists, show error
+          toast({
+            title: "Unregister Failed",
+            description:
+              "Unable to unregister from this event. Please try again.",
+            variant: "destructive",
+          });
+        }
+      } catch (reloadError) {
+        console.error("Error checking registration status:", reloadError);
+        // Optimistic update as last resort
+        setRegistrations((prev) => {
+          const updated = prev.filter(
+            (r) => !(r.eventId === eventId && r.userId === user.id)
+          );
+          return updated;
+        });
+      }
     }
   };
 
@@ -327,6 +423,24 @@ export function RegistrationProvider({ children }: RegistrationProviderProps) {
     });
   };
 
+  const reloadRegistrations = async () => {
+    if (!user) {
+      setRegistrations([]);
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      // Query with userId to get only current user's registrations
+      const apiRegistrations = await registrationsApi.getAll(user.id);
+      setRegistrations(apiRegistrations);
+    } catch (error) {
+      console.error("Error reloading registrations:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const value: RegistrationContextType = {
     getRegistrationsByEvent,
     getRegistrationCount,
@@ -336,6 +450,7 @@ export function RegistrationProvider({ children }: RegistrationProviderProps) {
     isEventRegistered,
     checkInUser,
     checkOutUser,
+    reloadRegistrations,
   };
 
   return (

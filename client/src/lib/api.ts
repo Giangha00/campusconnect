@@ -697,20 +697,18 @@ export const adminApi = {
 };
 
 // ==================== Event Registrations API ====================
-// Backend EventRegistration entity response format
-// Note: user and event are @JsonIgnore, so response only has:
-// id, ticketNumber, registrationDate, checkedIn, checkedInAt, createdAt, updatedAt
+// Backend EventRegistrationResponse DTO format
+// Now includes userId and eventId in response
 export interface EventRegistrationResponse {
   id: string;
+  userId: string; // Now included in response
+  eventId: number; // Now included in response
   ticketNumber: string;
   registrationDate: string; // ISO string
   checkedIn: boolean;
   checkedInAt?: string; // ISO string, nullable
   createdAt?: string; // ISO string
   updatedAt?: string; // ISO string
-  // These are not in response but we need to track them
-  userId?: string;
-  eventId?: number;
 }
 
 export interface Registration {
@@ -775,51 +773,55 @@ function saveRegistrationMapping(
 }
 
 export const registrationsApi = {
-  getAll: async (): Promise<Registration[]> => {
+  getAll: async (userId?: string): Promise<Registration[]> => {
     try {
-      const response = await apiClient.get<EventRegistrationResponse[]>(
-        "/event-registrations"
-      );
-      const mapping = getRegistrationMapping();
+      // Query with userId if provided to get only user's registrations
+      const url = userId
+        ? `/event-registrations?userId=${encodeURIComponent(userId)}`
+        : "/event-registrations";
 
-      // Backend doesn't return userId and eventId, so we need to use our mapping
-      // For registrations not in mapping, we can't determine user/event info
+      const response = await apiClient.get<EventRegistrationResponse[]>(url);
+
+      // Backend now returns userId and eventId in response
       const registrations: Registration[] = [];
 
       for (const reg of response.data) {
-        const mapped = mapping.get(reg.id);
-        if (mapped) {
-          try {
-            const userResponse = await apiClient.get<UserResponse>(
-              `/users/${mapped.userId}`
-            );
-            const user = userResponse.data;
-            registrations.push({
-              eventId: mapped.eventId,
-              userId: mapped.userId,
-              name: user.name,
-              email: user.email,
-              role: user.role,
-              department: user.department,
-              registeredAt: reg.registrationDate,
-              ticket: reg.ticketNumber,
-              checkedIn: reg.checkedIn,
-              checkedInAt: reg.checkedInAt,
-            });
-          } catch (error) {
-            console.error("Error fetching user for registration:", error);
-            registrations.push({
-              eventId: mapped.eventId,
-              userId: mapped.userId,
-              name: "Unknown",
-              email: "",
-              role: "visitor",
-              registeredAt: reg.registrationDate,
-              ticket: reg.ticketNumber,
-              checkedIn: reg.checkedIn,
-              checkedInAt: reg.checkedInAt,
-            });
-          }
+        // Skip if userId or eventId is missing (shouldn't happen with new DTO)
+        if (!reg.userId || !reg.eventId) {
+          console.warn("Registration missing userId or eventId:", reg);
+          continue;
+        }
+
+        try {
+          const userResponse = await apiClient.get<UserResponse>(
+            `/users/${reg.userId}`
+          );
+          const user = userResponse.data;
+          registrations.push({
+            eventId: reg.eventId,
+            userId: reg.userId,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            department: user.department,
+            registeredAt: reg.registrationDate,
+            ticket: reg.ticketNumber,
+            checkedIn: reg.checkedIn,
+            checkedInAt: reg.checkedInAt,
+          });
+        } catch (error) {
+          console.error("Error fetching user for registration:", error);
+          registrations.push({
+            eventId: reg.eventId,
+            userId: reg.userId,
+            name: "Unknown",
+            email: "",
+            role: "visitor",
+            registeredAt: reg.registrationDate,
+            ticket: reg.ticketNumber,
+            checkedIn: reg.checkedIn,
+            checkedInAt: reg.checkedInAt,
+          });
         }
       }
 
@@ -872,23 +874,27 @@ export const registrationsApi = {
         requestBody
       );
 
-      // Store mapping: registrationId -> { userId, eventId }
+      // Backend now returns userId and eventId in response, no need for mapping
+      // But we still keep mapping for backward compatibility with existing code
       const mapping = getRegistrationMapping();
-      mapping.set(response.data.id, {
-        userId: registration.userId,
-        eventId: registration.eventId,
-      });
-      saveRegistrationMapping(mapping);
+      if (response.data.userId && response.data.eventId) {
+        mapping.set(response.data.id, {
+          userId: response.data.userId,
+          eventId: response.data.eventId,
+        });
+        saveRegistrationMapping(mapping);
+      }
 
       // Fetch user details
+      const userId = response.data.userId || registration.userId;
       const userResponse = await apiClient.get<UserResponse>(
-        `/users/${registration.userId}`
+        `/users/${userId}`
       );
       const user = userResponse.data;
 
       return {
-        eventId: registration.eventId,
-        userId: registration.userId,
+        eventId: response.data.eventId || registration.eventId,
+        userId: userId,
         name: user.name,
         email: user.email,
         role: user.role,
@@ -899,7 +905,18 @@ export const registrationsApi = {
         checkedInAt: response.data.checkedInAt,
       };
     } catch (error: any) {
-      console.error("Error creating registration:", error);
+      // Log detailed error information
+      if (error.response) {
+        console.error("Error creating registration:", {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          data: error.response.data,
+          url: error.config?.url,
+          method: error.config?.method,
+        });
+      } else {
+        console.error("Error creating registration:", error.message || error);
+      }
 
       // If 500 error, check if registration was actually created
       if (error.response?.status === 500) {
@@ -993,28 +1010,13 @@ export const registrationsApi = {
 
   delete: async (userId: string, eventId: number): Promise<void> => {
     try {
-      // Get all registrations and find the one matching userId and eventId
-      const allRegs = await apiClient.get<EventRegistrationResponse[]>(
-        "/event-registrations"
+      // Use new endpoint that accepts userId and eventId directly
+      // This is more reliable than using sessionStorage mapping
+      await apiClient.delete(
+        `/event-registrations?userId=${encodeURIComponent(
+          userId
+        )}&eventId=${eventId}`
       );
-      const mapping = getRegistrationMapping();
-
-      // Find registration ID by userId and eventId
-      const registration = allRegs.data.find((reg) => {
-        const mapped = mapping.get(reg.id);
-        return mapped && mapped.userId === userId && mapped.eventId === eventId;
-      });
-
-      if (registration) {
-        await apiClient.delete(`/event-registrations/${registration.id}`);
-        // Remove from mapping
-        mapping.delete(registration.id);
-        saveRegistrationMapping(mapping);
-      } else {
-        console.warn(
-          `Registration not found for userId: ${userId}, eventId: ${eventId}`
-        );
-      }
     } catch (error: any) {
       if (error.response?.status === 404) {
         // Registration doesn't exist, that's fine

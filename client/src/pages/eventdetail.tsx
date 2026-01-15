@@ -47,7 +47,7 @@ const categoryColors = {
 export default function EventDetail() {
   const [, params] = useRoute("/events/:id");
   const { user, isEventBookmarked, bookmarkEvent, unbookmarkEvent } = useUser();
-  const { registerForEvent, unregisterFromEvent, isEventRegistered } =
+  const { registerForEvent, unregisterFromEvent, isEventRegistered, reloadRegistrations } =
     useRegistration();
   const { events } = useEvents();
   const { toast } = useToast();
@@ -56,6 +56,14 @@ export default function EventDetail() {
 
   const eventId = params?.id ? parseInt(params.id) : null;
   const event = events?.find((e: any) => e.id === eventId);
+
+  // Reload registrations when entering event detail page (if user is logged in)
+  // This ensures UI reflects the actual registration status from DB
+  useEffect(() => {
+    if (user && eventId) {
+      reloadRegistrations();
+    }
+  }, [user, eventId, reloadRegistrations]);
 
   // Fetch organizer name from admins API
   useEffect(() => {
