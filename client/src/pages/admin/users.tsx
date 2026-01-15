@@ -92,6 +92,7 @@ export default function AdminUsersPage() {
   const { errors: createErrors, validate: validateCreate, clearError: clearCreateError, clearAllErrors: clearAllCreateErrors } = useValidation();
 
   const isAdmin = admin?.role === "admin";
+  const isFaculty = admin?.role === "faculty";
 
   const filteredUsers = useMemo(() => {
     return users.filter((user) => {
@@ -186,6 +187,7 @@ export default function AdminUsersPage() {
     setSelectedUser(user);
     setViewDialogOpen(true);
   };
+
 
   const handleEditUser = (user: User) => {
     setSelectedUser(user);
