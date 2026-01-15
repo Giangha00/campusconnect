@@ -20,7 +20,7 @@ function mapUserToFrontend(user: UserResponse): User {
     avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(
       user.name
     )}&background=random`,
-    status: "active",
+    status: user.active === false ? "inactive" : "active", // Map active boolean to status string
     joinedDate: user.createdAt || new Date().toISOString().split("T")[0],
     lastLogin: new Date().toISOString(),
     year: user.year,

@@ -51,13 +51,22 @@ export function UsersProvider({ children }: { children: ReactNode }) {
       if (!user) return;
 
       // Convert frontend format to API format
-      const apiUser = {
+      const apiUser: any = {
         name: updatedUser.name,
         email: updatedUser.email,
         role: updatedUser.role,
         department: updatedUser.department,
         year: updatedUser.year,
       };
+
+      // Map status (frontend) to active (backend) or status (backend accepts both)
+      if (updatedUser.status !== undefined) {
+        // Convert "active"/"inactive" string to boolean for active field
+        apiUser.active = updatedUser.status === "active";
+        // Also send as status string for backend compatibility
+        apiUser.status =
+          updatedUser.status === "active" ? "Active" : "Inactive";
+      }
 
       // Update on server using UUID
       const updated = await usersApi.update(user.id, apiUser);

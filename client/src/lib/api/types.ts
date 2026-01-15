@@ -54,6 +54,7 @@ export interface UserResponse {
   name: string;
   email: string;
   role: string;
+  active?: boolean;
   department?: string;
   year?: string;
   createdAt?: string;
