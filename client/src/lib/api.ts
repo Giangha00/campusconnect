@@ -446,9 +446,10 @@ async function mapFeedbackToFrontend(
 }
 
 export const feedbackApi = {
-  getAll: async (): Promise<Feedback[]> => {
+  getAll: async (eventId?: number): Promise<Feedback[]> => {
     try {
-      const response = await apiClient.get<FeedbackResponse[]>("/feedback");
+      const url = eventId ? `/feedback?eventId=${eventId}` : "/feedback";
+      const response = await apiClient.get<FeedbackResponse[]>(url);
       const feedbacks = await Promise.all(
         response.data.map(mapFeedbackToFrontend)
       );

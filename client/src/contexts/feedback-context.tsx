@@ -19,6 +19,8 @@ interface FeedbackContextType {
     }
   ) => Promise<Feedback>;
   getFeedbacksByEvent: (eventName: string) => Feedback[];
+  getFeedbacksByEventId: (eventId: number) => Feedback[];
+  loadFeedbacksByEventId: (eventId: number) => Promise<Feedback[]>;
 }
 
 const FeedbackContext = createContext<FeedbackContextType | undefined>(
@@ -90,10 +92,39 @@ export function FeedbackProvider({ children }: FeedbackProviderProps) {
     return feedbacks.filter((f) => f.eventAttended === eventName);
   };
 
+  const getFeedbacksByEventId = (eventId: number): Feedback[] => {
+    return feedbacks.filter((f) => {
+      // Try to match by eventId if available in the feedback object
+      // Note: This requires the feedback to have eventId property
+      // For now, we'll need to fetch from API directly
+      return false; // Placeholder - will use loadFeedbacksByEventId instead
+    });
+  };
+
+  const loadFeedbacksByEventId = async (eventId: number): Promise<Feedback[]> => {
+    try {
+      const apiFeedbacks = await feedbackApi.getAll(eventId);
+      const validUserTypes: ("student" | "faculty" | "visitor")[] = [
+        "student",
+        "faculty",
+        "visitor",
+      ];
+      const filteredFeedbacks = apiFeedbacks.filter((f) =>
+        validUserTypes.includes(f.userType as any)
+      );
+      return filteredFeedbacks;
+    } catch (error) {
+      console.error("Error loading feedbacks by eventId:", error);
+      return [];
+    }
+  };
+
   const value: FeedbackContextType = {
     feedbacks,
     addFeedback,
     getFeedbacksByEvent,
+    getFeedbacksByEventId,
+    loadFeedbacksByEventId,
   };
 
   return (

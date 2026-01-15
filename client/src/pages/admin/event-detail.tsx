@@ -86,7 +86,7 @@ export default function AdminEventDetail() {
   const { user } = useUser();
   const { events, updateEvent, deleteEvent } = useEvents();
   const { getRegistrationsByEvent } = useRegistration();
-  const { getFeedbacksByEvent } = useFeedback();
+  const { loadFeedbacksByEventId } = useFeedback();
   const { toast } = useToast();
   const [, setLocation] = useLocation();
 
@@ -95,6 +95,7 @@ export default function AdminEventDetail() {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [adminsList, setAdminsList] = useState<AdminResponse[]>([]);
   const [selectedOrganizerId, setSelectedOrganizerId] = useState<string>("");
+  const [eventFeedbacks, setEventFeedbacks] = useState<any[]>([]);
 
   // Check if user can edit events (Admin or Faculty)
   const isAdmin = !!admin;
@@ -197,6 +198,24 @@ export default function AdminEventDetail() {
     };
     fetchAdmins();
   }, [isAdmin]);
+
+  // Load feedbacks for the current event
+  useEffect(() => {
+    const loadFeedbacks = async () => {
+      if (eventId && event) {
+        try {
+          const feedbacks = await loadFeedbacksByEventId(eventId);
+          setEventFeedbacks(feedbacks);
+        } catch (error) {
+          console.error("Error loading feedbacks:", error);
+          setEventFeedbacks([]);
+        }
+      } else {
+        setEventFeedbacks([]);
+      }
+    };
+    loadFeedbacks();
+  }, [eventId, event, loadFeedbacksByEventId]);
 
   // Initialize edited event data when event is found
   useEffect(() => {
@@ -327,7 +346,6 @@ export default function AdminEventDetail() {
   const registrations = getRegistrationsByEvent(event.id);
   const checkInCount = displayEvent?.checkedIn || 0;
   const count = displayEvent?.attendees || 0;
-  const eventFeedbacks = event ? getFeedbacksByEvent(event.name) : [];
   const capacityPercentage =
     event.capacity && typeof event.capacity === "number" && event.capacity > 0
       ? (count / event.capacity) * 100
