@@ -51,6 +51,8 @@ export function UserProvider({ children }: UserProviderProps) {
   const isSavingRef = useRef(false);
 
   // Load bookmarks from API (silently returns empty array if endpoint doesn't exist)
+  // Always query with userId to get only current user's bookmarks
+  // This ensures we get the correct data even when switching between machines
   const loadBookmarks = useCallback(async (userId: string) => {
     try {
       const bookmarks = await bookmarksApi.getAll(userId);
@@ -127,21 +129,65 @@ export function UserProvider({ children }: UserProviderProps) {
   const bookmarkEvent = async (eventId: number) => {
     if (!user) return;
 
+    // First, reload bookmarks from backend to ensure we have latest state
+    try {
+      const apiBookmarks = await bookmarksApi.getAll(user.id);
+      setBookmarkedEvents(apiBookmarks);
+      
+      // Check if already bookmarked after reload
+      if (apiBookmarks.includes(eventId)) {
+        // Already bookmarked - silently return
+        return;
+      }
+    } catch (error) {
+      console.error("Error reloading bookmarks before bookmark:", error);
+      // Continue with bookmark attempt even if reload fails
+    }
+
     if (bookmarkedEvents.includes(eventId)) return; // no-op if already bookmarked
 
     try {
       // Try to create bookmark on server first
       await bookmarksApi.create(user.id, eventId);
 
-      // Only update UI if API call succeeds
-      const updatedBookmarks = [...bookmarkedEvents, eventId];
-      setBookmarkedEvents(updatedBookmarks);
-      const updatedUser = {
-        ...user,
-        bookmarkedEvents: updatedBookmarks,
-      };
-      setUser(updatedUser);
+      // Reload bookmarks from backend to ensure state is in sync
+      try {
+        const apiBookmarks = await bookmarksApi.getAll(user.id);
+        setBookmarkedEvents(apiBookmarks);
+        const updatedUser = {
+          ...user,
+          bookmarkedEvents: apiBookmarks,
+        };
+        setUser(updatedUser);
+      } catch (reloadError) {
+        console.error("Error reloading bookmarks after bookmark:", reloadError);
+        // Fallback to optimistic update
+        const updatedBookmarks = [...bookmarkedEvents, eventId];
+        setBookmarkedEvents(updatedBookmarks);
+        const updatedUser = {
+          ...user,
+          bookmarkedEvents: updatedBookmarks,
+        };
+        setUser(updatedUser);
+      }
     } catch (error: any) {
+      // Handle 409 Conflict - bookmark already exists
+      if (error.response?.status === 409) {
+        // Reload bookmarks from backend to sync state silently
+        try {
+          const apiBookmarks = await bookmarksApi.getAll(user.id);
+          setBookmarkedEvents(apiBookmarks);
+          const updatedUser = {
+            ...user,
+            bookmarkedEvents: apiBookmarks,
+          };
+          setUser(updatedUser);
+        } catch (reloadError) {
+          console.error("Error reloading bookmarks:", reloadError);
+        }
+        return; // Exit silently
+      }
+      
       // Log error but don't update UI if API fails
       if (error.response?.status === 404) {
         console.warn(
@@ -170,33 +216,53 @@ export function UserProvider({ children }: UserProviderProps) {
       // Try to delete bookmark on server first
       await bookmarksApi.delete(user.id, eventId);
 
-      // Only update UI if API call succeeds
-      const updatedBookmarks = bookmarkedEvents.filter((id) => id !== eventId);
-      setBookmarkedEvents(updatedBookmarks);
-      const updatedUser = {
-        ...user,
-        bookmarkedEvents: updatedBookmarks,
-      };
-      setUser(updatedUser);
-    } catch (error: any) {
-      // Log error but don't update UI if API fails
-      if (error.response?.status === 404) {
-        console.warn(
-          "Bookmark endpoint not found (404). Bookmark not removed from server."
-        );
-        // Still update UI for better UX, but warn user it's not persisted
-        const updatedBookmarks = bookmarkedEvents.filter(
-          (id) => id !== eventId
-        );
+      // Reload bookmarks from backend to ensure state is in sync
+      try {
+        const apiBookmarks = await bookmarksApi.getAll(user.id);
+        setBookmarkedEvents(apiBookmarks);
+        const updatedUser = {
+          ...user,
+          bookmarkedEvents: apiBookmarks,
+        };
+        setUser(updatedUser);
+      } catch (reloadError) {
+        console.error("Error reloading bookmarks after unbookmark:", reloadError);
+        // Fallback to optimistic update
+        const updatedBookmarks = bookmarkedEvents.filter((id) => id !== eventId);
         setBookmarkedEvents(updatedBookmarks);
         const updatedUser = {
           ...user,
           bookmarkedEvents: updatedBookmarks,
         };
         setUser(updatedUser);
-      } else {
-        console.error("Error unbookmarking event:", error);
-        // Don't update UI if there's a real error (not 404)
+      }
+    } catch (error: any) {
+      // Check if bookmark was actually deleted (might have been deleted already)
+      try {
+        const apiBookmarks = await bookmarksApi.getAll(user.id);
+        const stillExists = apiBookmarks.includes(eventId);
+        if (!stillExists) {
+          // Bookmark was deleted, sync state
+          setBookmarkedEvents(apiBookmarks);
+          const updatedUser = {
+            ...user,
+            bookmarkedEvents: apiBookmarks,
+          };
+          setUser(updatedUser);
+        } else {
+          // Bookmark still exists, log error
+          console.error("Error unbookmarking event:", error);
+        }
+      } catch (reloadError) {
+        console.error("Error checking bookmark status:", reloadError);
+        // Optimistic update as last resort
+        const updatedBookmarks = bookmarkedEvents.filter((id) => id !== eventId);
+        setBookmarkedEvents(updatedBookmarks);
+        const updatedUser = {
+          ...user,
+          bookmarkedEvents: updatedBookmarks,
+        };
+        setUser(updatedUser);
       }
     }
   };

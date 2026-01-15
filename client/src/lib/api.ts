@@ -1029,11 +1029,12 @@ export const registrationsApi = {
 };
 
 // ==================== Event Bookmarks API ====================
-// Backend EventBookmark entity response format
-// Note: user and event are @JsonIgnore, so response only has id and createdAt
-// Backend doesn't return eventId in response, so we need to track it differently
+// Backend EventBookmarkResponse DTO format
+// Now includes userId and eventId in response
 export interface EventBookmarkResponse {
   id: string;
+  userId: string; // Now included in response
+  eventId: number; // Now included in response
   createdAt?: string; // Backend returns this as ISO string
 }
 
@@ -1068,26 +1069,21 @@ export const bookmarksApi = {
   getAll: async (userId?: string): Promise<number[]> => {
     try {
       // Backend uses userId (camelCase) in query param
+      // Query with userId to get only current user's bookmarks
       const url = userId
-        ? `/event-bookmarks?userId=${userId}`
+        ? `/event-bookmarks?userId=${encodeURIComponent(userId)}`
         : "/event-bookmarks";
       const response = await apiClient.get<EventBookmarkResponse[]>(url);
 
-      // Backend only returns id and createdAt, not eventId
-      // Use our internal mapping to get eventIds
-      const mapping = getBookmarkMapping();
+      // Backend now returns userId and eventId in response
+      // Extract eventIds directly from response
       const eventIds: number[] = [];
-
       response.data.forEach((bookmark) => {
-        const eventId = mapping.get(bookmark.id);
-        if (eventId) {
-          eventIds.push(eventId);
+        if (bookmark.eventId) {
+          eventIds.push(bookmark.eventId);
         }
       });
 
-      // Return eventIds from mapping
-      // Note: If mapping is empty (first load), will return empty array
-      // This is a limitation - backend should expose eventId in response
       return eventIds;
     } catch (error: any) {
       if (error.response?.status === 404) {
@@ -1115,10 +1111,13 @@ export const bookmarksApi = {
       );
       console.log("Bookmark created successfully:", response.data);
 
-      // Store mapping: bookmarkId -> eventId (needed because backend doesn't return eventId)
+      // Backend now returns userId and eventId in response, no need for mapping
+      // But we still keep mapping for backward compatibility with existing code
       const mapping = getBookmarkMapping();
-      mapping.set(response.data.id, eventId);
-      saveBookmarkMapping(mapping);
+      if (response.data.userId && response.data.eventId) {
+        mapping.set(response.data.id, response.data.eventId);
+        saveBookmarkMapping(mapping);
+      }
 
       return response.data;
     } catch (error: any) {
@@ -1139,30 +1138,13 @@ export const bookmarksApi = {
 
   delete: async (userId: string, eventId: number): Promise<void> => {
     try {
-      // Backend uses userId (camelCase) in query param
-      // Get all bookmarks for user
-      const bookmarks = await apiClient.get<EventBookmarkResponse[]>(
-        `/event-bookmarks?userId=${userId}`
+      // Use new endpoint that accepts userId and eventId directly
+      // This is more reliable than using sessionStorage mapping
+      await apiClient.delete(
+        `/event-bookmarks?userId=${encodeURIComponent(
+          userId
+        )}&eventId=${eventId}`
       );
-
-      // Find bookmark by eventId using our internal mapping
-      const mapping = getBookmarkMapping();
-      const bookmark = bookmarks.data.find((b) => {
-        const mappedEventId = mapping.get(b.id);
-        return mappedEventId === eventId;
-      });
-
-      if (bookmark) {
-        await apiClient.delete(`/event-bookmarks/${bookmark.id}`);
-        // Remove from internal mapping
-        const mapping = getBookmarkMapping();
-        mapping.delete(bookmark.id);
-        saveBookmarkMapping(mapping);
-      } else {
-        console.warn(
-          `Bookmark not found for userId: ${userId}, eventId: ${eventId}`
-        );
-      }
     } catch (error: any) {
       if (error.response?.status === 404) {
         // Bookmark doesn't exist, that's fine
