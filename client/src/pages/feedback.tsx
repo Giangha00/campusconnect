@@ -32,6 +32,7 @@ export default function Feedback() {
   const { addFeedback } = useFeedback();
   const { user } = useUser();
   const [hoveredRating, setHoveredRating] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form state
   const [formData, setFormData] = useState({
@@ -54,7 +55,7 @@ export default function Feedback() {
       });
   }, [events]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Check if user is logged in
@@ -104,36 +105,55 @@ export default function Feedback() {
       return;
     }
 
-    // Save feedback to data
-    addFeedback({
-      eventAttended: formData.eventAttended,
-      name: formData.name,
-      email: formData.email,
-      userType: formData.userType as "student" | "faculty" | "visitor",
-      rating: rating,
-      feedback: formData.feedback,
-    });
+    // Resolve eventId from selected event name (best-effort; backend accepts nullable)
+    const selectedEvent = events.find((ev) => ev.name === formData.eventAttended);
+    const eventId = selectedEvent?.id;
 
-    // Show success message
-    toast({
-      title: "Feedback Success",
-      description:
-        "Thank you for your feedback! We appreciate your input and will use it to improve our events.",
-      duration: 5000,
-    });
+    try {
+      setIsSubmitting(true);
 
-    // Reset form after successful submission
-    setFormData({
-      name: "",
-      email: "",
-      userType: "",
-      eventAttended: "",
-      feedback: "",
-      suggestions: "",
-    });
-    setRating(0);
-    setHoveredRating(0);
-    clearAllErrors();
+      // Persist feedback to backend (DB). If this fails, we MUST show an error.
+      await addFeedback({
+        userId: user.id,
+        eventId,
+        eventAttended: formData.eventAttended,
+        name: formData.name,
+        email: formData.email,
+        userType: formData.userType as "student" | "faculty" | "visitor",
+        rating: rating,
+        feedback: formData.feedback,
+      });
+
+      toast({
+        title: "Feedback Success",
+        description:
+          "Thank you for your feedback! We appreciate your input and will use it to improve our events.",
+        duration: 5000,
+      });
+
+      // Reset form after successful submission
+      setFormData({
+        name: "",
+        email: "",
+        userType: "",
+        eventAttended: "",
+        feedback: "",
+        suggestions: "",
+      });
+      setRating(0);
+      setHoveredRating(0);
+      clearAllErrors();
+    } catch (err) {
+      console.error("Failed to submit feedback:", err);
+      toast({
+        title: "Submit Failed",
+        description:
+          "Your feedback could not be saved to the server. Please try again (and check backend logs).",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -395,8 +415,9 @@ export default function Feedback() {
                     size="lg"
                     className="w-full md:w-auto"
                     data-testid="button-submit-feedback"
+                    disabled={isSubmitting}
                   >
-                    Submit Feedback
+                    {isSubmitting ? "Submitting..." : "Submit Feedback"}
                   </Button>
                 </div>
               </form>
