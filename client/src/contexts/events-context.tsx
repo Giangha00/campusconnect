@@ -84,8 +84,26 @@ export function EventsProvider({ children }: { children: ReactNode }) {
 
   const updateEvent = async (eventId: number, updatedEvent: Partial<Event>) => {
     try {
+      // Map frontend Event format to API EventResponse format
+      const apiEvent: any = {
+        title: updatedEvent.name,
+        description: updatedEvent.description,
+        startDate: updatedEvent.dateStart,
+        endDate: updatedEvent.dateEnd,
+        venue: updatedEvent.venue,
+        category: updatedEvent.category,
+        status: (updatedEvent as any).status, // status may not be in Partial<Event>
+        imageUrl: updatedEvent.image,
+        registrationRequired: updatedEvent.registrationRequired,
+        capacity: typeof updatedEvent.capacity === "number" ? updatedEvent.capacity : undefined,
+        registrationStart: updatedEvent.registrationStart,
+        registrationEnd: updatedEvent.registrationEnd,
+      };
+      // Remove undefined fields
+      Object.keys(apiEvent).forEach(key => apiEvent[key] === undefined && delete apiEvent[key]);
+      
       // Update on server
-      const updated = await eventsApi.update(eventId, updatedEvent);
+      const updated = await eventsApi.update(eventId, apiEvent);
 
       // Update local state
       setEvents((prevEvents) => {

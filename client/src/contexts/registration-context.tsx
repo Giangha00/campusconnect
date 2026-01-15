@@ -58,6 +58,7 @@ export function RegistrationProvider({ children }: RegistrationProviderProps) {
   // Load registrations from API when user changes (login/logout)
   useEffect(() => {
     const loadRegistrations = async () => {
+      if (!user) return;
       try {
         setIsLoading(true);
         // Fetch registrations filtered by userId to get only current user's registrations

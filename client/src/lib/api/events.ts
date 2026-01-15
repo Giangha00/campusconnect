@@ -23,6 +23,7 @@ function mapEventToFrontend(
   return {
     id: event.id,
     name: event.title,
+    date: event.startDate, // Add date for backward compatibility
     dateStart: event.startDate,
     dateEnd: event.endDate || event.startDate,
     time: startDate.toLocaleTimeString("en-US", {
@@ -36,13 +37,14 @@ function mapEventToFrontend(
     organizer: organizerName, // Use organizer name from response
     organizerId: event.organizerId || event.organizer?.id, // Store organizerId
     image: event.imageUrl || "",
+    status: event.status as "incoming" | "upcoming" | "ongoing" | "completed", // Add status
     registrationRequired: event.registrationRequired ?? true,
     // Map capacity: if registrationRequired is false, capacity = "No limit"
     // Otherwise, use the capacity value from DB (or undefined if not set)
     capacity:
       event.registrationRequired === false
         ? "No limit"
-        : event.capacity ?? undefined,
+        : (event.capacity ?? "No limit"),
     attendees,
     checkedIn,
     registrationStart: event.registrationStart,

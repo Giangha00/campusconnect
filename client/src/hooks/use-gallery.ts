@@ -14,7 +14,12 @@ export function useGallery() {
       try {
         setIsLoading(true);
         const items = await galleryApi.getAll();
-        setGalleryItems(items);
+        // Map API GalleryItem to frontend GalleryItem type
+        const mappedItems: GalleryItem[] = items.map((item) => ({
+          ...item,
+          category: item.category as 'technical' | 'cultural' | 'sports' | 'academic',
+        }));
+        setGalleryItems(mappedItems);
       } catch (error) {
         console.error('Error loading gallery:', error);
         // Fallback to empty array

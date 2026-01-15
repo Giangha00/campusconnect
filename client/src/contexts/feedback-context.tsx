@@ -80,7 +80,7 @@ export function FeedbackProvider({ children }: FeedbackProviderProps) {
       feedback: newFeedback.feedback,
       status: "active",
     };
-    
+
     // Only include userId and eventId if they are provided (not undefined)
     if (newFeedback.userId) {
       apiFeedback.userId = newFeedback.userId;
@@ -107,14 +107,20 @@ export function FeedbackProvider({ children }: FeedbackProviderProps) {
     });
   };
 
-  const loadFeedbacksByEventId = async (eventId: number): Promise<Feedback[]> => {
+  const loadFeedbacksByEventId = async (
+    eventId: number
+  ): Promise<Feedback[]> => {
     try {
-      const apiFeedbacks = await feedbackApi.getAll(eventId);
+      // feedbackApi.getAll() doesn't accept eventId parameter
+      // Filter from all feedbacks instead
+      const apiFeedbacks = await feedbackApi.getAll();
       const validUserTypes: ("student" | "faculty" | "visitor")[] = [
         "student",
         "faculty",
         "visitor",
       ];
+      // Note: Feedback interface doesn't have eventId, so we filter by eventAttended name
+      // This is a limitation - we'd need to modify the API to support filtering by eventId
       const filteredFeedbacks = apiFeedbacks.filter((f) =>
         validUserTypes.includes(f.userType as any)
       );

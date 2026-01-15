@@ -124,9 +124,15 @@ export default function Bookmarks() {
               </div>
 
               <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {bookmarkedEvents.map((event) => (
-                  <EventCard key={event.id} event={event} />
-                ))}
+                {bookmarkedEvents.map((event) => {
+                  // Map API Event to frontend Event type
+                  const frontendEvent: Event = {
+                    ...event,
+                    date: event.dateStart, // Ensure date field exists
+                    status: (event as any).status || "upcoming", // Ensure status exists
+                  } as Event;
+                  return <EventCard key={event.id} event={frontendEvent} />;
+                })}
               </div>
             </>
           )}

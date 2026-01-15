@@ -37,7 +37,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { AdminNavbar } from "@/components/admin/admin-navbar";
 import { useAdmin } from "@/contexts/admin-context";
-import { useUsers, User } from "@/contexts/users-context";
+import { useUsers } from "@/contexts/users-context";
+import type { User } from "@/lib/api";
 import { Shield } from "lucide-react";
 import { adminApi } from "@/lib/api";
 import { useValidation } from "@/hooks/use-validation";

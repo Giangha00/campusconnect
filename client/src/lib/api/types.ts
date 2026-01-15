@@ -27,6 +27,7 @@ export interface EventResponse {
 export interface Event {
   id: number;
   name: string;
+  date?: string; // For backward compatibility with frontend Event type
   dateStart: string;
   dateEnd: string;
   time: string;
@@ -37,6 +38,7 @@ export interface Event {
   organizer: string;
   organizerId?: string;
   image: string;
+  status?: "incoming" | "upcoming" | "ongoing" | "completed"; // For backward compatibility
   registrationRequired: boolean;
   capacity: number | string;
   attendees: number;

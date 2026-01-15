@@ -5,11 +5,19 @@ export type EventStatus = "incoming" | "upcoming" | "ongoing" | "completed";
 /**
  * Parse time string (e.g., "10:00 AM - 6:00 PM" or "08:00 AM") and return start and end times in 24h format
  */
-function parseTimeString(timeString: string): { startHour: number; startMinute: number; endHour: number; endMinute: number } | null {
+function parseTimeString(
+  timeString: string
+): {
+  startHour: number;
+  startMinute: number;
+  endHour: number;
+  endMinute: number;
+} | null {
   if (!timeString) return null;
 
   // Match pattern like "10:00 AM - 6:00 PM" or "02:00 PM - 02:00 PM"
-  const timePattern = /(\d{1,2}):(\d{2})\s*(AM|PM)\s*-\s*(\d{1,2}):(\d{2})\s*(AM|PM)/i;
+  const timePattern =
+    /(\d{1,2}):(\d{2})\s*(AM|PM)\s*-\s*(\d{1,2}):(\d{2})\s*(AM|PM)/i;
   const match = timeString.match(timePattern);
 
   if (match) {
@@ -64,7 +72,11 @@ function parseTimeString(timeString: string): { startHour: number; startMinute: 
 /**
  * Create a datetime by combining date string and time string
  */
-function createDateTime(dateString: string, timeString: string, isEnd: boolean = false): Date {
+function createDateTime(
+  dateString: string,
+  timeString: string,
+  isEnd: boolean = false
+): Date {
   const date = new Date(dateString);
   const parsedTime = parseTimeString(timeString);
 
@@ -116,12 +128,12 @@ export function calculateEventStatus(event: Event): EventStatus {
     const daysUntilStart = Math.ceil(
       (eventStartDateTime.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
     );
-    
+
     // If event starts more than 30 days from now, it's "incoming"
     if (daysUntilStart >= 30) {
       return "incoming";
     }
-    
+
     // Otherwise, it's "upcoming" (within 30 days)
     return "upcoming";
   }
@@ -137,7 +149,7 @@ export function calculateEventStatus(event: Event): EventStatus {
  */
 export function canRegisterForEvent(event: Event): boolean {
   const now = new Date();
-  
+
   // Create datetime object for event start
   const eventStartDateTime = event.time
     ? createDateTime(event.dateStart, event.time, false)
