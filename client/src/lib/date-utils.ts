@@ -30,3 +30,27 @@ export function sortByDate<T extends { date: string }>(items: T[], order: 'asc' 
     return order === 'asc' ? dateA.getTime() - dateB.getTime() : dateB.getTime() - dateA.getTime();
   });
 }
+
+/**
+ * Convert ISO date string to YYYY-MM-DD format for HTML date input
+ * @param dateString - ISO date string (e.g., "2026-02-19T11:50:45Z" or "2026-02-19")
+ * @returns Date string in YYYY-MM-DD format or empty string if invalid
+ */
+export function formatDateForInput(dateString: string | undefined | null): string {
+  if (!dateString) return "";
+  
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "";
+    
+    // Get year, month, day in local timezone
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    
+    return `${year}-${month}-${day}`;
+  } catch (error) {
+    console.error("Error formatting date for input:", error);
+    return "";
+  }
+}

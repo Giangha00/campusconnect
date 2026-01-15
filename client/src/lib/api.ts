@@ -64,6 +64,12 @@ apiClient.interceptors.response.use(
 export interface EventResponse {
   id: number;
   organizerId?: string;
+  organizer?: {
+    id: string;
+    name: string;
+    username?: string;
+    email?: string;
+  };
   title: string;
   description: string;
   startDate: string;
@@ -110,6 +116,16 @@ function mapEventToFrontend(
   const startDate = new Date(event.startDate);
   const endDate = event.endDate ? new Date(event.endDate) : startDate;
 
+  // Get organizer name from response if available, otherwise use default
+  let organizerName = "Admin"; // Default fallback
+  if (event.organizer?.name) {
+    organizerName = event.organizer.name;
+  } else if (event.organizerId) {
+    // If organizerId exists but no organizer object, keep default
+    // The organizer name will be fetched separately if needed
+    organizerName = "Admin";
+  }
+
   return {
     id: event.id,
     name: event.title,
@@ -123,11 +139,15 @@ function mapEventToFrontend(
     category: event.category,
     department: "General", // Default value
     description: event.description || "",
-    organizer: "Admin", // Default value, will be fetched from admin table
-    organizerId: event.organizerId, // Store organizerId to fetch admin name
+    organizer: organizerName, // Use organizer name from response
+    organizerId: event.organizerId || event.organizer?.id, // Store organizerId
     image: event.imageUrl || "",
     registrationRequired: event.registrationRequired ?? true,
-    capacity: event.capacity || "Unlimited",
+    // Map capacity: if registrationRequired is false (0), capacity = "No limit"
+    // Otherwise, use the capacity value from DB (or null if not set)
+    capacity: event.registrationRequired === false 
+      ? "No limit" 
+      : (event.capacity || null),
     attendees,
     checkedIn,
     registrationStart: event.registrationStart,
@@ -217,11 +237,29 @@ export const eventsApi = {
 
   update: async (id: number, event: Partial<EventResponse>): Promise<Event> => {
     try {
-      const response = await apiClient.put<EventResponse>(
-        `/events/${id}`,
-        event
-      );
-      return mapEventToFrontend(response.data);
+      // Update event
+      await apiClient.put<EventResponse>(`/events/${id}`, event);
+      
+      // Fetch updated event to get complete data including organizer
+      const updatedEventResponse = await apiClient.get<EventResponse>(`/events/${id}`);
+      
+      // Try to get registrations for attendees/checkedIn
+      let registrations: any[] = [];
+      try {
+        const registrationsResponse = await apiClient.get<any[]>(
+          `/event-registrations?eventId=${id}`
+        );
+        registrations = registrationsResponse.data || [];
+      } catch (regError: any) {
+        if (regError.response?.status !== 404) {
+          console.warn("Error fetching registrations (non-404):", regError);
+        }
+      }
+      
+      const attendees = registrations.length;
+      const checkedIn = registrations.filter((reg) => reg.checkedIn).length;
+      
+      return mapEventToFrontend(updatedEventResponse.data, attendees, checkedIn);
     } catch (error) {
       console.error("Error updating event:", error);
       throw error;

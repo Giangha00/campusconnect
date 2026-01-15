@@ -24,7 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { formatDate } from "@/lib/date-utils";
+import { formatDate, formatDateForInput } from "@/lib/date-utils";
 import {
   calculateEventStatus,
   getStatusColor,
@@ -201,7 +201,23 @@ export default function AdminEventDetail() {
   // Initialize edited event data when event is found
   useEffect(() => {
     if (event) {
-      setEditedEvent({ ...event });
+      // Convert dates to YYYY-MM-DD format for date inputs
+      // Map capacity based on registrationRequired:
+      // - If registrationRequired = false (0) → capacity = "No limit"
+      // - If registrationRequired = true (1) → capacity = event.capacity (or null)
+      const formattedEvent = {
+        ...event,
+        dateStart: formatDateForInput(event.dateStart),
+        dateEnd: formatDateForInput(event.dateEnd),
+        registrationStart: formatDateForInput(event.registrationStart),
+        registrationEnd: formatDateForInput(event.registrationEnd),
+        // Ensure capacity is set correctly based on registrationRequired
+        capacity: event.registrationRequired === false 
+          ? "No limit" 
+          : (event.capacity || null),
+      };
+      
+      setEditedEvent(formattedEvent);
       const parsed = parseTimeToState(event.time);
       setStartTime(parsed.start);
       setEndTime(parsed.end);
@@ -734,6 +750,20 @@ export default function AdminEventDetail() {
       // Prepare update data with organizerId
       const updateData: any = { ...editedEvent };
       
+      // Handle capacity and registrationRequired mapping:
+      // - If capacity = "No limit" → registrationRequired = false, capacity = null
+      // - If capacity has numeric value → registrationRequired = true, capacity = number
+      if (editedEvent.capacity === "No limit") {
+        updateData.registrationRequired = false;
+        updateData.capacity = null; // No limit means capacity is null in DB
+      } else {
+        updateData.registrationRequired = true;
+        // Convert capacity to number if it's a string
+        updateData.capacity = typeof editedEvent.capacity === "string"
+          ? parseInt(editedEvent.capacity)
+          : editedEvent.capacity;
+      }
+      
       // Set organizerId based on role:
       // - If Faculty: use user.id (Faculty's own ID)
       // - If Admin: use selectedOrganizerId from dropdown
@@ -765,7 +795,26 @@ export default function AdminEventDetail() {
   };
 
   const handleCancelEdit = () => {
-    setEditedEvent(event ? { ...event } : null);
+    if (event) {
+      // Convert dates to YYYY-MM-DD format for date inputs
+      // Map capacity based on registrationRequired:
+      // - If registrationRequired = false (0) → capacity = "No limit"
+      // - If registrationRequired = true (1) → capacity = event.capacity (or null)
+      const formattedEvent = {
+        ...event,
+        dateStart: formatDateForInput(event.dateStart),
+        dateEnd: formatDateForInput(event.dateEnd),
+        registrationStart: formatDateForInput(event.registrationStart),
+        registrationEnd: formatDateForInput(event.registrationEnd),
+        // Ensure capacity is set correctly based on registrationRequired
+        capacity: event.registrationRequired === false 
+          ? "No limit" 
+          : (event.capacity || null),
+      };
+      setEditedEvent(formattedEvent);
+    } else {
+      setEditedEvent(null);
+    }
     setIsEditing(false);
     // Reset organizer selection
     if (event?.organizerId) {
@@ -1416,9 +1465,23 @@ export default function AdminEventDetail() {
                                   checked={editedEvent?.capacity === "No limit"}
                                   onCheckedChange={(checked) => {
                                     if (checked) {
-                                      handleInputChange("capacity", "No limit");
+                                      // When "No limit" is checked:
+                                      // - Set capacity = "No limit"
+                                      // - Set registrationRequired = false (0 in DB)
+                                      setEditedEvent((prev: any) => ({
+                                        ...prev,
+                                        capacity: "No limit",
+                                        registrationRequired: false,
+                                      }));
                                     } else {
-                                      handleInputChange("capacity", "");
+                                      // When "No limit" is unchecked:
+                                      // - Clear capacity (allow user to enter number)
+                                      // - Set registrationRequired = true (1 in DB)
+                                      setEditedEvent((prev: any) => ({
+                                        ...prev,
+                                        capacity: prev.capacity === "No limit" ? null : prev.capacity,
+                                        registrationRequired: true,
+                                      }));
                                     }
                                   }}
                                 />
