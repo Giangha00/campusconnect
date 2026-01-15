@@ -28,6 +28,35 @@ export const adminApi = {
     }
   },
 
+  update: async (
+    id: string,
+    admin: Partial<AdminResponse> & { active?: boolean; status?: string }
+  ): Promise<AdminResponse> => {
+    try {
+      const response = await apiClient.put<AdminResponse>(`/admins/${id}`, admin);
+      return response.data;
+    } catch (error) {
+      console.error("Error updating admin:", error);
+      throw error;
+    }
+  },
+
+  updateStatus: async (
+    id: string,
+    active: boolean
+  ): Promise<AdminResponse> => {
+    try {
+      const response = await apiClient.patch<AdminResponse>(
+        `/admins/${id}/status`,
+        { active }
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error updating admin status:", error);
+      throw error;
+    }
+  },
+
   login: async (
     username: string,
     password: string

@@ -136,6 +136,7 @@ export interface AdminResponse {
   name: string;
   email: string;
   role: "admin" | "faculty";
+  active?: boolean;
   createdAt?: string;
   updatedAt?: string;
 }
