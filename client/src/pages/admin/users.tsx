@@ -73,7 +73,7 @@ export default function AdminUsersPage() {
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
-  const usersPerPage = 8;
+  const usersPerPage = 20;
 
   // Dialog states
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
@@ -163,6 +163,56 @@ export default function AdminUsersPage() {
   const indexOfFirstUser = indexOfLastUser - usersPerPage;
   const currentUsers = filteredUsers.slice(indexOfFirstUser, indexOfLastUser);
   const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
+
+  const paginationItems = useMemo(() => {
+    if (totalPages <= 1) return [];
+
+    const pageNumbers: (number | string)[] = [];
+    const siblingCount = 1;
+    const totalPageNumbers = siblingCount * 2 + 5;
+
+    if (totalPages <= totalPageNumbers) {
+      for (let i = 1; i <= totalPages; i++) {
+        pageNumbers.push(i);
+      }
+      return pageNumbers;
+    }
+
+    const leftSiblingIndex = Math.max(currentPage - siblingCount, 1);
+    const rightSiblingIndex = Math.min(currentPage + siblingCount, totalPages);
+
+    const shouldShowLeftDots = leftSiblingIndex > 2;
+    const shouldShowRightDots = rightSiblingIndex < totalPages - 2;
+
+    const firstPageIndex = 1;
+    const lastPageIndex = totalPages;
+
+    if (!shouldShowLeftDots && shouldShowRightDots) {
+      let leftItemCount = 3 + 2 * siblingCount;
+      for (let i = 1; i <= leftItemCount; i++) {
+        pageNumbers.push(i);
+      }
+      pageNumbers.push("...");
+      pageNumbers.push(totalPages);
+    } else if (shouldShowLeftDots && !shouldShowRightDots) {
+      let rightItemCount = 3 + 2 * siblingCount;
+      pageNumbers.push(firstPageIndex);
+      pageNumbers.push("...");
+      for (let i = totalPages - rightItemCount + 1; i <= totalPages; i++) {
+        pageNumbers.push(i);
+      }
+    } else if (shouldShowLeftDots && shouldShowRightDots) {
+      pageNumbers.push(firstPageIndex);
+      pageNumbers.push("...");
+      for (let i = leftSiblingIndex; i <= rightSiblingIndex; i++) {
+        pageNumbers.push(i);
+      }
+      pageNumbers.push("...");
+      pageNumbers.push(lastPageIndex);
+    }
+
+    return pageNumbers;
+  }, [totalPages, currentPage]);
 
   const getRoleColor = (role: string) => {
     switch (role) {
@@ -839,17 +889,26 @@ export default function AdminUsersPage() {
             >
               Previous
             </Button>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-              <Button
-                key={page}
-                onClick={() => setCurrentPage(page)}
-                variant={currentPage === page ? "default" : "outline"}
-                size="icon"
-                className="h-10 w-10"
-              >
-                {page}
-              </Button>
-            ))}
+            {paginationItems.map((page, index) => {
+              if (typeof page === "string") {
+                return (
+                  <span key={`ellipsis-${index}`} className="px-1">
+                    ...
+                  </span>
+                );
+              }
+              return (
+                <Button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  variant={currentPage === page ? "default" : "outline"}
+                  size="icon"
+                  className="h-10 w-10"
+                >
+                  {page}
+                </Button>
+              );
+            })}
             <Button
               onClick={() =>
                 setCurrentPage((prev) => Math.min(prev + 1, totalPages))
