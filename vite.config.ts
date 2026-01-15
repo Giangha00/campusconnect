@@ -5,8 +5,14 @@ import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 
 export default defineConfig({
   plugins: [
-    react(),
-    runtimeErrorOverlay(),
+    react({
+      // ✅ Tối ưu React plugin
+      babel: {
+        plugins: [],
+      },
+    }),
+    // ✅ Chỉ load runtimeErrorOverlay khi cần (không phải production)
+    ...(process.env.NODE_ENV !== "production" ? [runtimeErrorOverlay()] : []),
     ...(process.env.NODE_ENV !== "production" &&
     process.env.REPL_ID !== undefined
       ? [
@@ -24,6 +30,12 @@ export default defineConfig({
     },
   },
   root: path.resolve(import.meta.dirname, "client"),
+  // ✅ Tắt type checking trong Vite (IDE sẽ handle)
+  // TypeScript checking sẽ được thực hiện bởi IDE, không cần Vite check
+  esbuild: {
+    // ✅ Tắt type checking để tăng tốc độ
+    logOverride: { 'this-is-undefined-in-esm': 'silent' },
+  },
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
@@ -67,7 +79,18 @@ export default defineConfig({
       "react-dom",
       "wouter",
       "@tanstack/react-query",
+      "axios",
     ],
+    // ✅ Pre-bundle để tăng tốc độ
+    force: false,
+    // ✅ Cache để tăng tốc độ lần chạy tiếp theo
+    entries: [
+      "src/main.tsx", // ✅ Đã có root: client nên không cần prefix
+    ],
+    // ✅ Tối ưu pre-bundling
+    esbuildOptions: {
+      target: 'esnext',
+    },
   },
   server: {
     fs: {
@@ -80,17 +103,23 @@ export default defineConfig({
     hmr: {
       overlay: true,
     },
-    // ✅ Tối ưu file watching
+    // ✅ Tối ưu file watching - loại bỏ server directory
     watch: {
       usePolling: false,
-      ignored: ['**/node_modules/**', '**/dist/**'],
+      ignored: [
+        '**/node_modules/**', 
+        '**/dist/**', 
+        '**/build/**',
+        '../server/**', // ✅ Quan trọng: bỏ qua server directory
+        '**/.git/**',
+      ],
     },
   },
   // ✅ Tối ưu cho development
   ...(process.env.NODE_ENV === 'development' && {
-    esbuild: {
-      // Faster builds in dev
-      target: 'esnext',
-    },
+    // ✅ Tối ưu cache
+    cacheDir: path.resolve(import.meta.dirname, "node_modules/.vite"),
+    // ✅ Tắt source maps trong dev để tăng tốc độ (có thể bật lại nếu cần debug)
+    // sourcemap: false,
   }),
 });
