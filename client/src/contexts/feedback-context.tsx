@@ -72,9 +72,7 @@ export function FeedbackProvider({ children }: FeedbackProviderProps) {
   ) => {
     // IMPORTANT: do not "optimistically succeed" here. If API fails,
     // we should bubble the error so UI can inform the user that DB wasn't updated.
-    const apiFeedback = {
-      userId: newFeedback.userId,
-      eventId: newFeedback.eventId,
+    const apiFeedback: any = {
       name: newFeedback.name,
       email: newFeedback.email,
       userType: newFeedback.userType,
@@ -82,6 +80,14 @@ export function FeedbackProvider({ children }: FeedbackProviderProps) {
       feedback: newFeedback.feedback,
       status: "active",
     };
+    
+    // Only include userId and eventId if they are provided (not undefined)
+    if (newFeedback.userId) {
+      apiFeedback.userId = newFeedback.userId;
+    }
+    if (newFeedback.eventId !== undefined && newFeedback.eventId !== null) {
+      apiFeedback.eventId = newFeedback.eventId;
+    }
 
     const created = await feedbackApi.create(apiFeedback);
     setFeedbacks((prev) => [...prev, created]);

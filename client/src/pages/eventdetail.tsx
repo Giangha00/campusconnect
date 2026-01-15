@@ -38,6 +38,8 @@ import {
   safeUrl,
 } from "@/components/common/safe-text";
 import { Star } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 const categoryColors = {
   academic: "bg-primary text-primary-foreground",
@@ -56,12 +58,16 @@ export default function EventDetail() {
     reloadRegistrations,
   } = useRegistration();
   const { events } = useEvents();
-  const { loadFeedbacksByEventId } = useFeedback();
+  const { loadFeedbacksByEventId, addFeedback } = useFeedback();
   const { toast } = useToast();
   const [showLoginDialog, setShowLoginDialog] = useState(false);
   const [organizerName, setOrganizerName] = useState<string>("");
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [isLoadingFeedbacks, setIsLoadingFeedbacks] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [hoveredRating, setHoveredRating] = useState(0);
+  const [feedbackText, setFeedbackText] = useState("");
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
 
   const eventId = params?.id ? parseInt(params.id) : null;
   const event = events?.find((e: any) => e.id === eventId);
@@ -211,6 +217,98 @@ export default function EventDetail() {
     }
   };
 
+  const handleRatingClick = (value: number) => {
+    setRating(value);
+  };
+
+  const handleSubmitFeedback = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!user) {
+      toast({
+        title: "Login Required",
+        description: "Please log in to submit your feedback.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (rating === 0) {
+      toast({
+        title: "Rating Required",
+        description: "Please provide a rating for this event.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!feedbackText.trim() || feedbackText.trim().length < 10) {
+      toast({
+        title: "Feedback Required",
+        description: "Please provide feedback with at least 10 characters.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!eventId || isNaN(eventId)) {
+      toast({
+        title: "Invalid Event",
+        description: "Cannot submit feedback: Event ID is missing or invalid.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsSubmittingFeedback(true);
+
+      // Get user info from context
+      const userType = user.role;
+
+      await addFeedback({
+        userId: user.id,
+        eventId: eventId,
+        eventAttended: event.name,
+        name: user.name || "Anonymous",
+        email: user.email || "",
+        userType: userType as "student" | "faculty" | "visitor",
+        rating: rating,
+        feedback: feedbackText.trim(),
+      });
+
+      toast({
+        title: "Feedback Submitted",
+        description:
+          "Thank you for your feedback! It has been submitted successfully.",
+        duration: 5000,
+      });
+
+      // Reset form
+      setRating(0);
+      setHoveredRating(0);
+      setFeedbackText("");
+
+      // Reload feedbacks to show the new one
+      if (eventId) {
+        const eventFeedbacks = await loadFeedbacksByEventId(eventId);
+        const activeFeedbacks = eventFeedbacks.filter(
+          (f) => f.status === "active"
+        );
+        setFeedbacks(activeFeedbacks);
+      }
+    } catch (error) {
+      console.error("Error submitting feedback:", error);
+      toast({
+        title: "Submission Failed",
+        description: "Failed to submit feedback. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Back Button */}
@@ -303,13 +401,89 @@ export default function EventDetail() {
           <Card>
             <CardContent className="p-6">
               <h2 className="text-xl font-semibold mb-4">Event Feedbacks</h2>
+
+              {/* Feedback Form - Only for logged in users */}
+              {user && user.role !== "visitor" && (
+                <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                  <h3 className="text-lg font-semibold mb-4">
+                    Share Your Feedback
+                  </h3>
+                  <form onSubmit={handleSubmitFeedback} className="space-y-4">
+                    {/* Rating */}
+                    <div className="space-y-2">
+                      <Label>Rating *</Label>
+                      <div className="flex items-center space-x-2">
+                        <div className="flex space-x-1">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <button
+                              key={star}
+                              type="button"
+                              onClick={() => handleRatingClick(star)}
+                              onMouseEnter={() => setHoveredRating(star)}
+                              onMouseLeave={() => setHoveredRating(0)}
+                              className="p-1 hover:scale-110 transition-transform">
+                              <Star
+                                className={`h-6 w-6 ${
+                                  star <= (hoveredRating || rating)
+                                    ? "fill-yellow-400 text-yellow-400"
+                                    : "text-gray-300"
+                                } transition-colors`}
+                              />
+                            </button>
+                          ))}
+                        </div>
+                        {rating > 0 && (
+                          <span className="text-sm text-gray-600">
+                            {rating} out of 5 stars
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Feedback Text */}
+                    <div className="space-y-2">
+                      <Label htmlFor="feedback-text">Your Feedback *</Label>
+                      <Textarea
+                        id="feedback-text"
+                        placeholder="Share your thoughts about this event... (minimum 10 characters)"
+                        rows={4}
+                        value={feedbackText}
+                        onChange={(e) => setFeedbackText(e.target.value)}
+                        className="resize-none"
+                        required
+                      />
+                      <p className="text-xs text-gray-500">
+                        {feedbackText.length} characters (minimum 10)
+                      </p>
+                    </div>
+
+                    {/* Submit Button */}
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={
+                        isSubmittingFeedback ||
+                        rating === 0 ||
+                        feedbackText.trim().length < 10
+                      }>
+                      {isSubmittingFeedback
+                        ? "Submitting..."
+                        : "Submit Feedback"}
+                    </Button>
+                  </form>
+                </div>
+              )}
+
+              {/* Feedback List */}
               {isLoadingFeedbacks ? (
                 <div className="text-center py-8 text-gray-500">
                   Loading feedbacks...
                 </div>
               ) : feedbacks.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
-                  No feedbacks yet. Be the first to share your experience!
+                  {user && user.role !== "visitor"
+                    ? "No feedbacks yet. Be the first to share your experience!"
+                    : "No feedbacks yet."}
                 </div>
               ) : (
                 <div className="space-y-6">
