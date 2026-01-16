@@ -6,7 +6,6 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Email configuration
 const emailConfig = {
   service: "gmail",
   auth: {
@@ -15,10 +14,8 @@ const emailConfig = {
   },
 };
 
-// Create transporter
 export const transporter = nodemailer.createTransport(emailConfig);
 
-// Function to load HTML template and replace placeholders
 export function renderTemplate(
   templateName: string,
   replacements: Record<string, string>
@@ -46,7 +43,6 @@ export function renderTemplate(
   }
 }
 
-// Function to send registration confirmation email
 export async function sendRegistrationEmail(
   to: string,
   name: string,
@@ -79,7 +75,6 @@ export async function sendRegistrationEmail(
       };
     }
 
-    // Render template with data
     const htmlContent = renderTemplate("success.html", {
       name,
       eventName,
@@ -96,7 +91,6 @@ export async function sendRegistrationEmail(
       };
     }
 
-    // Send email
     const info = await transporter.sendMail({
       from: `"Campus Connect" <${emailConfig.auth.user}>`,
       to,

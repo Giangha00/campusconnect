@@ -126,7 +126,6 @@ export default function AdminEventsPage() {
         try {
           const admins = await adminApi.getAll();
           setAdminsList(admins);
-          // Set default organizer to current admin if available
           if (admin?.id && admins.length > 0) {
             const currentAdmin = admins.find((a) => a.id === admin.id);
             if (currentAdmin) {
@@ -205,12 +204,10 @@ export default function AdminEventsPage() {
       const statusA = statusOrder[a.status] || 999;
       const statusB = statusOrder[b.status] || 999;
 
-      // First sort by status
       if (statusA !== statusB) {
         return statusA - statusB;
       }
 
-      // If same status, sort by dateStart from nearest to farthest
       return new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime();
     });
   }, [allEventsWithStatus, query, startDate, endDate, statusFilter]);
@@ -392,7 +389,6 @@ export default function AdminEventsPage() {
       });
       return;
     }
-    // Navigate to event detail page for editing with edit mode enabled
     window.location.href = `/admin/dashboard/events/${eventId}?edit=true`;
   };
 
@@ -452,7 +448,6 @@ export default function AdminEventsPage() {
       custom: (value) => validateCapacity(value),
     });
 
-    // Validate dateEnd with both required and relationship checks
     const isDateEndValid = validate("event-dateEnd", newEvent.dateEnd, {
       required: true,
       custom: (val) => {
@@ -497,7 +492,6 @@ export default function AdminEventsPage() {
       return;
     }
 
-    // Check if all validations passed
     if (
       !isNameValid ||
       !isDateStartValid ||
@@ -517,19 +511,15 @@ export default function AdminEventsPage() {
     }
 
     try {
-      // Convert capacity to number if provided
       const capacity = newEvent.capacity
         ? parseInt(newEvent.capacity)
         : "No limit";
 
-      // Determine organizerId based on role:
-      // - If Faculty: use user.id (Faculty's own ID)
-      // - If Admin: use selectedOrganizerId from dropdown
       let organizerId: string | undefined;
       if (isFaculty && user?.id) {
-        organizerId = user.id; // Faculty uses their own ID
+        organizerId = user.id;
       } else if (isAdmin) {
-        organizerId = selectedOrganizerId || admin?.id; // Admin can select or use their own
+        organizerId = selectedOrganizerId || admin?.id;
       }
 
       createEvent(
@@ -579,7 +569,6 @@ export default function AdminEventsPage() {
       ...prev,
       [field]: value,
     }));
-    // Clear error when user starts typing
     clearError(`event-${field}`);
   };
 
@@ -597,7 +586,6 @@ export default function AdminEventsPage() {
         validate(`event-${field}`, value, {
           required: true,
         });
-        // Re-validate dateEnd if it exists
         if (newEvent.dateEnd) {
           validate("event-dateEnd", newEvent.dateEnd, {
             required: true,
@@ -701,7 +689,6 @@ export default function AdminEventsPage() {
       registrationStart: "",
       registrationEnd: "",
     });
-    // Reset organizer selection based on role
     if (isAdmin && admin?.id) {
       setSelectedOrganizerId(admin.id);
       const currentAdmin = adminsList.find((a) => a.id === admin.id);
@@ -847,7 +834,6 @@ export default function AdminEventsPage() {
                         }
                         min={newEvent.dateStart || getTomorrowDate()}
                         onKeyDown={(e) => {
-                          // Prevent typing in date input
                           if (
                             e.key !== "Tab" &&
                             e.key !== "Enter" &&
@@ -920,7 +906,6 @@ export default function AdminEventsPage() {
                       Organizer
                     </Label>
                     {isAdmin ? (
-                      // Admin: Show dropdown to select from admins list
                       <Select
                         value={selectedOrganizerId}
                         onValueChange={(value) => {
@@ -949,7 +934,6 @@ export default function AdminEventsPage() {
                         </SelectContent>
                       </Select>
                     ) : isFaculty ? (
-                      // Faculty: Show read-only field with their own name
                       <Input
                         id="organizer"
                         value={user?.name || "Faculty"}
@@ -958,7 +942,6 @@ export default function AdminEventsPage() {
                         readOnly
                       />
                     ) : (
-                      // Fallback: text input
                       <Input
                         id="organizer"
                         value={newEvent.organizer}
@@ -1114,7 +1097,6 @@ export default function AdminEventsPage() {
                         }
                         min={newEvent.registrationStart || getTomorrowDate()}
                         onKeyDown={(e) => {
-                          // Prevent typing in date input
                           if (
                             e.key !== "Tab" &&
                             e.key !== "Enter" &&
@@ -1392,13 +1374,10 @@ export default function AdminEventsPage() {
                         href={`/admin/dashboard/events/${event.id}`}
                         className="block"
                         onClick={(e) => {
-                          // Handle normal left-click - use wouter navigation (no page reload)
                           if (!e.ctrlKey && !e.metaKey && e.button === 0 && !e.shiftKey) {
                             e.preventDefault();
                             setLocation(`/admin/dashboard/events/${event.id}`);
                           }
-                          // For right-click, middle-click, Ctrl/Cmd+click, or Shift+click, 
-                          // let browser handle it naturally (open in new tab/window)
                         }}
                       >
                         <CardTitle className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors line-clamp-2 cursor-pointer hover:underline">

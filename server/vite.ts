@@ -42,7 +42,6 @@ export async function setupVite(app: Express, server: Server) {
 
   app.use(vite.middlewares);
   
-  // Cache template to avoid reading from disk on every request
   let cachedTemplate: string | null = null;
   let templateLastModified: number = 0;
   const templatePath = path.resolve(
@@ -55,17 +54,14 @@ export async function setupVite(app: Express, server: Server) {
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
 
-    // Skip for API routes and static assets
     if (url.startsWith("/api") || url.startsWith("/src") || url.includes(".")) {
       return next();
     }
 
     try {
-      // Check if template file was modified
       const stats = await fs.promises.stat(templatePath);
       const currentModified = stats.mtimeMs;
 
-      // Only reload template if it was modified
       if (!cachedTemplate || currentModified > templateLastModified) {
         cachedTemplate = await fs.promises.readFile(templatePath, "utf-8");
         templateLastModified = currentModified;
@@ -96,7 +92,6 @@ export function serveStatic(app: Express) {
 
   app.use(express.static(distPath));
 
-  // fall through to index.html if the file doesn't exist
   app.use("*", (_req, res) => {
     res.sendFile(path.resolve(distPath, "index.html"));
   });

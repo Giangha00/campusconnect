@@ -522,7 +522,6 @@ export default function AdminUsersPage() {
                   </Button>
                   <Button
                     onClick={async () => {
-                      // Validate all fields
                       const isUsernameValid = validateCreate(
                         "create-username",
                         createFormData.username,
@@ -569,8 +568,6 @@ export default function AdminUsersPage() {
                       }
 
                       try {
-                        // Create faculty account in admins table with role = "faculty"
-                        // Faculty accounts are stored in admins table, not users table
                         await adminApi.create({
                           username: createFormData.username.trim(),
                           password: createFormData.password,
@@ -589,7 +586,6 @@ export default function AdminUsersPage() {
                           description: `Faculty account "${createFormData.name}" has been created successfully. The user can now log in and manage events for their department.`,
                         });
 
-                        // Reset form and close dialog
                         setCreateFormData({
                           username: "",
                           password: "",
@@ -600,7 +596,6 @@ export default function AdminUsersPage() {
                         clearAllCreateErrors();
                         setCreateDialogOpen(false);
                         
-                        // Reload page to refresh users list
                         window.location.reload();
                       } catch (error: any) {
                         console.error("Error creating faculty account:", error);

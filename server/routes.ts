@@ -4,26 +4,17 @@ import { storage } from "./storage";
 import { sendRegistrationEmail } from "./email-config";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // put application routes here
-  // prefix all routes with /api
-
-  // use storage to perform CRUD operations on the storage interface
-  // e.g. storage.insertUser(user) or storage.getUserByUsername(username)
-
   console.log('Registering API routes...');
 
-  // Test endpoint
   app.get('/api/test', (req, res) => {
     console.log('Test endpoint called');
     res.json({ message: 'API is working!' });
   });
 
-  // API endpoint to send registration confirmation email
   app.post('/api/send-registration-email', async (req, res) => {
     try {
       const { to, name, eventName, ticket } = req.body;
 
-      // Validate required fields
       if (!to || !name || !eventName || !ticket) {
         console.error('Missing required fields:', { to: !!to, name: !!name, eventName: !!eventName, ticket: !!ticket });
         return res.status(400).json({
@@ -34,7 +25,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       console.log('Sending registration email:', { to, name, eventName, ticket });
 
-      // Send email
       const result = await sendRegistrationEmail(to, name, eventName, ticket);
       
       if (result.success) {

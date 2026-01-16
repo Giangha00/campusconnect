@@ -108,7 +108,6 @@ export default function AdminEventDetail() {
       if (savedAdmin) {
         try {
           const parsed = JSON.parse(savedAdmin);
-          // If admin exists in storage, we have access
           return !!parsed;
         } catch {
           return false;
@@ -205,7 +204,6 @@ export default function AdminEventDetail() {
     return `${startStr} - ${endStr}`;
   };
 
-  // Debug logging
   useEffect(() => {
     console.log("Event Detail Debug:", {
       eventId,
@@ -250,13 +248,8 @@ export default function AdminEventDetail() {
     loadFeedbacks();
   }, [eventId, event, loadFeedbacksByEventId]);
 
-  // Initialize edited event data when event is found
   useEffect(() => {
     if (event) {
-      // Convert dates to YYYY-MM-DD format for date inputs
-      // Map capacity based on registrationRequired:
-      // - If registrationRequired = false (0) → capacity = "No limit"
-      // - If registrationRequired = true (1) → capacity = event.capacity (or null)
       const formattedEvent = {
         ...event,
         dateStart: formatDateForInput(event.dateStart),
@@ -274,14 +267,11 @@ export default function AdminEventDetail() {
       setStartTime(parsed.start);
       setEndTime(parsed.end);
       
-      // Set selectedOrganizerId from event.organizerId if available
       if (event.organizerId) {
         setSelectedOrganizerId(event.organizerId);
       } else if (isAdmin && admin?.id) {
-        // Default to current admin if no organizerId
         setSelectedOrganizerId(admin.id);
       } else if (isFaculty && user?.id) {
-        // Default to current faculty if no organizerId
         setSelectedOrganizerId(user.id);
       }
     }
@@ -293,7 +283,6 @@ export default function AdminEventDetail() {
     const editParam = urlParams.get("edit");
 
     if (editParam === "true" && event && editedEvent && !isEditing) {
-      // Check if event is completed or ongoing - don't allow editing
       const status = calculateEventStatus(event as any);
       if (status === "completed" || status === "ongoing") {
         toast({
@@ -304,7 +293,6 @@ export default function AdminEventDetail() {
               : "Ongoing events cannot be edited.",
           variant: "destructive",
         });
-        // Remove the edit parameter from the URL
         const newUrl = window.location.pathname;
         window.history.replaceState({}, "", newUrl);
         return;
@@ -313,7 +301,6 @@ export default function AdminEventDetail() {
       console.log("Enabling edit mode automatically from query parameter");
       setIsEditing(true);
 
-      // Remove the edit parameter from the URL
       const newUrl = window.location.pathname;
       window.history.replaceState({}, "", newUrl);
     }
@@ -330,16 +317,11 @@ export default function AdminEventDetail() {
     }
   }, [startTime, endTime, isEditing]);
 
-  // Calculate current status based on dates
   const currentStatus = event ? calculateEventStatus(event as any) : null;
 
-  // Check if user has access (admin or faculty)
-  // Check both context and sessionStorage (for new tab scenarios)
   const hasAccessFromContext = isAdmin || isFaculty;
   const hasAccess = hasAccessFromContext || hasAccessFromStorage;
   
-  // If we have access from storage, allow immediately (don't wait for context)
-  // Only show loading if we don't have access from storage AND context is still loading
   if (!hasAccessFromStorage && isAdminLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
@@ -472,12 +454,10 @@ export default function AdminEventDetail() {
   const handleSaveEvent = () => {
     if (!editedEvent || !event) return;
 
-    // Helper function to check if string is empty or only whitespace
     const isEmpty = (str: string | null | undefined): boolean => {
       return !str || str.trim().length === 0;
     };
 
-    // Validate required fields
     if (isEmpty(editedEvent.name)) {
       toast({
         title: "Validation Error",
@@ -505,8 +485,6 @@ export default function AdminEventDetail() {
       return;
     }
 
-    // Validate dates - must be greater than today (from tomorrow onwards)
-    // Get today's date in local timezone (YYYY-MM-DD format for accurate comparison)
     const now = new Date();
     const todayYear = now.getFullYear();
     const todayMonth = now.getMonth();
@@ -524,17 +502,14 @@ export default function AdminEventDetail() {
     }
 
     if (editedEvent.dateEnd) {
-      // Parse YYYY-MM-DD format to local date
       const [year, month, day] = editedEvent.dateEnd.split("-").map(Number);
       dateEnd = new Date(year, month - 1, day, 0, 0, 0, 0);
     }
 
-    // Calculate tomorrow's date
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
     if (dateStart) {
-      // Event start date must be from tomorrow onwards (strictly after today)
       if (dateStart.getTime() <= today.getTime()) {
         toast({
           title: "Invalid Date",
@@ -547,7 +522,6 @@ export default function AdminEventDetail() {
     }
 
     if (dateEnd) {
-      // Event end date must be from tomorrow onwards (strictly after today)
       if (dateEnd.getTime() <= today.getTime()) {
         toast({
           title: "Invalid Date",
@@ -559,7 +533,6 @@ export default function AdminEventDetail() {
       }
     }
 
-    // Validate that end date is not before start date
     if (dateStart && dateEnd && dateEnd < dateStart) {
       toast({
         title: "Invalid Date Range",
@@ -570,7 +543,6 @@ export default function AdminEventDetail() {
       return;
     }
 
-    // Validate text fields (not empty or only whitespace)
     if (isEmpty(editedEvent.venue)) {
       toast({
         title: "Validation Error",
@@ -589,7 +561,6 @@ export default function AdminEventDetail() {
       return;
     }
 
-    // Validate organizer selection
     if (isAdmin && !selectedOrganizerId) {
       toast({
         title: "Validation Error",
@@ -599,7 +570,6 @@ export default function AdminEventDetail() {
       return;
     }
     
-    // For Faculty, organizerId should be their own ID
     if (isFaculty && !user?.id) {
       toast({
         title: "Validation Error",
@@ -609,7 +579,6 @@ export default function AdminEventDetail() {
       return;
     }
 
-    // Validate category
     if (
       !editedEvent.category ||
       !["academic", "cultural", "sports", "technical"].includes(
@@ -657,7 +626,6 @@ export default function AdminEventDetail() {
         return;
       }
 
-      // Validate that attendees don't exceed capacity
       const currentAttendees = editedEvent.attendees || event.attendees || 0;
       if (currentAttendees > capacity) {
         toast({
@@ -669,10 +637,8 @@ export default function AdminEventDetail() {
       }
     }
 
-    // Validate registration dates if registration is required
     if (editedEvent.registrationRequired) {
       if (editedEvent.registrationStart && editedEvent.registrationEnd) {
-        // Parse registration dates in local timezone
         let regStart: Date | null = null;
         let regEnd: Date | null = null;
 
@@ -690,7 +656,6 @@ export default function AdminEventDetail() {
           regEnd = new Date(year, month - 1, day, 0, 0, 0, 0);
         }
 
-        // Registration end must be after registration start
         if (regStart && regEnd && regEnd.getTime() < regStart.getTime()) {
           toast({
             title: "Invalid Registration Date Range",
@@ -725,7 +690,6 @@ export default function AdminEventDetail() {
         const endMinute = parseInt(rangeMatch[5], 10);
         const endPeriod = rangeMatch[6].toUpperCase();
 
-        // Validate hour range (1-12)
         if (startHour < 1 || startHour > 12 || endHour < 1 || endHour > 12) {
           toast({
             title: "Invalid Time",
@@ -750,7 +714,6 @@ export default function AdminEventDetail() {
           return;
         }
 
-        // Convert to 24-hour format for comparison
         let startHour24 = startHour;
         if (startPeriod === "PM" && startHour !== 12) {
           startHour24 += 12;
@@ -765,11 +728,9 @@ export default function AdminEventDetail() {
           endHour24 = 0;
         }
 
-        // Calculate total minutes for comparison
         const startTotalMinutes = startHour24 * 60 + startMinute;
         const endTotalMinutes = endHour24 * 60 + endMinute;
 
-        // Validate that end time is after start time
         if (endTotalMinutes <= startTotalMinutes) {
           toast({
             title: "Invalid Time Range",
@@ -793,7 +754,6 @@ export default function AdminEventDetail() {
           return;
         }
 
-        // Validate minute range (0-59)
         if (minute < 0 || minute > 59) {
           toast({
             title: "Invalid Time",
@@ -815,12 +775,8 @@ export default function AdminEventDetail() {
     }
 
     try {
-      // Prepare update data with organizerId
       const updateData: any = { ...editedEvent };
       
-      // Handle capacity and registrationRequired mapping:
-      // - If capacity = "No limit" → registrationRequired = false, capacity = null
-      // - If capacity has numeric value → registrationRequired = true, capacity = number
       if (editedEvent.capacity === "No limit") {
         updateData.registrationRequired = false;
         updateData.capacity = null; // No limit means capacity is null in DB
@@ -832,18 +788,14 @@ export default function AdminEventDetail() {
           : editedEvent.capacity;
       }
       
-      // Set organizerId based on role:
-      // - If Faculty: use user.id (Faculty's own ID)
-      // - If Admin: use selectedOrganizerId from dropdown
       if (isFaculty && user?.id) {
-        updateData.organizerId = user.id; // Faculty uses their own ID
+        updateData.organizerId = user.id;
       } else if (isAdmin && selectedOrganizerId) {
-        updateData.organizerId = selectedOrganizerId; // Admin can select
+        updateData.organizerId = selectedOrganizerId;
       } else if (isAdmin && admin?.id) {
-        updateData.organizerId = admin.id; // Fallback to current admin
+        updateData.organizerId = admin.id;
       }
 
-      // Update the event using the context
       updateEvent(event.id, updateData);
 
       toast({
@@ -864,10 +816,6 @@ export default function AdminEventDetail() {
 
   const handleCancelEdit = () => {
     if (event) {
-      // Convert dates to YYYY-MM-DD format for date inputs
-      // Map capacity based on registrationRequired:
-      // - If registrationRequired = false (0) → capacity = "No limit"
-      // - If registrationRequired = true (1) → capacity = event.capacity (or null)
       const formattedEvent = {
         ...event,
         dateStart: formatDateForInput(event.dateStart),
