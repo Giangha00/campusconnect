@@ -16,6 +16,7 @@ import {
   Menu,
   X,
   TrendingUp,
+  Shield,
 } from "lucide-react";
 import { useAdmin } from "@/contexts/admin-context";
 
@@ -46,7 +47,7 @@ export function AdminNavbar({ currentPage }: AdminNavbarProps) {
       icon: Calendar,
       href: "/admin/dashboard/events",
     },
-    // Only show Users menu for admin role
+    // Only show Users and Admins menus for admin role
     ...(admin?.role === "admin"
       ? [
           {
@@ -54,6 +55,12 @@ export function AdminNavbar({ currentPage }: AdminNavbarProps) {
             label: "Users",
             icon: Users,
             href: "/admin/dashboard/users",
+          },
+          {
+            id: "admins",
+            label: "Admins",
+            icon: Shield,
+            href: "/admin/dashboard/admins",
           },
         ]
       : []),

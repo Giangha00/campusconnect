@@ -47,11 +47,11 @@ export function UsersProvider({ children }: { children: ReactNode }) {
   const updateUser = async (userId: string, updatedUser: Partial<User>) => {
     try {
       // Find user to get UUID
-      const user = users.find(u => u.id === userId);
+      const user = users.find((u) => u.id === userId);
       if (!user) return;
 
       // Convert frontend format to API format
-      const apiUser = {
+      const apiUser: any = {
         name: updatedUser.name,
         email: updatedUser.email,
         role: updatedUser.role,
@@ -59,9 +59,18 @@ export function UsersProvider({ children }: { children: ReactNode }) {
         year: updatedUser.year,
       };
 
+      // Map status (frontend) to active (backend) or status (backend accepts both)
+      if (updatedUser.status !== undefined) {
+        // Convert "active"/"inactive" string to boolean for active field
+        apiUser.active = updatedUser.status === "active";
+        // Also send as status string for backend compatibility
+        apiUser.status =
+          updatedUser.status === "active" ? "Active" : "Inactive";
+      }
+
       // Update on server using UUID
       const updated = await usersApi.update(user.id, apiUser);
-      
+
       setUsers((prevUsers) => {
         const updatedUsers = prevUsers.map((u) =>
           u.id === userId ? updated : u
@@ -82,11 +91,11 @@ export function UsersProvider({ children }: { children: ReactNode }) {
 
   const deleteUser = async (userId: string) => {
     try {
-      const user = users.find(u => u.id === userId);
+      const user = users.find((u) => u.id === userId);
       if (!user) return;
 
       await usersApi.delete(user.id);
-      
+
       setUsers((prevUsers) => {
         const updatedUsers = prevUsers.filter((u) => u.id !== userId);
         return updatedUsers;
@@ -106,7 +115,7 @@ export function UsersProvider({ children }: { children: ReactNode }) {
   ) => {
     try {
       const apiUser = {
-        username: newUser.email.split('@')[0], // Generate username from email
+        username: newUser.email.split("@")[0], // Generate username from email
         name: newUser.name,
         email: newUser.email,
         role: newUser.role,
@@ -115,7 +124,7 @@ export function UsersProvider({ children }: { children: ReactNode }) {
       };
 
       const created = await usersApi.create(apiUser);
-      
+
       setUsers((prevUsers) => {
         const updatedUsers = [created, ...prevUsers];
         return updatedUsers;
@@ -124,7 +133,10 @@ export function UsersProvider({ children }: { children: ReactNode }) {
       console.error("Error creating user:", error);
       // Optimistic update
       setUsers((prevUsers) => {
-        const newId = Math.max(...prevUsers.map((u) => u.id), 0) + 1;
+        // Generate a temporary UUID-like ID for optimistic update
+        const newId = `temp-${Date.now()}-${Math.random()
+          .toString(36)
+          .substr(2, 9)}`;
         const userWithDefaults: User = {
           ...newUser,
           id: newId,
@@ -157,4 +169,3 @@ export function useUsers() {
   }
   return context;
 }
-

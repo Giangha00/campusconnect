@@ -33,7 +33,12 @@ export function useEvents() {
   const allEventsWithStatus = useMemo(() => {
     return eventsData.map((event) => {
       const status = calculateEventStatus(event as any);
-      return { ...event, status };
+      // Map API Event to frontend Event type with required fields
+      return { 
+        ...event, 
+        status,
+        date: event.dateStart, // Add date for backward compatibility
+      } as any; // Type assertion needed due to type mismatch between API and frontend Event types
     });
   }, [eventsData]);
 
@@ -93,9 +98,7 @@ export function useEvents() {
           return new Date(b.dateStart).getTime() - new Date(a.dateStart).getTime();
         });
         break;
-      case "name":
-        sortedEvents.sort((a, b) => a.name.localeCompare(b.name));
-        break;
+      // "name" is not a valid EventSortBy, removed
       case "category":
         sortedEvents.sort((a, b) => a.category.localeCompare(b.category));
         break;

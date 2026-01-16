@@ -35,7 +35,6 @@ const statusFilterOptions: { value: EventStatus; label: string }[] = [
 
 const sortOptions: { value: EventSortBy; label: string }[] = [
   { value: "date", label: "Sort by date" },
-  { value: "name", label: "Sort by name" },
   { value: "category", label: "Sort by category" },
   { value: "status", label: "Sort by status" },
   { value: "time", label: "Sort by time" },

@@ -20,17 +20,26 @@ export function log(message: string, source = "express") {
 }
 
 export async function setupVite(app: Express, server: Server) {
+  const startTime = Date.now();
+  log("Starting Vite server setup...", "vite");
+
   const serverOptions = {
     middlewareMode: true,
     hmr: { server },
     allowedHosts: true as const,
   };
 
-  const vite = await createViteServer({
+  // ✅ Tối ưu Vite config cho dev mode
+  const optimizedConfig = {
     ...viteConfig,
     configFile: false,
+    // ✅ Tắt một số tính năng không cần thiết trong dev
+    clearScreen: false,
+    logLevel: 'warn', // ✅ Giảm log để tăng tốc
     customLogger: {
       ...viteLogger,
+      info: () => {}, // ✅ Tắt info logs
+      warn: viteLogger.warn,
       error: (msg, options) => {
         viteLogger.error(msg, options);
         process.exit(1);
@@ -38,7 +47,18 @@ export async function setupVite(app: Express, server: Server) {
     },
     server: serverOptions,
     appType: "custom",
-  });
+    // ✅ Tối ưu cho dev mode
+    optimizeDeps: {
+      ...viteConfig.optimizeDeps,
+      // ✅ Không force rebuild dependencies
+      force: false,
+    },
+  };
+
+  const vite = await createViteServer(optimizedConfig);
+  
+  const setupTime = Date.now() - startTime;
+  log(`Vite server setup completed in ${setupTime}ms`, "vite");
 
   app.use(vite.middlewares);
   

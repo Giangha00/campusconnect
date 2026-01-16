@@ -1,0 +1,8 @@
+
+> rest-express@1.0.0 dev
+> cross-env NODE_ENV=development tsx server/index.ts
+
+Registering API routes...
+8:55:06 PM [vite] Starting Vite server setup...
+8:55:07 PM [vite] Vite server setup completed in 86ms
+8:55:07 PM [express] serving on http://127.0.0.1:5000

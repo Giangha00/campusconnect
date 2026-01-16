@@ -35,6 +35,7 @@ const AdminDashboard = lazy(() => import("@/pages/admin/dashboard"));
 const AdminEventsPage = lazy(() => import("@/pages/admin/events"));
 const AdminEventDetail = lazy(() => import("@/pages/admin/event-detail"));
 const AdminUsersPage = lazy(() => import("@/pages/admin/users"));
+const AdminAdminsPage = lazy(() => import("@/pages/admin/admins"));
 const AdminAnalytics = lazy(() => import("@/pages/admin/analytics"));
 
 // Loading component
@@ -75,6 +76,7 @@ function Router() {
               component={AdminEventDetail}
             />
             <Route path="/admin/dashboard/users" component={AdminUsersPage} />
+            <Route path="/admin/dashboard/admins" component={AdminAdminsPage} />
             <Route
               path="/admin/dashboard/analytics"
               component={AdminAnalytics}

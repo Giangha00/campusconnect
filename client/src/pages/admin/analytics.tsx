@@ -90,7 +90,8 @@ export default function AdminAnalytics() {
     // User statistics
     const totalUsers = users.length;
     const activeUsers = users.filter((u) => u.status === "active").length;
-    const adminCount = users.filter((u) => u.role === "admin").length;
+    // Note: User.role doesn't include "admin" - admins are separate
+    const adminCount = 0; // Admins are managed separately via adminApi
     const studentCount = users.filter((u) => u.role === "student").length;
     const visitorCount = users.filter((u) => u.role === "visitor").length;
 

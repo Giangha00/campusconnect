@@ -27,7 +27,6 @@ import {
   Edit,
   Trash2,
   Plus,
-  UserPlus,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -37,10 +36,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { AdminNavbar } from "@/components/admin/admin-navbar";
 import { useAdmin } from "@/contexts/admin-context";
-import { useUsers, User } from "@/contexts/users-context";
+import { useUsers } from "@/contexts/users-context";
+import type { User } from "@/lib/api";
 import { Shield } from "lucide-react";
-import { adminApi } from "@/lib/api";
-import { useValidation } from "@/hooks/use-validation";
 import {
   Dialog,
   DialogContent,
@@ -79,17 +77,8 @@ export default function AdminUsersPage() {
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [editFormData, setEditFormData] = useState<Partial<User>>({});
-  const [createFormData, setCreateFormData] = useState({
-    username: "",
-    password: "",
-    name: "",
-    email: "",
-    department: "",
-  });
-  const { errors: createErrors, validate: validateCreate, clearError: clearCreateError, clearAllErrors: clearAllCreateErrors } = useValidation();
 
   const isAdmin = admin?.role === "admin";
   const isFaculty = admin?.role === "faculty";
@@ -238,7 +227,6 @@ export default function AdminUsersPage() {
     setViewDialogOpen(true);
   };
 
-
   const handleEditUser = (user: User) => {
     setSelectedUser(user);
     setEditFormData({
@@ -345,281 +333,6 @@ export default function AdminUsersPage() {
                 Manage campus users, roles, and permissions
               </p>
             </div>
-            <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Create Faculty Account
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Create Faculty Account</DialogTitle>
-                  <DialogDescription>
-                    Create a new faculty account for department event management
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="create-username">Username *</Label>
-                      <Input
-                        id="create-username"
-                        value={createFormData.username}
-                        onChange={(e) => {
-                          setCreateFormData({
-                            ...createFormData,
-                            username: e.target.value,
-                          });
-                          clearCreateError("create-username");
-                        }}
-                        onBlur={() =>
-                          validateCreate("create-username", createFormData.username, {
-                            required: true,
-                            minLength: 3,
-                            maxLength: 50,
-                          })
-                        }
-                        className={createErrors["create-username"] ? "border-red-500" : ""}
-                        placeholder="Enter username"
-                      />
-                      {createErrors["create-username"] && (
-                        <p className="text-sm text-red-500 mt-1">
-                          {createErrors["create-username"]}
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <Label htmlFor="create-password">Password *</Label>
-                      <Input
-                        id="create-password"
-                        type="password"
-                        value={createFormData.password}
-                        onChange={(e) => {
-                          setCreateFormData({
-                            ...createFormData,
-                            password: e.target.value,
-                          });
-                          clearCreateError("create-password");
-                        }}
-                        onBlur={() =>
-                          validateCreate("create-password", createFormData.password, {
-                            required: true,
-                            minLength: 6,
-                          })
-                        }
-                        className={createErrors["create-password"] ? "border-red-500" : ""}
-                        placeholder="Enter password"
-                      />
-                      {createErrors["create-password"] && (
-                        <p className="text-sm text-red-500 mt-1">
-                          {createErrors["create-password"]}
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <Label htmlFor="create-name">Full Name *</Label>
-                      <Input
-                        id="create-name"
-                        value={createFormData.name}
-                        onChange={(e) => {
-                          setCreateFormData({
-                            ...createFormData,
-                            name: e.target.value,
-                          });
-                          clearCreateError("create-name");
-                        }}
-                        onBlur={() =>
-                          validateCreate("create-name", createFormData.name, {
-                            required: true,
-                            minLength: 2,
-                            maxLength: 100,
-                          })
-                        }
-                        className={createErrors["create-name"] ? "border-red-500" : ""}
-                        placeholder="Enter full name"
-                      />
-                      {createErrors["create-name"] && (
-                        <p className="text-sm text-red-500 mt-1">
-                          {createErrors["create-name"]}
-                        </p>
-                      )}
-                    </div>
-                    <div>
-                      <Label htmlFor="create-email">Email *</Label>
-                      <Input
-                        id="create-email"
-                        type="email"
-                        value={createFormData.email}
-                        onChange={(e) => {
-                          setCreateFormData({
-                            ...createFormData,
-                            email: e.target.value.toLowerCase().trim(),
-                          });
-                          clearCreateError("create-email");
-                        }}
-                        onBlur={() =>
-                          validateCreate("create-email", createFormData.email, {
-                            required: true,
-                            pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                          })
-                        }
-                        className={createErrors["create-email"] ? "border-red-500" : ""}
-                        placeholder="Enter email"
-                      />
-                      {createErrors["create-email"] && (
-                        <p className="text-sm text-red-500 mt-1">
-                          {createErrors["create-email"]}
-                        </p>
-                      )}
-                    </div>
-                    <div className="col-span-2">
-                      <Label htmlFor="create-department">Department *</Label>
-                      <Input
-                        id="create-department"
-                        value={createFormData.department}
-                        onChange={(e) => {
-                          setCreateFormData({
-                            ...createFormData,
-                            department: e.target.value,
-                          });
-                          clearCreateError("create-department");
-                        }}
-                        onBlur={() =>
-                          validateCreate("create-department", createFormData.department, {
-                            required: true,
-                            minLength: 2,
-                            maxLength: 100,
-                          })
-                        }
-                        className={createErrors["create-department"] ? "border-red-500" : ""}
-                        placeholder="Enter department name (e.g., English Dept.)"
-                      />
-                      {createErrors["create-department"] && (
-                        <p className="text-sm text-red-500 mt-1">
-                          {createErrors["create-department"]}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setCreateDialogOpen(false);
-                      setCreateFormData({
-                        username: "",
-                        password: "",
-                        name: "",
-                        email: "",
-                        department: "",
-                      });
-                      clearAllCreateErrors();
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={async () => {
-                      const isUsernameValid = validateCreate(
-                        "create-username",
-                        createFormData.username,
-                        { required: true, minLength: 3, maxLength: 50 }
-                      );
-                      const isPasswordValid = validateCreate(
-                        "create-password",
-                        createFormData.password,
-                        { required: true, minLength: 6 }
-                      );
-                      const isNameValid = validateCreate(
-                        "create-name",
-                        createFormData.name,
-                        { required: true, minLength: 2, maxLength: 100 }
-                      );
-                      const isEmailValid = validateCreate(
-                        "create-email",
-                        createFormData.email,
-                        {
-                          required: true,
-                          pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-                        }
-                      );
-                      const isDepartmentValid = validateCreate(
-                        "create-department",
-                        createFormData.department,
-                        { required: true, minLength: 2, maxLength: 100 }
-                      );
-
-                      if (
-                        !isUsernameValid ||
-                        !isPasswordValid ||
-                        !isNameValid ||
-                        !isEmailValid ||
-                        !isDepartmentValid
-                      ) {
-                        toast({
-                          title: "Validation Error",
-                          description:
-                            "Please fix all validation errors before creating the faculty account.",
-                          variant: "destructive",
-                        });
-                        return;
-                      }
-
-                      try {
-                        await adminApi.create({
-                          username: createFormData.username.trim(),
-                          password: createFormData.password,
-                          name: createFormData.name.trim(),
-                          email: createFormData.email.trim().toLowerCase(),
-                          role: "faculty", // Role is "faculty" for department event managers
-                        });
-
-                        // Refresh users list by calling getAll again
-                        // The context will automatically update when users list changes
-                        // We can trigger a refresh by calling useUsers hook's refresh if available
-                        // For now, the page will refresh on next render or user can manually refresh
-
-                        toast({
-                          title: "Faculty Account Created",
-                          description: `Faculty account "${createFormData.name}" has been created successfully. The user can now log in and manage events for their department.`,
-                        });
-
-                        setCreateFormData({
-                          username: "",
-                          password: "",
-                          name: "",
-                          email: "",
-                          department: "",
-                        });
-                        clearAllCreateErrors();
-                        setCreateDialogOpen(false);
-                        
-                        window.location.reload();
-                      } catch (error: any) {
-                        console.error("Error creating faculty account:", error);
-                        let errorMessage =
-                          "Failed to create faculty account. Please try again.";
-                        if (error.response?.data) {
-                          const errorData = error.response.data;
-                          if (errorData.message) {
-                            errorMessage = errorData.message;
-                          }
-                        }
-                        toast({
-                          title: "Error",
-                          description: errorMessage,
-                          variant: "destructive",
-                        });
-                      }
-                    }}
-                  >
-                    Create Faculty
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
           </div>
         </div>
       </div>
@@ -632,8 +345,7 @@ export default function AdminUsersPage() {
             onClick={() => {
               setRoleFilter("all");
               setStatusFilter("all");
-            }}
-          >
+            }}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -652,8 +364,7 @@ export default function AdminUsersPage() {
             onClick={() => {
               setRoleFilter("all");
               setStatusFilter("active");
-            }}
-          >
+            }}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -672,8 +383,7 @@ export default function AdminUsersPage() {
             onClick={() => {
               setRoleFilter("faculty");
               setStatusFilter("all");
-            }}
-          >
+            }}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -690,8 +400,7 @@ export default function AdminUsersPage() {
             onClick={() => {
               setRoleFilter("student");
               setStatusFilter("all");
-            }}
-          >
+            }}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -710,8 +419,7 @@ export default function AdminUsersPage() {
             onClick={() => {
               setRoleFilter("visitor");
               setStatusFilter("all");
-            }}
-          >
+            }}>
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
@@ -811,8 +519,7 @@ export default function AdminUsersPage() {
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => handleDeleteClick(user)}
-                        className="text-red-600"
-                      >
+                        className="text-red-600">
                         <Trash2 className="h-4 w-4 mr-2" />
                         Delete User
                       </DropdownMenuItem>
@@ -880,8 +587,7 @@ export default function AdminUsersPage() {
           <div className="flex justify-center items-center mt-8 space-x-2">
             <Button
               onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-              disabled={currentPage === 1}
-            >
+              disabled={currentPage === 1}>
               Previous
             </Button>
             {paginationItems.map((page, index) => {
@@ -898,8 +604,7 @@ export default function AdminUsersPage() {
                   onClick={() => setCurrentPage(page)}
                   variant={currentPage === page ? "default" : "outline"}
                   size="icon"
-                  className="h-10 w-10"
-                >
+                  className="h-10 w-10">
                   {page}
                 </Button>
               );
@@ -908,8 +613,7 @@ export default function AdminUsersPage() {
               onClick={() =>
                 setCurrentPage((prev) => Math.min(prev + 1, totalPages))
               }
-              disabled={currentPage === totalPages}
-            >
+              disabled={currentPage === totalPages}>
               Next
             </Button>
           </div>
@@ -1064,8 +768,7 @@ export default function AdminUsersPage() {
                       ...editFormData,
                       role: value as "faculty" | "student" | "visitor",
                     })
-                  }
-                >
+                  }>
                   <SelectTrigger>
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
@@ -1085,8 +788,7 @@ export default function AdminUsersPage() {
                       ...editFormData,
                       status: value as "active" | "inactive",
                     })
-                  }
-                >
+                  }>
                   <SelectTrigger>
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
@@ -1166,8 +868,7 @@ export default function AdminUsersPage() {
                 setEditDialogOpen(false);
                 setEditFormData({});
                 setSelectedUser(null);
-              }}
-            >
+              }}>
               Cancel
             </Button>
             <Button onClick={handleSaveEdit}>Save Changes</Button>
@@ -1189,8 +890,7 @@ export default function AdminUsersPage() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteUser}
-              className="bg-red-600 hover:bg-red-700"
-            >
+              className="bg-red-600 hover:bg-red-700">
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
