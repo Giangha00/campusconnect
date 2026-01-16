@@ -29,16 +29,14 @@ export async function setupVite(app: Express, server: Server) {
     allowedHosts: true as const,
   };
 
-  // ✅ Tối ưu Vite config cho dev mode
   const optimizedConfig = {
     ...viteConfig,
     configFile: false,
-    // ✅ Tắt một số tính năng không cần thiết trong dev
     clearScreen: false,
-    logLevel: 'warn', // ✅ Giảm log để tăng tốc
+    logLevel: 'warn',
     customLogger: {
       ...viteLogger,
-      info: () => {}, // ✅ Tắt info logs
+      info: () => {},
       warn: viteLogger.warn,
       error: (msg, options) => {
         viteLogger.error(msg, options);
@@ -47,10 +45,8 @@ export async function setupVite(app: Express, server: Server) {
     },
     server: serverOptions,
     appType: "custom",
-    // ✅ Tối ưu cho dev mode
     optimizeDeps: {
       ...viteConfig.optimizeDeps,
-      // ✅ Không force rebuild dependencies
       force: false,
     },
   };
