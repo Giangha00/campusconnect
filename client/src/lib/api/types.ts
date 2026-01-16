@@ -7,6 +7,7 @@ export interface EventResponse {
     name: string;
     username?: string;
     email?: string;
+    department?: string; // Department name from organizer's department
   };
   title: string;
   description: string;
@@ -20,6 +21,7 @@ export interface EventResponse {
   capacity?: number;
   registrationStart?: string;
   registrationEnd?: string;
+  department?: string; // Department name from organizer's department (auto-filled)
   createdAt?: string;
   updatedAt?: string;
 }

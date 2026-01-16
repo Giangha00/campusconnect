@@ -133,16 +133,23 @@ export default function AdminEventsPage() {
               setNewEvent((prev) => ({
                 ...prev,
                 organizer: currentAdmin.username || currentAdmin.name,
+                department: currentAdmin.department || "", // Auto-fill department from admin's department
               }));
             }
           }
         } catch (error) {
           console.error("Error fetching admins:", error);
         }
+      } else if (isFaculty && user?.department) {
+        // Auto-fill department for faculty users
+        setNewEvent((prev) => ({
+          ...prev,
+          department: user.department || "",
+        }));
       }
     };
     fetchAdmins();
-  }, [isAdmin, admin]);
+  }, [isAdmin, admin, isFaculty, user]);
 
   // Handle query parameter for initial filter
   useEffect(() => {
@@ -918,6 +925,7 @@ export default function AdminEventsPage() {
                               ...prev,
                               organizer:
                                 selectedAdmin.username || selectedAdmin.name,
+                              department: selectedAdmin.department || "", // Auto-fill department from selected organizer's department
                             }));
                           }
                         }}
@@ -988,7 +996,9 @@ export default function AdminEventsPage() {
                         handleInputChange("department", e.target.value)
                       }
                       className="col-span-3"
-                      placeholder="Enter department"
+                      placeholder="Auto-filled from organizer"
+                      readOnly
+                      title="Department is automatically set based on the selected organizer"
                     />
                   </div>
 

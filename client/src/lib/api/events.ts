@@ -32,7 +32,7 @@ function mapEventToFrontend(
     }),
     venue: event.venue || "TBA",
     category: event.category,
-    department: "General", // Default value
+    department: event.department || event.organizer?.department || "General", // Use department from response or organizer, fallback to "General"
     description: event.description || "",
     organizer: organizerName, // Use organizer name from response
     organizerId: event.organizerId || event.organizer?.id, // Store organizerId

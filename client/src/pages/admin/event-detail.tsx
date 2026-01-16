@@ -222,13 +222,29 @@ export default function AdminEventDetail() {
         try {
           const admins = await adminApi.getAll();
           setAdminsList(admins);
+          // Auto-fill department for current admin if editing and department is not set
+          if (admin?.id && editedEvent && !editedEvent.department) {
+            const currentAdmin = admins.find((a) => a.id === admin.id);
+            if (currentAdmin?.department) {
+              setEditedEvent((prev: any) => ({
+                ...prev,
+                department: currentAdmin.department,
+              }));
+            }
+          }
         } catch (error) {
           console.error("Error fetching admins:", error);
         }
+      } else if (isFaculty && user?.department && editedEvent && !editedEvent.department) {
+        // Auto-fill department for faculty user if department is not set
+        setEditedEvent((prev: any) => ({
+          ...prev,
+          department: user.department,
+        }));
       }
     };
     fetchAdmins();
-  }, [isAdmin]);
+  }, [isAdmin, isFaculty, admin, user]); // Removed editedEvent from dependencies to prevent infinite loop
 
   // Load feedbacks for the current event
   useEffect(() => {
@@ -269,13 +285,37 @@ export default function AdminEventDetail() {
       
       if (event.organizerId) {
         setSelectedOrganizerId(event.organizerId);
+        // Auto-fill department from event's department (from backend response)
+        if (event.department) {
+          setEditedEvent((prev: any) => ({
+            ...prev,
+            department: event.department,
+          }));
+        }
       } else if (isAdmin && admin?.id) {
         setSelectedOrganizerId(admin.id);
+        // Auto-fill department from admin's department (only if adminsList is loaded)
+        if (adminsList.length > 0) {
+          const currentAdmin = adminsList.find((a) => a.id === admin.id);
+          if (currentAdmin?.department) {
+            setEditedEvent((prev: any) => ({
+              ...prev,
+              department: currentAdmin.department,
+            }));
+          }
+        }
       } else if (isFaculty && user?.id) {
         setSelectedOrganizerId(user.id);
+        // Auto-fill department from faculty user's department
+        if (user.department) {
+          setEditedEvent((prev: any) => ({
+            ...prev,
+            department: user.department,
+          }));
+        }
       }
     }
-  }, [event, isAdmin, admin, isFaculty, user]);
+  }, [event, isAdmin, admin, isFaculty, user]); // Removed adminsList from dependencies to prevent infinite loop
 
   // Check for edit query parameter and automatically enable edit mode
   useEffect(() => {
@@ -552,14 +592,16 @@ export default function AdminEventDetail() {
       return;
     }
 
-    if (isEmpty(editedEvent.department)) {
-      toast({
-        title: "Validation Error",
-        description: "Department is required and cannot be empty.",
-        variant: "destructive",
-      });
-      return;
-    }
+    // Department is auto-filled from organizer, so we don't need to validate it
+    // If department is empty, it means organizer has no department (which is acceptable for admin role)
+    // if (isEmpty(editedEvent.department)) {
+    //   toast({
+    //     title: "Validation Error",
+    //     description: "Department is required and cannot be empty.",
+    //     variant: "destructive",
+    //   });
+    //   return;
+    // }
 
     if (isAdmin && !selectedOrganizerId) {
       toast({
@@ -1335,7 +1377,9 @@ export default function AdminEventDetail() {
                               onChange={(e) =>
                                 handleInputChange("department", e.target.value)
                               }
-                              placeholder="Department name"
+                              placeholder="Auto-filled from organizer"
+                              readOnly
+                              title="Department is automatically set based on the selected organizer"
                             />
                           ) : (
                             <p className="font-medium">
@@ -1367,6 +1411,7 @@ export default function AdminEventDetail() {
                                     ...prev,
                                     organizer: selectedAdmin.username || selectedAdmin.name,
                                     organizerId: value,
+                                    department: selectedAdmin.department || "", // Auto-fill department from selected organizer's department
                                   }));
                                 }
                               }}

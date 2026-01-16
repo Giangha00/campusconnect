@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -245,6 +246,11 @@ export function LoginDialog({ children }: LoginDialogProps) {
               ? "Login to CampusConnect"
               : "Register for CampusConnect"}
           </DialogTitle>
+          <DialogDescription>
+            {mode === "login"
+              ? "Enter your credentials to access your account"
+              : "Create a new account to join CampusConnect"}
+          </DialogDescription>
         </DialogHeader>
 
         {mode === "login" ? (
