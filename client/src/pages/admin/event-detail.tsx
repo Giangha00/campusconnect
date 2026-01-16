@@ -775,8 +775,72 @@ export default function AdminEventDetail() {
     }
 
     try {
-      const updateData: any = { ...editedEvent };
+      // Transform frontend format to backend format
+      const updateData: any = {};
       
+      // Transform name -> title
+      if (editedEvent.name !== undefined) {
+        updateData.title = editedEvent.name;
+      }
+      
+      // Transform dateStart + time -> startDate (ISO string)
+      if (editedEvent.dateStart) {
+        let startDate = new Date(editedEvent.dateStart);
+        // Parse time if available
+        if (editedEvent.time && startTime && startTime.hour && startTime.minute) {
+          let hour24 = parseInt(startTime.hour);
+          const minute = parseInt(startTime.minute);
+          if (startTime.period === "PM" && hour24 !== 12) {
+            hour24 += 12;
+          } else if (startTime.period === "AM" && hour24 === 12) {
+            hour24 = 0;
+          }
+          startDate.setHours(hour24, minute, 0, 0);
+        } else {
+          startDate.setHours(0, 0, 0, 0);
+        }
+        updateData.startDate = startDate.toISOString();
+      }
+      
+      // Transform dateEnd + time -> endDate (ISO string)
+      if (editedEvent.dateEnd) {
+        let endDate = new Date(editedEvent.dateEnd);
+        // Parse time if available
+        if (editedEvent.time && endTime && endTime.hour && endTime.minute) {
+          let hour24 = parseInt(endTime.hour);
+          const minute = parseInt(endTime.minute);
+          if (endTime.period === "PM" && hour24 !== 12) {
+            hour24 += 12;
+          } else if (endTime.period === "AM" && hour24 === 12) {
+            hour24 = 0;
+          }
+          endDate.setHours(hour24, minute, 0, 0);
+        } else {
+          endDate.setHours(23, 59, 59, 999);
+        }
+        updateData.endDate = endDate.toISOString();
+      }
+      
+      // Copy other fields that match backend format
+      if (editedEvent.description !== undefined) {
+        updateData.description = editedEvent.description;
+      }
+      if (editedEvent.venue !== undefined) {
+        updateData.venue = editedEvent.venue;
+      }
+      if (editedEvent.category !== undefined) {
+        updateData.category = editedEvent.category;
+      }
+      if (editedEvent.status !== undefined) {
+        updateData.status = editedEvent.status;
+      }
+      if (editedEvent.imageUrl !== undefined) {
+        updateData.imageUrl = editedEvent.imageUrl;
+      } else if (editedEvent.image !== undefined) {
+        updateData.imageUrl = editedEvent.image;
+      }
+      
+      // Handle capacity and registrationRequired
       if (editedEvent.capacity === "No limit") {
         updateData.registrationRequired = false;
         updateData.capacity = null; // No limit means capacity is null in DB
@@ -788,13 +852,28 @@ export default function AdminEventDetail() {
           : editedEvent.capacity;
       }
       
+      // Transform registrationStart and registrationEnd
+      if (editedEvent.registrationStart) {
+        const regStart = new Date(editedEvent.registrationStart);
+        regStart.setHours(0, 0, 0, 0);
+        updateData.registrationStart = regStart.toISOString();
+      }
+      if (editedEvent.registrationEnd) {
+        const regEnd = new Date(editedEvent.registrationEnd);
+        regEnd.setHours(23, 59, 59, 999);
+        updateData.registrationEnd = regEnd.toISOString();
+      }
+      
+      // Always explicitly set organizerId based on current state
       if (isFaculty && user?.id) {
         updateData.organizerId = user.id;
-      } else if (isAdmin && selectedOrganizerId) {
+      } else if (isAdmin && selectedOrganizerId && selectedOrganizerId.trim() !== "") {
         updateData.organizerId = selectedOrganizerId;
       } else if (isAdmin && admin?.id) {
         updateData.organizerId = admin.id;
       }
+      // If none of the above conditions match, organizerId will be undefined
+      // and won't be sent in the request, so the backend won't change it
 
       updateEvent(event.id, updateData);
 

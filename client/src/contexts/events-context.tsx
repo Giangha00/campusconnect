@@ -85,19 +85,24 @@ export function EventsProvider({ children }: { children: ReactNode }) {
   const updateEvent = async (eventId: number, updatedEvent: Partial<Event>) => {
     try {
       // Map frontend Event format to API EventResponse format
+      // If updatedEvent already has backend format fields (title, startDate, etc.), use them directly
+      // Otherwise, map from frontend format (name, dateStart, etc.)
       const apiEvent: any = {
-        title: updatedEvent.name,
+        // Check if data is already in backend format (from event-detail.tsx transformation)
+        title: (updatedEvent as any).title || updatedEvent.name,
         description: updatedEvent.description,
-        startDate: updatedEvent.dateStart,
-        endDate: updatedEvent.dateEnd,
+        startDate: (updatedEvent as any).startDate || updatedEvent.dateStart,
+        endDate: (updatedEvent as any).endDate || updatedEvent.dateEnd,
         venue: updatedEvent.venue,
         category: updatedEvent.category,
         status: (updatedEvent as any).status, // status may not be in Partial<Event>
-        imageUrl: updatedEvent.image,
+        imageUrl: (updatedEvent as any).imageUrl || updatedEvent.image,
         registrationRequired: updatedEvent.registrationRequired,
         capacity: typeof updatedEvent.capacity === "number" ? updatedEvent.capacity : undefined,
-        registrationStart: updatedEvent.registrationStart,
-        registrationEnd: updatedEvent.registrationEnd,
+        registrationStart: (updatedEvent as any).registrationStart || updatedEvent.registrationStart,
+        registrationEnd: (updatedEvent as any).registrationEnd || updatedEvent.registrationEnd,
+        // Include organizerId if provided (from event-detail.tsx)
+        organizerId: (updatedEvent as any).organizerId,
       };
       // Remove undefined fields
       Object.keys(apiEvent).forEach(key => apiEvent[key] === undefined && delete apiEvent[key]);
