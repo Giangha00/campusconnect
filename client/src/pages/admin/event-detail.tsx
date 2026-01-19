@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -1129,81 +1130,21 @@ export default function AdminEventDetail() {
                           <p className="text-sm text-gray-500">Date</p>
                           {isEditing ? (
                             <div className="flex gap-2">
-                              <Input
-                                type="date"
+                              <DateInput
                                 value={editedEvent?.dateStart || ""}
-                                onChange={(e) =>
-                                  handleInputChange("dateStart", e.target.value)
+                                onChange={(value) =>
+                                  handleInputChange("dateStart", value)
                                 }
-                                onKeyDown={(e) => {
-                                  // Prevent typing in date input, but allow navigation keys
-                                  if (
-                                    e.key !== "Tab" &&
-                                    e.key !== "Enter" &&
-                                    e.key !== "Escape" &&
-                                    !e.key.startsWith("Arrow") &&
-                                    !e.key.startsWith("Page") &&
-                                    e.key !== "Home" &&
-                                    e.key !== "End"
-                                  ) {
-                                    e.preventDefault();
-                                  }
-                                }}
-                                onPaste={(e) => {
-                                  // Prevent pasting into date input
-                                  e.preventDefault();
-                                }}
-                                onInput={(e) => {
-                                  // Prevent direct text input
-                                  const target = e.target as HTMLInputElement;
-                                  if (
-                                    target.value &&
-                                    !target.value.match(/^\d{4}-\d{2}-\d{2}$/)
-                                  ) {
-                                    target.value = editedEvent?.dateStart || "";
-                                  }
-                                }}
                                 className="flex-1"
-                                min={getTomorrowDate()}
+                                placeholder="dd/mm/yyyy"
                               />
-                              <Input
-                                type="date"
+                              <DateInput
                                 value={editedEvent?.dateEnd || ""}
-                                onChange={(e) =>
-                                  handleInputChange("dateEnd", e.target.value)
+                                onChange={(value) =>
+                                  handleInputChange("dateEnd", value)
                                 }
-                                onKeyDown={(e) => {
-                                  // Prevent typing in date input, but allow navigation keys
-                                  if (
-                                    e.key !== "Tab" &&
-                                    e.key !== "Enter" &&
-                                    e.key !== "Escape" &&
-                                    !e.key.startsWith("Arrow") &&
-                                    !e.key.startsWith("Page") &&
-                                    e.key !== "Home" &&
-                                    e.key !== "End"
-                                  ) {
-                                    e.preventDefault();
-                                  }
-                                }}
-                                onPaste={(e) => {
-                                  // Prevent pasting into date input
-                                  e.preventDefault();
-                                }}
-                                onInput={(e) => {
-                                  // Prevent direct text input
-                                  const target = e.target as HTMLInputElement;
-                                  if (
-                                    target.value &&
-                                    !target.value.match(/^\d{4}-\d{2}-\d{2}$/)
-                                  ) {
-                                    target.value = editedEvent?.dateEnd || "";
-                                  }
-                                }}
                                 className="flex-1"
-                                min={
-                                  editedEvent?.dateStart || getTomorrowDate()
-                                }
+                                placeholder="dd/mm/yyyy"
                               />
                             </div>
                           ) : (
@@ -1468,42 +1409,16 @@ export default function AdminEventDetail() {
                               Registration Start Date
                             </p>
                             {isEditing ? (
-                              <Input
-                                type="date"
+                              <DateInput
                                 value={editedEvent?.registrationStart || ""}
-                                onChange={(e) =>
+                                onChange={(value) =>
                                   handleInputChange(
                                     "registrationStart",
-                                    e.target.value
+                                    value
                                   )
                                 }
-                                onKeyDown={(e) => {
-                                  if (
-                                    e.key !== "Tab" &&
-                                    e.key !== "Enter" &&
-                                    e.key !== "Escape" &&
-                                    !e.key.startsWith("Arrow") &&
-                                    !e.key.startsWith("Page") &&
-                                    e.key !== "Home" &&
-                                    e.key !== "End"
-                                  ) {
-                                    e.preventDefault();
-                                  }
-                                }}
-                                onPaste={(e) => {
-                                  e.preventDefault();
-                                }}
-                                onInput={(e) => {
-                                  const target = e.target as HTMLInputElement;
-                                  if (
-                                    target.value &&
-                                    !target.value.match(/^\d{4}-\d{2}-\d{2}$/)
-                                  ) {
-                                    target.value =
-                                      editedEvent?.registrationStart || "";
-                                  }
-                                }}
                                 className="mt-1"
+                                placeholder="dd/mm/yyyy"
                               />
                             ) : (
                               <p className="font-medium">
@@ -1521,46 +1436,16 @@ export default function AdminEventDetail() {
                               Registration End Date
                             </p>
                             {isEditing ? (
-                              <Input
-                                type="date"
+                              <DateInput
                                 value={editedEvent?.registrationEnd || ""}
-                                onChange={(e) =>
+                                onChange={(value) =>
                                   handleInputChange(
                                     "registrationEnd",
-                                    e.target.value
+                                    value
                                   )
                                 }
-                                onKeyDown={(e) => {
-                                  if (
-                                    e.key !== "Tab" &&
-                                    e.key !== "Enter" &&
-                                    e.key !== "Escape" &&
-                                    !e.key.startsWith("Arrow") &&
-                                    !e.key.startsWith("Page") &&
-                                    e.key !== "Home" &&
-                                    e.key !== "End"
-                                  ) {
-                                    e.preventDefault();
-                                  }
-                                }}
-                                onPaste={(e) => {
-                                  e.preventDefault();
-                                }}
-                                onInput={(e) => {
-                                  const target = e.target as HTMLInputElement;
-                                  if (
-                                    target.value &&
-                                    !target.value.match(/^\d{4}-\d{2}-\d{2}$/)
-                                  ) {
-                                    target.value =
-                                      editedEvent?.registrationEnd || "";
-                                  }
-                                }}
                                 className="mt-1"
-                                min={
-                                  editedEvent?.registrationStart ||
-                                  getTomorrowDate()
-                                }
+                                placeholder="dd/mm/yyyy"
                               />
                             ) : (
                               <p className="font-medium">

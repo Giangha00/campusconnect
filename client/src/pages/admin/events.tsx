@@ -19,6 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SafeText } from "@/components/common/safe-text";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import { Badge } from "@/components/ui/badge";
 import {
   Select,
@@ -788,30 +789,19 @@ export default function AdminEventsPage() {
                       Start Date *
                     </Label>
                     <div className="col-span-3">
-                      <Input
+                      <DateInput
                         id="dateStart"
-                        type="date"
                         value={newEvent.dateStart}
-                        onChange={(e) =>
-                          handleInputChange("dateStart", e.target.value)
+                        onChange={(value) =>
+                          handleInputChange("dateStart", value)
                         }
                         onBlur={(e) =>
-                          handleInputBlur("dateStart", e.target.value)
+                          handleInputBlur("dateStart", newEvent.dateStart)
                         }
                         className={
                           errors["event-dateStart"] ? "border-red-500" : ""
                         }
-                        min={getTomorrowDate()}
-                        onKeyDown={(e) => {
-                          // Prevent typing in date input
-                          if (
-                            e.key !== "Tab" &&
-                            e.key !== "Enter" &&
-                            e.key !== "Escape"
-                          ) {
-                            e.preventDefault();
-                          }
-                        }}
+                        placeholder="dd/mm/yyyy"
                       />
                       {errors["event-dateStart"] && (
                         <p className="text-sm text-red-500 mt-1">
@@ -826,29 +816,19 @@ export default function AdminEventsPage() {
                       End Date *
                     </Label>
                     <div className="col-span-3">
-                      <Input
+                      <DateInput
                         id="dateEnd"
-                        type="date"
                         value={newEvent.dateEnd}
-                        onChange={(e) =>
-                          handleInputChange("dateEnd", e.target.value)
+                        onChange={(value) =>
+                          handleInputChange("dateEnd", value)
                         }
                         onBlur={(e) =>
-                          handleInputBlur("dateEnd", e.target.value)
+                          handleInputBlur("dateEnd", newEvent.dateEnd)
                         }
                         className={
                           errors["event-dateEnd"] ? "border-red-500" : ""
                         }
-                        min={newEvent.dateStart || getTomorrowDate()}
-                        onKeyDown={(e) => {
-                          if (
-                            e.key !== "Tab" &&
-                            e.key !== "Enter" &&
-                            e.key !== "Escape"
-                          ) {
-                            e.preventDefault();
-                          }
-                        }}
+                        placeholder="dd/mm/yyyy"
                       />
                       {errors["event-dateEnd"] && (
                         <p className="text-sm text-red-500 mt-1">
@@ -1056,28 +1036,17 @@ export default function AdminEventsPage() {
                       Registration Start
                     </Label>
                     <div className="col-span-3">
-                      <Input
+                      <DateInput
                         id="registrationStart"
-                        type="date"
                         value={newEvent.registrationStart}
-                        onChange={(e) =>
-                          handleInputChange("registrationStart", e.target.value)
+                        onChange={(value) =>
+                          handleInputChange("registrationStart", value)
                         }
                         onBlur={(e) =>
-                          handleInputBlur("registrationStart", e.target.value)
+                          handleInputBlur("registrationStart", newEvent.registrationStart)
                         }
                         className="col-span-3"
-                        min={getTomorrowDate()}
-                        onKeyDown={(e) => {
-                          // Prevent typing in date input
-                          if (
-                            e.key !== "Tab" &&
-                            e.key !== "Enter" &&
-                            e.key !== "Escape"
-                          ) {
-                            e.preventDefault();
-                          }
-                        }}
+                        placeholder="dd/mm/yyyy"
                       />
                     </div>
                   </div>
@@ -1090,31 +1059,21 @@ export default function AdminEventsPage() {
                       Registration End
                     </Label>
                     <div className="col-span-3">
-                      <Input
+                      <DateInput
                         id="registrationEnd"
-                        type="date"
                         value={newEvent.registrationEnd}
-                        onChange={(e) =>
-                          handleInputChange("registrationEnd", e.target.value)
+                        onChange={(value) =>
+                          handleInputChange("registrationEnd", value)
                         }
                         onBlur={(e) =>
-                          handleInputBlur("registrationEnd", e.target.value)
+                          handleInputBlur("registrationEnd", newEvent.registrationEnd)
                         }
                         className={
                           errors["event-registrationEnd"]
                             ? "border-red-500"
                             : ""
                         }
-                        min={newEvent.registrationStart || getTomorrowDate()}
-                        onKeyDown={(e) => {
-                          if (
-                            e.key !== "Tab" &&
-                            e.key !== "Enter" &&
-                            e.key !== "Escape"
-                          ) {
-                            e.preventDefault();
-                          }
-                        }}
+                        placeholder="dd/mm/yyyy"
                       />
                       {errors["event-registrationEnd"] && (
                         <p className="text-sm text-red-500 mt-1">
@@ -1320,12 +1279,12 @@ export default function AdminEventsPage() {
                   >
                     From
                   </label>
-                  <Input
+                  <DateInput
                     id="start-date"
-                    type="date"
                     value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
+                    onChange={(value) => setStartDate(value)}
                     data-testid="input-admin-start-date"
+                    placeholder="dd/mm/yyyy"
                   />
                 </div>
                 <div>
@@ -1335,12 +1294,12 @@ export default function AdminEventsPage() {
                   >
                     To
                   </label>
-                  <Input
+                  <DateInput
                     id="end-date"
-                    type="date"
                     value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
+                    onChange={(value) => setEndDate(value)}
                     data-testid="input-admin-end-date"
+                    placeholder="dd/mm/yyyy"
                   />
                 </div>
               </div>

@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DateInput } from "@/components/ui/date-input";
 import {
   Calendar as CalendarIcon,
   Clock,
@@ -441,11 +442,10 @@ export default function Events() {
                 <div className="flex gap-2 items-center">
                   <div className="flex items-center gap-1">
                     <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="date"
+                    <DateInput
                       value={fromDate}
-                      onChange={(e) => setFromDate(e.target.value)}
-                      placeholder="From"
+                      onChange={(value) => setFromDate(value)}
+                      placeholder="dd/mm/yyyy"
                       className="w-[150px]"
                       data-testid="input-date-from"
                     />
@@ -453,13 +453,11 @@ export default function Events() {
                   <span className="text-sm text-muted-foreground">to</span>
                   <div className="flex items-center gap-1">
                     <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="date"
+                    <DateInput
                       value={toDate}
-                      onChange={(e) => setToDate(e.target.value)}
-                      placeholder="To"
+                      onChange={(value) => setToDate(value)}
+                      placeholder="dd/mm/yyyy"
                       className="w-[150px]"
-                      min={fromDate || undefined}
                       data-testid="input-date-to"
                     />
                   </div>
