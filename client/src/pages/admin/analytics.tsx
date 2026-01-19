@@ -1,16 +1,26 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Link } from "wouter";
 // import usersData from "@/data/users.json"; // Backup - keeping for reference
 import { Event } from "@/types/event";
 import { useAdmin } from "@/contexts/admin-context";
 import { useEvents } from "@/contexts/events-context";
 import { useUsers } from "@/contexts/users-context";
+import { apiClient } from "@/lib/api/api-client";
+import type { EventRegistrationResponse } from "@/lib/api/types";
 import {
   calculateEventStatus,
   getStatusColor,
   getStatusLabel,
 } from "@/lib/event-status";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SafeText } from "@/components/common/safe-text";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   BarChart3,
   TrendingUp,
@@ -20,6 +30,7 @@ import {
   Shield,
   Download,
   Filter,
+  LineChart,
 } from "lucide-react";
 import { AdminNavbar } from "@/components/admin/admin-navbar";
 import {
@@ -28,7 +39,7 @@ import {
   PieChart,
   Pie,
   Cell,
-  LineChart,
+  LineChart as RechartsLineChart,
   Line,
   XAxis,
   YAxis,
@@ -59,6 +70,31 @@ export default function AdminAnalytics() {
   const { users } = useUsers();
 
   const isAdmin = !!admin;
+  
+  const [allRegistrations, setAllRegistrations] = useState<EventRegistrationResponse[]>([]);
+  const [selectedEventForStats, setSelectedEventForStats] = useState<number | "all">("all");
+  const [statsTimeRange, setStatsTimeRange] = useState<"day" | "week" | "month">("day");
+
+  // Fetch all registrations from database (same way as events.ts)
+  useEffect(() => {
+    const fetchRegistrations = async () => {
+      try {
+        // Fetch directly from API like in events.ts
+        const registrationsResponse = await apiClient.get<EventRegistrationResponse[]>(
+          "/event-registrations"
+        );
+        setAllRegistrations(registrationsResponse.data || []);
+      } catch (error: any) {
+        // If 404, endpoint doesn't exist yet - use empty array
+        if (error.response?.status !== 404) {
+          console.warn("Error fetching registrations (non-404):", error);
+        }
+        setAllRegistrations([]);
+      }
+    };
+
+    fetchRegistrations();
+  }, []);
 
   const allEventsWithStatus = useMemo(() => {
     return eventsData.map((event) => {
@@ -199,6 +235,88 @@ export default function AdminAnalytics() {
       .sort((a, b) => b.registrations - a.registrations)
       .slice(0, 10);
   }, [allEventsWithStatus]);
+
+  // Calculate registration statistics
+  const registrationStats = useMemo(() => {
+    // Filter registrations by selected event
+    const filteredRegistrations = selectedEventForStats === "all"
+      ? allRegistrations
+      : allRegistrations.filter((r) => r.eventId === selectedEventForStats);
+
+    // Total registrations per event
+    const registrationsByEvent = eventsData.reduce((acc, event) => {
+      const count = allRegistrations.filter((r) => r.eventId === event.id).length;
+      acc[event.id] = {
+        eventId: event.id,
+        eventName: event.name,
+        totalRegistrations: count,
+      };
+      return acc;
+    }, {} as Record<number, { eventId: number; eventName: string; totalRegistrations: number }>);
+
+    // Group registrations by time period
+    const timeGrouped: Record<string, number> = {};
+    
+    filteredRegistrations.forEach((reg) => {
+      // Use registrationDate from EventRegistrationResponse (from DB)
+      if (!reg.registrationDate) return;
+      
+      const date = new Date(reg.registrationDate);
+      let key: string;
+      
+      if (statsTimeRange === "day") {
+        key = date.toLocaleDateString("vi-VN", { year: "numeric", month: "2-digit", day: "2-digit" });
+      } else if (statsTimeRange === "week") {
+        const weekStart = new Date(date);
+        weekStart.setDate(date.getDate() - date.getDay());
+        key = `Week ${weekStart.toLocaleDateString("vi-VN", { month: "2-digit", day: "2-digit" })}`;
+      } else {
+        key = date.toLocaleDateString("vi-VN", { year: "numeric", month: "2-digit" });
+      }
+      
+      timeGrouped[key] = (timeGrouped[key] || 0) + 1;
+    });
+
+    // Convert to chart data format
+    const chartData = Object.entries(timeGrouped)
+      .map(([date, count]) => ({ date, count }))
+      .sort((a, b) => {
+        // Sort by date - handle different date formats
+        let dateA: Date, dateB: Date;
+        
+        if (statsTimeRange === "day") {
+          // Format: DD/MM/YYYY
+          const [day, month, year] = a.date.split("/");
+          dateA = new Date(Number(year), Number(month) - 1, Number(day));
+          const [dayB, monthB, yearB] = b.date.split("/");
+          dateB = new Date(Number(yearB), Number(monthB) - 1, Number(dayB));
+        } else if (statsTimeRange === "week") {
+          // Format: Week DD/MM
+          const matchA = a.date.match(/(\d{2})\/(\d{2})/);
+          const matchB = b.date.match(/(\d{2})\/(\d{2})/);
+          if (matchA && matchB) {
+            dateA = new Date(2024, Number(matchA[2]) - 1, Number(matchA[1]));
+            dateB = new Date(2024, Number(matchB[2]) - 1, Number(matchB[1]));
+          } else {
+            return 0;
+          }
+        } else {
+          // Format: MM/YYYY
+          const [month, year] = a.date.split("/");
+          dateA = new Date(Number(year), Number(month) - 1, 1);
+          const [monthB, yearB] = b.date.split("/");
+          dateB = new Date(Number(yearB), Number(monthB) - 1, 1);
+        }
+        
+        return dateA.getTime() - dateB.getTime();
+      });
+
+    return {
+      registrationsByEvent: Object.values(registrationsByEvent).sort((a, b) => b.totalRegistrations - a.totalRegistrations),
+      chartData,
+      totalRegistrations: filteredRegistrations.length,
+    };
+  }, [allRegistrations, eventsData, selectedEventForStats, statsTimeRange]);
 
   // Events by Month (last 6 months)
   const monthlyData = useMemo(() => {
@@ -403,6 +521,126 @@ export default function AdminAnalytics() {
           </Card>
         </div>
 
+        {/* Registration Statistics Section */}
+        <Card className="mb-6 shadow-lg">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <LineChart className="h-5 w-5" />
+                Registration Statistics
+              </CardTitle>
+              <div className="flex items-center gap-2">
+                <Select
+                  value={selectedEventForStats === "all" ? "all" : String(selectedEventForStats)}
+                  onValueChange={(value) => setSelectedEventForStats(value === "all" ? "all" : Number(value))}
+                >
+                  <SelectTrigger className="w-[200px]">
+                    <SelectValue placeholder="Select Event" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Events</SelectItem>
+                    {eventsData.map((event) => (
+                      <SelectItem key={event.id} value={String(event.id)}>
+                        {event.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select value={statsTimeRange} onValueChange={(value: "day" | "week" | "month") => setStatsTimeRange(value)}>
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="day">By Day</SelectItem>
+                    <SelectItem value="week">By Week</SelectItem>
+                    <SelectItem value="month">By Month</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Chart */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4">New Registrations Over Time</h3>
+                {registrationStats.chartData.length > 0 ? (
+                  <ResponsiveContainer width="100%" height={300}>
+                    <RechartsLineChart data={registrationStats.chartData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="date" />
+                      <YAxis />
+                      <Tooltip />
+                      <Legend />
+                      <Line
+                        type="monotone"
+                        dataKey="count"
+                        stroke="#3b82f6"
+                        strokeWidth={2}
+                        name="New Registrations"
+                      />
+                    </RechartsLineChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className="h-[300px] flex items-center justify-center text-gray-500">
+                    No registration data available
+                  </div>
+                )}
+              </div>
+
+              {/* Summary Table */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4">
+                  Total Registrations by Event
+                  {selectedEventForStats !== "all" && ` (${registrationStats.totalRegistrations} total)`}
+                </h3>
+                <div className="border rounded-lg overflow-hidden">
+                  <div className="max-h-[300px] overflow-y-auto">
+                    <table className="w-full text-sm">
+                      <thead className="bg-gray-50 sticky top-0">
+                        <tr>
+                          <th className="px-4 py-3 text-left font-semibold text-gray-700">Event Name</th>
+                          <th className="px-4 py-3 text-right font-semibold text-gray-700">Total Registrations</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {registrationStats.registrationsByEvent.map((stat) => (
+                          <tr
+                            key={stat.eventId}
+                            className="border-b hover:bg-gray-50 cursor-pointer"
+                            onClick={() => setSelectedEventForStats(stat.eventId)}
+                          >
+                            <td className="px-4 py-3">
+                              <SafeText>{stat.eventName}</SafeText>
+                            </td>
+                            <td className="px-4 py-3 text-right font-medium">
+                              {stat.totalRegistrations}
+                            </td>
+                          </tr>
+                        ))}
+                        {registrationStats.registrationsByEvent.length === 0 && (
+                          <tr>
+                            <td colSpan={2} className="px-4 py-8 text-center text-gray-500">
+                              No registration data available
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                {selectedEventForStats !== "all" && (
+                  <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+                    <p className="text-sm text-blue-800">
+                      <strong>Total:</strong> {registrationStats.totalRegistrations} registration(s) for selected event
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Charts Row 2 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
           {/* Events Over Time */}
@@ -412,7 +650,7 @@ export default function AdminAnalytics() {
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={300}>
-                <LineChart data={monthlyData}>
+                <RechartsLineChart data={monthlyData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="name" />
                   <YAxis />
@@ -425,7 +663,7 @@ export default function AdminAnalytics() {
                     strokeWidth={2}
                     name="Events"
                   />
-                </LineChart>
+                </RechartsLineChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
