@@ -49,6 +49,8 @@ function mapEventToFrontend(
     checkedIn,
     registrationStart: event.registrationStart,
     registrationEnd: event.registrationEnd,
+    createdAt: event.createdAt,
+    updatedAt: event.updatedAt,
   };
 }
 

@@ -1,9 +1,17 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Link } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Select,
   SelectContent,
@@ -27,6 +35,11 @@ import {
   Edit,
   Trash2,
   Plus,
+  Grid3x3,
+  List,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -70,6 +83,9 @@ export default function AdminUsersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [viewMode, setViewMode] = useState<"card" | "table">("table");
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [currentPage, setCurrentPage] = useState(1);
   const usersPerPage = 20;
 
@@ -84,7 +100,7 @@ export default function AdminUsersPage() {
   const isFaculty = admin?.role === "faculty";
 
   const filteredUsers = useMemo(() => {
-    return users.filter((user) => {
+    let filtered = users.filter((user) => {
       const matchesSearch =
         !searchQuery ||
         user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -98,7 +114,59 @@ export default function AdminUsersPage() {
 
       return matchesSearch && matchesRole && matchesStatus;
     });
-  }, [users, searchQuery, roleFilter, statusFilter]);
+
+    // Apply sorting if sortColumn is set
+    if (sortColumn && viewMode === "table") {
+      return [...filtered].sort((a, b) => {
+        let comparison = 0;
+        
+        switch (sortColumn) {
+          case "name":
+            comparison = a.name.localeCompare(b.name);
+            break;
+          case "email":
+            comparison = a.email.localeCompare(b.email);
+            break;
+          case "role":
+            comparison = a.role.localeCompare(b.role);
+            break;
+          case "status":
+            comparison = a.status.localeCompare(b.status);
+            break;
+          case "department":
+            comparison = (a.department || "").localeCompare(b.department || "");
+            break;
+          case "designation":
+            comparison = (a.designation || "").localeCompare(b.designation || "");
+            break;
+          case "phone":
+            comparison = (a.phone || "").localeCompare(b.phone || "");
+            break;
+          case "year":
+            comparison = (a.year || "").localeCompare(b.year || "");
+            break;
+          case "createdAt":
+            const aCreated = (a as any).createdAt || a.joinedDate;
+            const bCreated = (b as any).createdAt || b.joinedDate;
+            const aCreatedTime = aCreated ? new Date(aCreated).getTime() : 0;
+            const bCreatedTime = bCreated ? new Date(bCreated).getTime() : 0;
+            comparison = aCreatedTime - bCreatedTime;
+            break;
+          case "updatedAt":
+            const aUpdated = (a as any).updatedAt ? new Date((a as any).updatedAt).getTime() : 0;
+            const bUpdated = (b as any).updatedAt ? new Date((b as any).updatedAt).getTime() : 0;
+            comparison = aUpdated - bUpdated;
+            break;
+          default:
+            return 0;
+        }
+        
+        return sortDirection === "asc" ? comparison : -comparison;
+      });
+    }
+
+    return filtered;
+  }, [users, searchQuery, roleFilter, statusFilter, sortColumn, sortDirection, viewMode]);
 
   // Statistics
   const stats = useMemo(() => {
@@ -116,6 +184,41 @@ export default function AdminUsersPage() {
       visitorCount,
     };
   }, [users]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, roleFilter, statusFilter, sortColumn, sortDirection]);
+  
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      // Toggle direction if clicking same column
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      // Set new column and default to ascending
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
+  
+  const SortableHeader = ({ column, children }: { column: string; children: React.ReactNode }) => {
+    const isSorted = sortColumn === column;
+    return (
+      <th className="sticky top-0 z-20 bg-white h-12 px-4 text-left align-middle font-medium text-muted-foreground cursor-pointer hover:bg-gray-50 select-none border-b-2 border-gray-200" onClick={() => handleSort(column)}>
+        <div className="flex items-center gap-2">
+          {children}
+          {isSorted ? (
+            sortDirection === "asc" ? (
+              <ArrowUp className="h-4 w-4" />
+            ) : (
+              <ArrowDown className="h-4 w-4" />
+            )
+          ) : (
+            <ArrowUpDown className="h-4 w-4 text-gray-400" />
+          )}
+        </div>
+      </th>
+    );
+  };
 
   // Check if user has admin role - must be after all hooks
   if (!isAdmin) {
@@ -322,7 +425,7 @@ export default function AdminUsersPage() {
 
       {/* Header */}
       <div className="bg-white border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
@@ -337,7 +440,7 @@ export default function AdminUsersPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <Card
@@ -480,8 +583,36 @@ export default function AdminUsersPage() {
           </CardContent>
         </Card>
 
-        {/* Users Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        {/* View Mode Toggle */}
+        <div className="mb-6 flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-gray-900">
+            Users ({filteredUsers.length})
+          </h2>
+          <div className="flex items-center gap-2">
+            <Button
+              variant={viewMode === "card" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewMode("card")}
+              className="gap-2"
+            >
+              <Grid3x3 className="h-4 w-4" />
+              Cards
+            </Button>
+            <Button
+              variant={viewMode === "table" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewMode("table")}
+              className="gap-2"
+            >
+              <List className="h-4 w-4" />
+              Table
+            </Button>
+          </div>
+        </div>
+
+        {/* Users Grid or Table */}
+        {viewMode === "card" ? (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {currentUsers.map((user) => (
             <Card key={user.id} className="hover:shadow-lg transition-shadow">
               <CardHeader className="pb-4">
@@ -581,6 +712,130 @@ export default function AdminUsersPage() {
             </Card>
           ))}
         </div>
+        ) : (
+          <Card className="shadow-lg w-full">
+            <CardContent className="p-0">
+              <div className="w-full max-h-[calc(100vh-300px)] overflow-auto">
+                <table className="w-full caption-bottom text-sm border-collapse">
+                  <thead className="sticky top-0 z-20 bg-white border-b-2 border-gray-200 shadow-sm">
+                    <tr className="border-b transition-colors hover:bg-muted/50">
+                      <SortableHeader column="name">Name</SortableHeader>
+                      <SortableHeader column="email">Email</SortableHeader>
+                      <SortableHeader column="role">Role</SortableHeader>
+                      <SortableHeader column="status">Status</SortableHeader>
+                      <SortableHeader column="department">Department</SortableHeader>
+                      <SortableHeader column="designation">Designation</SortableHeader>
+                      <SortableHeader column="phone">Phone</SortableHeader>
+                      <SortableHeader column="year">Year</SortableHeader>
+                      <SortableHeader column="createdAt">Joined Date</SortableHeader>
+                      <SortableHeader column="updatedAt">Updated At</SortableHeader>
+                      <th className="sticky top-0 z-20 bg-white h-12 px-4 text-left align-middle font-medium text-muted-foreground min-w-[150px] border-b-2 border-gray-200">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="[&_tr:last-child]:border-0">
+                    {currentUsers.map((user) => {
+                      const formatTimestamp = (timestamp?: string) => {
+                        if (!timestamp) return "N/A";
+                        try {
+                          return new Date(timestamp).toLocaleString("vi-VN", {
+                            year: "numeric",
+                            month: "2-digit",
+                            day: "2-digit",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          });
+                        } catch {
+                          return "N/A";
+                        }
+                      };
+                      
+                      const createdAt = formatTimestamp((user as any).createdAt || user.joinedDate);
+                      const updatedAt = formatTimestamp((user as any).updatedAt);
+                      
+                      return (
+                        <tr key={user.id} className="border-b transition-colors hover:bg-muted/50">
+                          <td className="p-4 align-middle font-medium">
+                            <SafeText>{user.name}</SafeText>
+                          </td>
+                          <td className="p-4 align-middle">
+                            <SafeText>{user.email}</SafeText>
+                          </td>
+                          <td className="p-4 align-middle">
+                            <Badge
+                              variant="outline"
+                              className={getRoleColor(user.role)}
+                            >
+                              {user.role.charAt(0).toUpperCase() +
+                                user.role.slice(1)}
+                            </Badge>
+                          </td>
+                          <td className="p-4 align-middle">
+                            <Badge
+                              variant="outline"
+                              className={getStatusColor(user.status)}
+                            >
+                              {user.status.charAt(0).toUpperCase() +
+                                user.status.slice(1)}
+                            </Badge>
+                          </td>
+                          <td className="p-4 align-middle">
+                            <SafeText>{user.department || "N/A"}</SafeText>
+                          </td>
+                          <td className="p-4 align-middle">
+                            <SafeText>{user.designation || "N/A"}</SafeText>
+                          </td>
+                          <td className="p-4 align-middle">
+                            <SafeText>{user.phone || "N/A"}</SafeText>
+                          </td>
+                          <td className="p-4 align-middle">
+                            {user.year || "N/A"}
+                          </td>
+                          <td className="p-4 align-middle text-sm">
+                            {createdAt}
+                          </td>
+                          <td className="p-4 align-middle text-sm">
+                            {updatedAt}
+                          </td>
+                          <td className="p-4 align-middle">
+                            <div className="flex gap-1">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleViewUser(user)}
+                                className="h-8 px-2"
+                                title="View Detail"
+                              >
+                                <Eye className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditUser(user)}
+                                className="h-8 px-2"
+                                title="Edit"
+                              >
+                                <Edit className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDeleteClick(user)}
+                                className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                title="Delete"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Pagination */}
         {totalPages > 1 && (

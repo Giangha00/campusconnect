@@ -47,6 +47,8 @@ export interface Event {
   checkedIn: number;
   registrationStart?: string;
   registrationEnd?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 // ==================== Users Types ====================

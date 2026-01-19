@@ -18,6 +18,14 @@ import { formatDate } from "@/lib/date-utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SafeText } from "@/components/common/safe-text";
 import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { DateInput } from "@/components/ui/date-input";
 import { Badge } from "@/components/ui/badge";
@@ -68,6 +76,12 @@ import {
   Plus,
   Download,
   ExternalLink,
+  Grid3x3,
+  List,
+  Eye,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import { AdminNavbar } from "@/components/admin/admin-navbar";
 
@@ -92,6 +106,9 @@ export default function AdminEventsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
+  const [viewMode, setViewMode] = useState<"card" | "table">("table");
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [eventToDelete, setEventToDelete] = useState<any>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
@@ -123,7 +140,8 @@ export default function AdminEventsPage() {
     minute: "00",
     period: "PM",
   });
-  const eventsPerPage = 6;
+  const eventsPerPageTable = 20; // For table view
+  const eventsPerPageCard = 20; // For card view (4x5 grid)
 
   // Check if user can create events (Admin or Faculty)
   const isAdmin = !!admin;
@@ -245,7 +263,38 @@ export default function AdminEventsPage() {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [query, startDate, endDate, statusFilter]);
+  }, [query, startDate, endDate, statusFilter, sortColumn, sortDirection, viewMode]);
+  
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      // Toggle direction if clicking same column
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      // Set new column and default to ascending
+      setSortColumn(column);
+      setSortDirection("asc");
+    }
+  };
+  
+  const SortableHeader = ({ column, children }: { column: string; children: React.ReactNode }) => {
+    const isSorted = sortColumn === column;
+    return (
+      <th className="sticky top-0 z-20 bg-white h-12 px-4 text-left align-middle font-medium text-muted-foreground cursor-pointer hover:bg-gray-50 select-none border-b-2 border-gray-200" onClick={() => handleSort(column)}>
+        <div className="flex items-center gap-2">
+          {children}
+          {isSorted ? (
+            sortDirection === "asc" ? (
+              <ArrowUp className="h-4 w-4" />
+            ) : (
+              <ArrowDown className="h-4 w-4" />
+            )
+          ) : (
+            <ArrowUpDown className="h-4 w-4 text-gray-400" />
+          )}
+        </div>
+      </th>
+    );
+  };
 
   const allEventsWithStatus = useMemo(() => {
     return eventsData.map((event) => {
@@ -276,7 +325,68 @@ export default function AdminEventsPage() {
       return matchesQuery && matchesDate && matchesStatus;
     });
 
-    // Sort by status: ongoing -> upcoming -> incoming -> completed
+    // Apply sorting if sortColumn is set
+    if (sortColumn && viewMode === "table") {
+      return [...filtered].sort((a, b) => {
+        let comparison = 0;
+        
+        switch (sortColumn) {
+          case "name":
+            comparison = a.name.localeCompare(b.name);
+            break;
+          case "dateStart":
+            comparison = new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime();
+            break;
+          case "dateEnd":
+            comparison = new Date(a.dateEnd).getTime() - new Date(b.dateEnd).getTime();
+            break;
+          case "category":
+            comparison = a.category.localeCompare(b.category);
+            break;
+          case "status":
+            const statusOrder: Record<string, number> = {
+              ongoing: 1,
+              upcoming: 2,
+              incoming: 3,
+              completed: 4,
+            };
+            comparison = (statusOrder[a.status] || 999) - (statusOrder[b.status] || 999);
+            break;
+          case "registrations":
+            const aCount = a.attendees || 0;
+            const bCount = b.attendees || 0;
+            comparison = aCount - bCount;
+            break;
+          case "checkin":
+            const aCheckIn = a.checkedIn || 0;
+            const bCheckIn = b.checkedIn || 0;
+            comparison = aCheckIn - bCheckIn;
+            break;
+          case "organizer":
+            comparison = a.organizer.localeCompare(b.organizer);
+            break;
+          case "department":
+            comparison = (a.department || "").localeCompare(b.department || "");
+            break;
+          case "createdAt":
+            const aCreated = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const bCreated = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            comparison = aCreated - bCreated;
+            break;
+          case "updatedAt":
+            const aUpdated = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+            const bUpdated = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+            comparison = aUpdated - bUpdated;
+            break;
+          default:
+            return 0;
+        }
+        
+        return sortDirection === "asc" ? comparison : -comparison;
+      });
+    }
+
+    // Default sort by status: ongoing -> upcoming -> incoming -> completed
     // Then by dateStart from nearest to farthest within same status
     const statusOrder: Record<string, number> = {
       ongoing: 1,
@@ -295,14 +405,15 @@ export default function AdminEventsPage() {
 
       return new Date(a.dateStart).getTime() - new Date(b.dateStart).getTime();
     });
-  }, [allEventsWithStatus, query, startDate, endDate, statusFilter]);
+  }, [allEventsWithStatus, query, startDate, endDate, statusFilter, sortColumn, sortDirection, viewMode]);
 
   // Pagination logic
+  const eventsPerPage = viewMode === "table" ? eventsPerPageTable : eventsPerPageCard;
   const indexOfLastEvent = currentPage * eventsPerPage;
   const indexOfFirstEvent = indexOfLastEvent - eventsPerPage;
   const currentEvents = useMemo(() => {
     return events.slice(indexOfFirstEvent, indexOfLastEvent);
-  }, [events, currentPage]);
+  }, [events, currentPage, eventsPerPage]);
 
   const totalPages = Math.ceil(events.length / eventsPerPage);
 
@@ -1316,7 +1427,7 @@ export default function AdminEventsPage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="w-full px-4 sm:px-6 lg:px-8 py-8">
         {/* Stats Section */}
         <div className="mb-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card
@@ -1523,8 +1634,36 @@ export default function AdminEventsPage() {
           </CardContent>
         </Card>
 
-        {/* Events Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* View Mode Toggle */}
+        <div className="mb-6 flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-gray-900">
+            Events ({events.length})
+          </h2>
+          <div className="flex items-center gap-2">
+            <Button
+              variant={viewMode === "card" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewMode("card")}
+              className="gap-2"
+            >
+              <Grid3x3 className="h-4 w-4" />
+              Cards
+            </Button>
+            <Button
+              variant={viewMode === "table" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewMode("table")}
+              className="gap-2"
+            >
+              <List className="h-4 w-4" />
+              Table
+            </Button>
+          </div>
+        </div>
+
+        {/* Events Grid or Table */}
+        {viewMode === "card" ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {currentEvents.map((event) => {
             const count = event.attendees || 0;
             const isOpen = !!expanded[event.id];
@@ -1869,6 +2008,169 @@ export default function AdminEventsPage() {
             );
           })}
         </div>
+        ) : (
+          <Card className="shadow-lg w-full">
+            <CardContent className="p-0">
+              <div className="w-full max-h-[calc(100vh-300px)] overflow-auto">
+                <table className="w-full caption-bottom text-sm border-collapse">
+                  <thead className="sticky top-0 z-20 bg-white border-b-2 border-gray-200 shadow-sm">
+                    <tr className="border-b transition-colors hover:bg-muted/50">
+                      <SortableHeader column="name">Event Name</SortableHeader>
+                      <SortableHeader column="dateStart">Start Date/Time</SortableHeader>
+                      <SortableHeader column="dateEnd">End Date/Time</SortableHeader>
+                      <SortableHeader column="category">Category</SortableHeader>
+                      <SortableHeader column="status">Status</SortableHeader>
+                      <SortableHeader column="registrations">Registrations</SortableHeader>
+                      <SortableHeader column="checkin">Check-in</SortableHeader>
+                      <SortableHeader column="organizer">Organizer</SortableHeader>
+                      <SortableHeader column="department">Department</SortableHeader>
+                      <SortableHeader column="createdAt">Created At</SortableHeader>
+                      <SortableHeader column="updatedAt">Updated At</SortableHeader>
+                      <th className="sticky top-0 z-20 bg-white h-12 px-4 text-left align-middle font-medium text-muted-foreground min-w-[150px] border-b-2 border-gray-200">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="[&_tr:last-child]:border-0">
+                    {currentEvents.map((event) => {
+                      const count = event.attendees || 0;
+                      const checkInCount = event.checkedIn || 0;
+                      const capacity = event.capacity && typeof event.capacity === "number" ? event.capacity : null;
+                      const registrationRate = capacity && capacity > 0 ? ((count / capacity) * 100).toFixed(1) : "N/A";
+                      const checkInRate = count > 0 ? ((checkInCount / count) * 100).toFixed(1) : "0";
+                      
+                      // Format dates
+                      const formatDateTime = (dateStr: string, timeStr?: string) => {
+                        const date = formatDate(dateStr);
+                        if (timeStr) {
+                          return `${date} ${timeStr}`;
+                        }
+                        return date;
+                      };
+                      
+                      const timeParts = event.time.split(" - ");
+                      const startDateTime = formatDateTime(event.dateStart, timeParts[0] || event.time);
+                      const endDateTime = formatDateTime(event.dateEnd, timeParts[1] || event.time);
+                      
+                      // Format timestamps
+                      const formatTimestamp = (timestamp?: string) => {
+                        if (!timestamp) return "N/A";
+                        try {
+                          return new Date(timestamp).toLocaleString("vi-VN", {
+                            year: "numeric",
+                            month: "2-digit",
+                            day: "2-digit",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          });
+                        } catch {
+                          return "N/A";
+                        }
+                      };
+                      
+                      const createdAt = formatTimestamp(event.createdAt);
+                      const updatedAt = formatTimestamp(event.updatedAt);
+                      
+                      return (
+                        <tr key={event.id} className="border-b transition-colors hover:bg-muted/50">
+                          <td className="p-4 align-middle font-medium">
+                            <SafeText>{event.name}</SafeText>
+                          </td>
+                          <td className="p-4 align-middle text-sm">
+                            {startDateTime}
+                          </td>
+                          <td className="p-4 align-middle text-sm">
+                            {endDateTime}
+                          </td>
+                          <td className="p-4 align-middle">
+                            <Badge
+                              variant="secondary"
+                              className="bg-blue-100 text-blue-800"
+                            >
+                              {event.category.charAt(0).toUpperCase() +
+                                event.category.slice(1)}
+                            </Badge>
+                          </td>
+                          <td className="p-4 align-middle">
+                            <Badge
+                              variant="outline"
+                              className={`${getStatusColor(event.status)} border`}
+                            >
+                              {getStatusLabel(event.status)}
+                            </Badge>
+                          </td>
+                          <td className="p-4 align-middle">
+                            <div className="text-sm">
+                              <div>
+                                {capacity ? `${count}/${capacity}` : count}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {registrationRate !== "N/A" ? `${registrationRate}%` : "No limit"}
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-4 align-middle">
+                            <div className="text-sm">
+                              <div>{checkInCount}/{count}</div>
+                              <div className="text-xs text-gray-500">
+                                {checkInRate}%
+                              </div>
+                            </div>
+                          </td>
+                          <td className="p-4 align-middle">
+                            <SafeText>{event.organizer}</SafeText>
+                          </td>
+                          <td className="p-4 align-middle">
+                            <SafeText>{event.department || "N/A"}</SafeText>
+                          </td>
+                          <td className="p-4 align-middle text-sm">
+                            {createdAt}
+                          </td>
+                          <td className="p-4 align-middle text-sm">
+                            {updatedAt}
+                          </td>
+                          <td className="p-4 align-middle">
+                            <div className="flex gap-1">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setLocation(`/admin/dashboard/events/${event.id}`)}
+                                className="h-8 px-2"
+                                title="View Detail"
+                              >
+                                <Eye className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEditEvent(event.id)}
+                                disabled={
+                                  event.status === "completed" ||
+                                  event.status === "ongoing"
+                                }
+                                className="h-8 px-2"
+                                title="Edit"
+                              >
+                                <Edit className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleDeleteEvent(event)}
+                                className="h-8 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                title="Delete"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Pagination Controls */}
         {totalPages > 1 && (
