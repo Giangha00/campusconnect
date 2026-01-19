@@ -1,6 +1,11 @@
 import * as React from "react";
 import { Input } from "./input";
+import { Button } from "./button";
+import { Calendar } from "./calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "./popover";
+import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { format } from "date-fns";
 
 /**
  * Converts YYYY-MM-DD format to dd/mm/YYYY format
@@ -86,22 +91,31 @@ interface DateInputProps extends Omit<React.ComponentProps<"input">, "type" | "v
   value?: string; // YYYY-MM-DD format
   onChange?: (value: string) => void; // Returns YYYY-MM-DD format
   onBlur?: (e: React.FocusEvent<HTMLInputElement>) => void;
+  showPicker?: boolean; // Show calendar picker (default: true)
 }
 
 const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(
-  ({ className, value, onChange, onBlur, placeholder = "dd/mm/yyyy", ...props }, ref) => {
+  ({ className, value, onChange, onBlur, placeholder = "dd/mm/yyyy", showPicker = true, ...props }, ref) => {
     const [displayValue, setDisplayValue] = React.useState<string>("");
+    const [selectedDate, setSelectedDate] = React.useState<Date | undefined>(undefined);
+    const [isOpen, setIsOpen] = React.useState(false);
     const inputRef = React.useRef<HTMLInputElement>(null);
     
     // Combine refs
     React.useImperativeHandle(ref, () => inputRef.current as HTMLInputElement);
     
-    // Update display value when value prop changes
+    // Update display value and selected date when value prop changes
     React.useEffect(() => {
       if (value) {
         setDisplayValue(formatToDisplay(value));
+        // Parse YYYY-MM-DD to Date object
+        const [year, month, day] = value.split("-").map(Number);
+        if (year && month && day) {
+          setSelectedDate(new Date(year, month - 1, day));
+        }
       } else {
         setDisplayValue("");
+        setSelectedDate(undefined);
       }
     }, [value]);
     
@@ -208,6 +222,59 @@ const DateInput = React.forwardRef<HTMLInputElement, DateInputProps>(
       
       onBlur?.(e);
     };
+
+    const handleDateSelect = (date: Date | undefined) => {
+      if (date) {
+        setSelectedDate(date);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        const formatted = `${day}/${month}/${year}`;
+        setDisplayValue(formatted);
+        const converted = `${year}-${month}-${day}`;
+        onChange?.(converted);
+        setIsOpen(false);
+      }
+    };
+    
+    if (showPicker) {
+      return (
+        <div className={cn("flex gap-2", className)}>
+          <Popover open={isOpen} onOpenChange={setIsOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="icon"
+                className="h-10 w-10"
+                type="button"
+                title="Chọn ngày từ lịch"
+              >
+                <CalendarIcon className="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={handleDateSelect}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+          <Input
+            ref={inputRef}
+            type="text"
+            value={displayValue}
+            onChange={handleChange}
+            onBlur={handleBlur}
+            placeholder={placeholder}
+            className="flex-1"
+            maxLength={10}
+            {...props}
+          />
+        </div>
+      );
+    }
     
     return (
       <Input

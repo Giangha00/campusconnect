@@ -113,12 +113,89 @@ export default function AdminEventsPage() {
     registrationStart: "",
     registrationEnd: "",
   });
+  const [startTime, setStartTime] = useState({
+    hour: "10",
+    minute: "00",
+    period: "AM",
+  });
+  const [endTime, setEndTime] = useState({
+    hour: "6",
+    minute: "00",
+    period: "PM",
+  });
   const eventsPerPage = 6;
 
   // Check if user can create events (Admin or Faculty)
   const isAdmin = !!admin;
   const isFaculty = user?.role === "faculty";
   const canCreateEvents = isAdmin || isFaculty;
+
+  // Helper function to parse time string and extract start/end times
+  const parseTimeToState = (timeString: string | null | undefined) => {
+    if (!timeString) {
+      return {
+        start: { hour: "10", minute: "00", period: "AM" },
+        end: { hour: "6", minute: "00", period: "PM" },
+      };
+    }
+
+    // Match full time range format: "10:00 AM - 6:00 PM"
+    const timeRangePattern =
+      /(\d{1,2}):(\d{2})\s*(AM|PM)\s*-\s*(\d{1,2}):(\d{2})\s*(AM|PM)/i;
+    const rangeMatch = timeString.match(timeRangePattern);
+
+    if (rangeMatch) {
+      return {
+        start: {
+          hour: rangeMatch[1],
+          minute: rangeMatch[2],
+          period: rangeMatch[3].toUpperCase(),
+        },
+        end: {
+          hour: rangeMatch[4],
+          minute: rangeMatch[5],
+          period: rangeMatch[6].toUpperCase(),
+        },
+      };
+    }
+
+    // Match single time format: "08:00 AM"
+    const singleTimePattern = /(\d{1,2}):(\d{2})\s*(AM|PM)/i;
+    const singleMatch = timeString.match(singleTimePattern);
+
+    if (singleMatch) {
+      return {
+        start: {
+          hour: singleMatch[1],
+          minute: singleMatch[2],
+          period: singleMatch[3].toUpperCase(),
+        },
+        end: { hour: "11", minute: "59", period: "PM" },
+      };
+    }
+
+    // Default values if parsing fails
+    return {
+      start: { hour: "10", minute: "00", period: "AM" },
+      end: { hour: "6", minute: "00", period: "PM" },
+    };
+  };
+
+  // Helper function to format time state to string
+  const formatTimeToString = (start: any, end: any): string => {
+    const startStr = `${start.hour}:${start.minute} ${start.period}`;
+    const endStr = `${end.hour}:${end.minute} ${end.period}`;
+    return `${startStr} - ${endStr}`;
+  };
+
+  // Update time string when startTime or endTime changes
+  useEffect(() => {
+    const timeString = formatTimeToString(startTime, endTime);
+    setNewEvent((prev) => ({
+      ...prev,
+      time: timeString,
+    }));
+  }, [startTime, endTime]);
 
   // Fetch admins list when admin is logged in
   useEffect(() => {
@@ -560,6 +637,16 @@ export default function AdminEventsPage() {
         registrationStart: "",
         registrationEnd: "",
       });
+      setStartTime({
+        hour: "10",
+        minute: "00",
+        period: "AM",
+      });
+      setEndTime({
+        hour: "6",
+        minute: "00",
+        period: "PM",
+      });
       clearAllErrors();
       setShowCreateDialog(false);
     } catch (error) {
@@ -578,6 +665,18 @@ export default function AdminEventsPage() {
       [field]: value,
     }));
     clearError(`event-${field}`);
+  };
+
+  const handleTimeChange = (
+    type: "start" | "end",
+    field: "hour" | "minute" | "period",
+    value: string
+  ) => {
+    if (type === "start") {
+      setStartTime((prev) => ({ ...prev, [field]: value }));
+    } else {
+      setEndTime((prev) => ({ ...prev, [field]: value }));
+    }
   };
 
   const handleInputBlur = (field: string, value: any) => {
@@ -696,6 +795,16 @@ export default function AdminEventsPage() {
       capacity: "",
       registrationStart: "",
       registrationEnd: "",
+    });
+    setStartTime({
+      hour: "10",
+      minute: "00",
+      period: "AM",
+    });
+    setEndTime({
+      hour: "6",
+      minute: "00",
+      period: "PM",
     });
     if (isAdmin && admin?.id) {
       setSelectedOrganizerId(admin.id);
@@ -843,16 +952,123 @@ export default function AdminEventsPage() {
                       Time
                     </Label>
                     <div className="col-span-3">
-                      <Input
-                        id="time"
-                        value={newEvent.time}
-                        onChange={(e) =>
-                          handleInputChange("time", e.target.value)
-                        }
-                        onBlur={(e) => handleInputBlur("time", e.target.value)}
-                        className={errors["event-time"] ? "border-red-500" : ""}
-                        placeholder="e.g., 10:00 AM - 6:00 PM"
-                      />
+                      <div className="flex flex-wrap gap-2 items-center">
+                        {/* Start Time */}
+                        <div className="flex gap-1 items-center">
+                          <Input
+                            type="number"
+                            min="1"
+                            max="12"
+                            value={startTime.hour}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (
+                                val === "" ||
+                                (parseInt(val) >= 1 && parseInt(val) <= 12)
+                              ) {
+                                handleTimeChange("start", "hour", val);
+                              }
+                            }}
+                            className="w-16 text-center px-2 text-base"
+                            placeholder="HH"
+                            style={{ minWidth: "64px" }}
+                          />
+                          <span className="text-gray-500">:</span>
+                          <Input
+                            type="number"
+                            min="0"
+                            max="59"
+                            value={startTime.minute}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (
+                                val === "" ||
+                                (parseInt(val) >= 0 && parseInt(val) <= 59)
+                              ) {
+                                handleTimeChange(
+                                  "start",
+                                  "minute",
+                                  val.padStart(2, "0")
+                                );
+                              }
+                            }}
+                            className="w-16 text-center px-2 text-base"
+                            placeholder="MM"
+                            style={{ minWidth: "64px" }}
+                          />
+                          <Select
+                            value={startTime.period}
+                            onValueChange={(value) =>
+                              handleTimeChange("start", "period", value)
+                            }>
+                            <SelectTrigger className="w-[70px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="AM">AM</SelectItem>
+                              <SelectItem value="PM">PM</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <span className="text-gray-500">-</span>
+                        {/* End Time */}
+                        <div className="flex gap-1 items-center">
+                          <Input
+                            type="number"
+                            min="1"
+                            max="12"
+                            value={endTime.hour}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (
+                                val === "" ||
+                                (parseInt(val) >= 1 && parseInt(val) <= 12)
+                              ) {
+                                handleTimeChange("end", "hour", val);
+                              }
+                            }}
+                            className="w-16 text-center px-2 text-base"
+                            placeholder="HH"
+                            style={{ minWidth: "64px" }}
+                          />
+                          <span className="text-gray-500">:</span>
+                          <Input
+                            type="number"
+                            min="0"
+                            max="59"
+                            value={endTime.minute}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              if (
+                                val === "" ||
+                                (parseInt(val) >= 0 && parseInt(val) <= 59)
+                              ) {
+                                handleTimeChange(
+                                  "end",
+                                  "minute",
+                                  val.padStart(2, "0")
+                                );
+                              }
+                            }}
+                            className="w-16 text-center px-2 text-base"
+                            placeholder="MM"
+                            style={{ minWidth: "64px" }}
+                          />
+                          <Select
+                            value={endTime.period}
+                            onValueChange={(value) =>
+                              handleTimeChange("end", "period", value)
+                            }>
+                            <SelectTrigger className="w-[70px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="AM">AM</SelectItem>
+                              <SelectItem value="PM">PM</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
                       {errors["event-time"] && (
                         <p className="text-sm text-red-500 mt-1">
                           {errors["event-time"]}
